@@ -96,7 +96,7 @@ export default function ProjectsPage() {
                     </div>
                 </div>
                 {/* <!-- Filter Tabs --> */}
-                <div className="mt-6">
+                {/* <div className="mt-6">
                     <div className="border-b border-gray-200">
                         <nav className="-mb-px flex space-x-6 overflow-x-auto">
                             <a href="#" className="flex items-center py-2 px-1 border-b-2 border-purple-600 text-purple-600 font-semibold text-sm whitespace-nowrap">All Invoices</a>
@@ -105,7 +105,7 @@ export default function ProjectsPage() {
                             <a href="#" className="flex items-center py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm whitespace-nowrap">Unspecified Invoices</a>
                         </nav>
                     </div>
-                </div>
+                </div> */}
               
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
@@ -115,7 +115,7 @@ export default function ProjectsPage() {
                                     <th className="p-4 text-sm w-12"><input type="checkbox" className="rounded border-gray-300"/></th>
                                     <th  scope="col" className="px-6 py-4 ">Invoice #</th>
                                     <th  scope="col" className="px-6 py-4 ">Customer</th>
-                                    <th  scope="col" className="px-6 py-4 ">Source</th>
+                                    {/* <th  scope="col" className="px-6 py-4 ">Source</th> */}
                                     <th  scope="col" className="px-6 py-4 ">Issue Date</th>
                                     <th  scope="col" className="px-6 py-4 ">Due Date</th>
                                     <th  scope="col" className="px-6 py-4 ">Amount</th>
@@ -128,7 +128,7 @@ export default function ProjectsPage() {
                                     <td className="p-4"><input type="checkbox" className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" /></td>
                                     <td className="px-6 py-4 font-semibold text-gray-900">#INV-001</td>
                                     <td className="px-6 py-4 text-gray-600">Chioma Nwosu</td>
-                                    <td className="px-6 py-4 text-gray-600">Project</td>
+                                    {/* <td className="px-6 py-4 text-gray-600">Project</td> */}
                                     <td className="px-6 py-4 text-gray-600">July 15, 2024</td>
                                     <td className="px-6 py-4 text-gray-600">July 30, 2024</td>
                                     <td className="px-6 py-4 font-semibold text-gray-800">₦225,000</td>
@@ -141,7 +141,7 @@ export default function ProjectsPage() {
                                     <td className="p-4"><input type="checkbox" className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" /></td>
                                     <td className="px-6 py-4 font-semibold text-gray-900">#INV-002</td>
                                     <td className="px-6 py-4 text-gray-600">Bolanle Adebayo</td>
-                                    <td className="px-6 py-4 text-gray-600">Order</td>
+                                    {/* <td className="px-6 py-4 text-gray-600">Order</td> */}
                                     <td className="px-6 py-4 text-gray-600">July 18, 2024</td>
                                     <td className="px-6 py-4 text-gray-600">August 02, 2024</td>
                                     <td className="px-6 py-4 font-semibold text-gray-800">₦150,000</td>
@@ -154,7 +154,7 @@ export default function ProjectsPage() {
                                     <td className="p-4"><input type="checkbox" className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" /></td>
                                     <td className="px-6 py-4 font-semibold text-gray-900">#INV-003</td>
                                     <td className="px-6 py-4 text-gray-600">Musa Ibrahim</td>
-                                    <td className="px-6 py-4 text-gray-600">Unspecified</td>
+                                    {/* <td className="px-6 py-4 text-gray-600">Unspecified</td> */}
                                     <td className="px-6 py-4 text-gray-600">June 10, 2024</td>
                                     <td className="px-6 py-4 text-gray-600">June 25, 2024</td>
                                     <td className="px-6 py-4 font-semibold text-gray-800">₦150,000</td>

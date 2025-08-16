@@ -49,7 +49,6 @@ export default function CreateAppointment() {
                                 </div>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only"/>
                             </div>
-                            <p className="mt-4 text-lg font-semibold text-gray-800">Chief Joshua Akporowho Denila</p>
                         </div>
 
                         {/* <!-- Step 2: Choose Destination Folder --> */}

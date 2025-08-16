@@ -25,38 +25,43 @@ export default function CreateTransaction() {
                     <form className="space-y-8">
                         
                         {/* <!-- From / To Section --> */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
+                            {/* <div>
                                 <h3 className="font-semibold text-gray-800">From</h3>
                                 <p className="text-gray-600">Ervop Fashion House</p>
                                 <p className="text-sm text-gray-500">123 Allen Avenue, Ikeja, Lagos</p>
-                            </div>
+                            </div> */}
                             <div>
                                 <h3 className="font-semibold text-gray-800 mb-2">To</h3>
-                                <button type="button" className="w-full flex justify-between items-center text-left border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-500 hover:border-purple-500">
-                                    <span>Select a customer</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                <select id="service" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <option>In-Progress</option>
+                                    <option>On-Hold</option>
+                                    <option>Completed</option>
+                                </select>
                             </div>
                         </div>
 
                         {/* <!-- Invoice htmlFor Section --> */}
-                        <div className="border-t pt-6">
+                        {/* <div className="border-t pt-6">
                              <label className="block text-sm font-medium text-gray-700 mb-2">This invoice is For:</label>
                              <div className="flex items-center gap-x-6">
                                 <div className="flex items-center"><input id="For-project" name="invoice-For" type="radio" checked className="h-5 w-5 accent-purple-600 border-gray-300 focus:ring-purple-500" /><label htmlFor="htmlFor-project" className="ml-2 block text-sm text-gray-900">A Project</label></div>
                                 <div className="flex items-center"><input id="For-order" name="invoice-For" type="radio" className="h-5 w-5 accent-purple-600 border-gray-300 focus:ring-purple-500" /><label htmlFor="htmlFor-order" className="ml-2 block text-sm text-gray-900">An Order</label></div>
                                 <div className="flex items-center"><input id="For-unspecified" name="invoice-For" type="radio" className="h-5 w-5 accent-purple-600 border-gray-300 focus:ring-purple-500" /><label htmlFor="htmlFor-unspecified" className="ml-2 block text-sm text-gray-900">Unspecified</label></div>
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* <!-- Conditional Project/Order Selection --> */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Project</label>
-                            <button type="button" className="w-full flex justify-between items-center text-left border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-500 hover:border-purple-500">
-                                <span>Select a project</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                            </button>
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                            <div>
+                                <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">Link to Project</label>
+                                <select id="service" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <option>In-Progress</option>
+                                    <option>On-Hold</option>
+                                    <option>Completed</option>
+                                </select>
+                            </div>
+                             
                         </div>
 
 

@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { 
     Package, ShoppingCart, BarChart2, Tag, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2, Plus, 
     LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, ArrowLeftRight, CreditCard,
-    Megaphone, Wallet, Palette, Settings,
+    Megaphone, Wallet, Palette, Settings,File,
     Landmark
 } from 'lucide-react';
 
@@ -30,7 +30,7 @@ const sidebarNavItems = [
     title: 'Professional Toolkit',
     items: [
         { title: 'Services', href: '/services', icon: Briefcase },
-        { title: 'Forms', href: '/forms', icon: KanbanSquare },
+        { title: 'Forms', href: '/forms', icon: File },
         { title: 'Appointments', href: '/appointments', icon: Calendar },
         { title: 'Client Works', href: '/projects', icon: KanbanSquare },
     ],
@@ -46,7 +46,7 @@ const sidebarNavItems = [
       { title: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
       { title: 'Subscriptions', href: '/subscriptions', icon: CreditCard },
       // { title: 'Payouts', href: '/payouts', icon: Landmark },
-      { title: 'Campaigns', href: '/campaigns', icon: Megaphone },
+      // { title: 'Campaigns', href: '/campaigns', icon: Megaphone },
       // { title: 'Payment Methods', href: '/payment-methods', icon: Wallet },
       { title: 'Site Customizations', href: '/customizations', icon: Palette },
       { title: 'Settings', href: '/settings', icon: Settings },

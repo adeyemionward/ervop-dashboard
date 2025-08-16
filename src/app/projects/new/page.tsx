@@ -34,13 +34,25 @@ export default function CreateProject() {
                         </div>
 
                         {/* <!-- Customer Selection --> */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
                                 <button type="button" className="w-full flex justify-between items-center text-left border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-500 hover:border-purple-500">
                                     <span>Select a customer</span>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
                                 </button>
+                            </div>
+                            
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">Link to Project</label>
+                                <select id="service" className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <option>In-Progress</option>
+                                    <option>On-Hold</option>
+                                    <option>Completed</option>
+                                </select>
                             </div>
                              <div>
                                 <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
