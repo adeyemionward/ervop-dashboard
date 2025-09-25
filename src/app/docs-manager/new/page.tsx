@@ -1,94 +1,236 @@
 'use client';
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { Icons } from "@/components/icons";
-import Link from "next/link";
-import { useState } from "react";
-import clsx from "clsx";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
+import { useClientData } from "@/hooks/useClientData";
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { toast } from "react-hot-toast";
+import ClientSelector from "@/components/ClientSelector";
 
-// --- Reusable Components for this new design ---
-
-// A generic card component for different sections
-const headerTitleCard = ({ title, children, className, action }: { title: string; children: React.ReactNode; className?: string; action?: React.ReactNode }) => (
-    <div className={clsx("bg-white p-6 rounded-xl shadow-sm", className)}>
-        <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-4">
-            <h3 className="text-2xl font-semibold text-gray-900">{title}</h3>
-            {action}
-        </div>
-        {children}
-    </div>
-);
-
-// --- div Page Component ---
 export default function CreateAppointment() {
-    const handleGoBack = useGoBack();
-    return (
-        <DashboardLayout>
-            <div className="w-full  max-w-4xl mx-auto">
+  const handleGoBack = useGoBack();
 
-                {/* <!-- Page Header --> */}
-                <HeaderTitleCard onGoBack={handleGoBack} title="Add New Document" description="Add files to your business library or a specific client folder."> </HeaderTitleCard>
+  const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [documentTitle, setDocumentTitle] = useState("");
+  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedAppointment, setSelectedAppointment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-                {/* <!-- Form Container --> */}
-                <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
-                    <form className="space-y-8">
-            
-                        <div className="mt-8 ">
-                            <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 mb-2">Upload a Photo</label>
-                            <div className="mt-1 flex justify-center items-center px-6 pt-10 pb-10 border-2 border-gray-300 border-dashed rounded-lg transition-colors cursor-pointer hover:bg-gray-100 hover:border-blue-500">
-                                <div className="text-center">
-                                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        <span className="font-semibold text-blue-600">Click to upload</span> or drag and drop
-                                    </p>
-                                    <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                                </div>
-                                <input id="file-upload" name="file-upload" type="file" className="sr-only"/>
-                            </div>
-                        </div>
+  // Fetch clients, projects, appointments using custom hook
+  const { contacts, clientProjects, clientAppointments, projectsLoading, appointmentsLoading } = useClientData(selectedClient);
 
-                        {/* <!-- Step 2: Choose Destination Folder --> */}
-                        <div>
-                            <label htmlFor="folder" className="block text-sm font-medium text-gray-700">Choose a destination</label>
-                            <select id="folder" name="folder" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
-                                <option selected>📂 My Business Documents</option>
-                                <optgroup label="Clients">
-                                    <option>Chioma Nwosu</option>
-                                    <option>Tunde Adebayo</option>
-                                    <option>Funke Ojo</option>
-                                </optgroup>
-                            </select>
-                        </div>
+  const [showClientDocuments, setShowClientDocuments] = useState(true);
 
-                        {/* <!-- Step 3: Document Details --> */}
-                        <div> 
-                            <label htmlFor="doc-name" className="block text-sm font-medium text-gray-700">Document Name</label>
-                            <input type="text" name="doc-name" id="doc-name" placeholder="e.g., Standard Service Agreement.pdf" className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
-                            
-                        </div>
 
-                        <div>
-                            <label htmlFor="doc-tags" className="block text-sm font-medium text-gray-700">Tags (Optional)</label>
-                            <input type="text" name="doc-tags" id="doc-tags" placeholder="e.g., Template, Contract, Official" className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
-                            <p className="mt-2 text-xs text-gray-500">Separate tags with a comma.</p>
-                        </div>
-                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                            <button type="button" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 font-semibold py-2 px-6 rounded-lg transition-colors">
-                                Cancel
-                            </button>
-                            <button type="submit" className="bg-blue-600 text-white hover:bg-blue-700 font-semibold py-2 px-6 rounded-lg flex items-center transition-colors">
-                                <i data-lucide="upload" className="w-4 h-4 mr-2"></i>
-                                <span>Upload File</span>
-                            </button>
-                        </div>
+  const canSubmit = files.length > 0 && documentTitle.trim() !== "";
 
-                    </form>
-                </div>
+  // Handle multiple file upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+    }
+  };
+
+  // Fetch contacts on mount
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          "http://127.0.0.1:8000/api/v1/professionals/contacts/list/",
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        const result = await res.json();
+        if (result.status) {
+          // already handled in useClientData, could also integrate
+        }
+      } catch (error) {
+        console.error("Failed to fetch contacts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  // Submit document
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData();
+    formData.append("project_id", selectedProject || "");
+    formData.append("contact_id", selectedClient || "");
+    formData.append("appointment_id", selectedAppointment || "");
+    formData.append("title", documentTitle);
+    formData.append("tags", tags.join(", "));
+    files.forEach((file) => formData.append("business_docs[]", file));
+
+    try {
+      const userToken = localStorage.getItem("token");
+      if (!userToken) throw new Error("User not authenticated");
+
+      const res = await fetch(
+        "http://127.0.0.1:8000/api/v1/professionals/documents/create/",
+        { method: "POST", headers: { Authorization: `Bearer ${userToken}` }, body: formData }
+      );
+      const result = await res.json();
+
+      if (!res.ok || result.status === false) {
+        throw new Error(result.message || "Failed to create document");
+      }
+
+      toast.success(result.message || "Document uploaded successfully!");
+
+      // Reset form
+      setFiles([]);
+      setDocumentTitle("");
+      setTags([]);
+      setSelectedClient("");
+      setSelectedProject("");
+      setSelectedAppointment("");
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="w-full max-w-4xl mx-auto">
+        <HeaderTitleCard
+          onGoBack={handleGoBack}
+          title="Add New Document"
+          description="Add files to your business library or a specific client folder."
+        />
+
+        <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
+          {loading ? (
+            <div className="w-full max-w-4xl mx-auto p-8 text-center text-gray-500 text-lg">
+              Loading data, please wait...
             </div>
-        </DashboardLayout>
-    );
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Upload Section */}
+              <div>
+                <label htmlFor="file-upload" className="block text-xl font-medium text-gray-700 mb-2">
+                  Upload Photos
+                </label>
+                <div className="mt-1 flex flex-col items-center justify-center px-6 pt-10 pb-10 border-2 border-gray-300 border-dashed rounded-lg transition-colors cursor-pointer hover:bg-gray-100 hover:border-purple-500">
+                  <input id="file-upload" type="file" multiple onChange={handleFileChange} className="sr-only" />
+                  <label htmlFor="file-upload" className="cursor-pointer text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <p className="mt-2 text-sm text-gray-600">
+                      <span className="font-semibold text-purple-600">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  </label>
+                </div>
+
+                {/* Preview selected files */}
+                {files.length > 0 && (
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    {files.map((file, idx) => {
+                      const isImage = file.type.startsWith("image/");
+                      const fileURL = URL.createObjectURL(file);
+
+                      return (
+                        <div key={idx} className="relative w-3/5 h-24 flex items-center justify-center border rounded-md text-xs text-gray-600 truncate p-1">
+                          <button
+                            type="button"
+                            onClick={() => setFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 bg-white rounded-full shadow p-1 hover:bg-red-100"
+                          >
+                            <X className="h-4 w-4 text-red-500" />
+                          </button>
+
+                          {isImage ? <img src={fileURL} alt={file.name} className="max-h-full max-w-full object-cover rounded" /> : <span className="truncate">{file.name}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Document Type Selection */}
+              <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-1">Select Document Destination</label>
+            <div className="flex gap-6 mb-4">
+                
+            <label className="flex items-center gap-2">
+                <input
+                type="radio"
+                name="documentType"
+                checked={showClientDocuments}
+                onChange={() => setShowClientDocuments(true)}
+                className="h-4 w-4"
+                />
+                Client Document
+            </label>
+            <label className="flex items-center gap-2">
+                <input
+                type="radio"
+                name="documentType"
+                checked={!showClientDocuments}
+                onChange={() => setShowClientDocuments(false)}
+                className="h-4 w-4"
+                />
+                My Business Document
+            </label>
+            </div>
+
+        {/* Show ClientSelector only if Client Document is selected */}
+        {showClientDocuments && (
+        <ClientSelector
+            selectedClient={selectedClient}
+            setSelectedClient={setSelectedClient}
+            selectedProject={selectedProject}
+            setSelectedProject={setSelectedProject}
+            selectedAppointment={selectedAppointment}
+            setSelectedAppointment={setSelectedAppointment}
+            contacts={contacts}
+        />
+        )}
+
+        {/* Optional: Show placeholder if My Business Document selected */}
+        {!showClientDocuments && (
+        <p className="text-gray-500 mb-4">Files will be uploaded to My Business Document</p>
+        )}
+
+             
+
+              {/* Document Name */}
+              <div>
+                <label htmlFor="title" className="block text-xl font-medium text-gray-700 mb-1">Document Name</label>
+                <input
+                  type="text"
+                  id="title"
+                  onChange={(e) => setDocumentTitle(e.target.value)}
+                  value={documentTitle}
+                  placeholder="e.g., Standard Service Agreement.pdf"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <button type="button" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 font-semibold py-2 px-6 rounded-lg transition-colors">Cancel</button>
+                <button type="submit" disabled={isSubmitting || !canSubmit} className="bg-purple-600 text-white hover:bg-purple-700 font-semibold py-2 px-6 rounded-lg flex items-center transition-colors disabled:opacity-50">
+                  {isSubmitting ? "Uploading..." : "Upload File"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 }

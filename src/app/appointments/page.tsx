@@ -1,39 +1,55 @@
 'use client';
 
-import React, { useState, useMemo, SVGProps } from 'react';
+import React, { useState, useMemo, FC, ReactNode, useEffect } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
-import { useGoBack } from "@/hooks/useGoBack";
+// import { useGoBack } from "@/hooks/useGoBack";
 import Link from "next/link";
-import { Icons } from '@/components/icons';
-import { Calendar as CalendarIcon, List, Search, ChevronLeft, ChevronRight, Plus, Copy, Share2, Settings2, RefreshCw, X, Clock , CheckCircle} from 'lucide-react';
+// import { Icons } from '@/components/icons';
+import { Calendar as CalendarIcon, List, Search, ChevronLeft, ChevronRight, Plus, Copy, Settings2, RefreshCw, X, Clock , CheckCircle} from 'lucide-react';
 import clsx from 'clsx';
+
+// --- MOCK COMPONENTS (to resolve import errors) ---
+
+const useGoBack = () => () => window.history.back();
+const Icons = { refresh: (props: any) => <RefreshCw {...props} /> };
+// const Link: FC<{ href: string; children: ReactNode; className?: string }> = ({ href, children, className }) => <a href={href} className={className}>{children}</a>;
+// --- END MOCK COMPONENTS ---
+
 
 // --- TYPE DEFINITIONS ---
 type AppointmentStatus = 'Upcoming' | 'Completed' | 'Cancelled' | 'Converted' | 'Inprogress';
-type Appointment = {
+
+// This is the clean, formatted type for the UI
+interface Appointment {
     id: number;
     appointmentId: string;
     customerName: string;
     service: string;
     appointmentStatus: AppointmentStatus;
     date: string; // YYYY-MM-DD
-    time: string; // HH:MM AM/PM
-};
+    time: string; // Formatted time
+}
 
-// --- MOCK DATA (More detailed for calendar) ---
-const allAppointments: Appointment[] = [
-    { id: 1, appointmentId: '#APPT-001', customerName: 'Chioma Nwosu', service: 'Initial Consultation', appointmentStatus: 'Completed', date: '2025-08-15', time: '10:00 AM' },
-    { id: 2, appointmentId: '#APPT-002', customerName: 'Bolanle Adebayo', service: 'Fabric Selection', appointmentStatus: 'Upcoming', date: '2025-09-28', time: '11:00 AM' },
-    { id: 3, appointmentId: '#APPT-003', customerName: 'Musa Ibrahim', service: 'First Fitting', appointmentStatus: 'Cancelled', date: '2025-07-26', time: '02:00 PM' },
-    { id: 4, appointmentId: '#APPT-004', customerName: 'Aisha Bello', service: 'Final Fitting', appointmentStatus: 'Completed', date: '2025-07-29', time: '03:30 PM' },
-    { id: 5, appointmentId: '#APPT-005', customerName: 'Emeka Okafor', service: 'Initial Consultation', appointmentStatus: 'Upcoming', date: '2025-07-28', time: '01:00 PM' },
-    { id: 6, appointmentId: '#APPT-006', customerName: 'Fatima Aliyu', service: 'Measurement', appointmentStatus: 'Completed', date: '2025-07-21', time: '09:00 AM' },
-];
+// This type now matches your new, flat API response
+interface ApiAppointment {
+    id: number;
+    date: string; // YYYY-MM-DD from DB
+    time: string; // HH:mm from DB
+    appointment_status: AppointmentStatus | null;
+    service_id: number;
+    service_name: string;
+    customer_id: number;
+    customer_firstname: string;
+    customer_lastname: string;
+    customer_email: string;
+    customer_phone: string;
+    created_at: string;
+}
 
 
 // --- REUSABLE COMPONENTS ---
-const StatCard = ({ title, value, icon: Icon, mainBg, iconBg, mainText, iconText }: { title: string; value: string; icon: React.ElementType; mainBg: string; iconBg: string; mainText: string; iconText: string; }) => (
+const StatCard: FC<{ title: string; value: string; icon: React.ElementType; mainBg: string; iconBg: string; mainText: string; iconText: string; }> = ({ title, value, icon: Icon, mainBg, iconBg, mainText, iconText }) => (
     <div className={`${mainBg} p-6 rounded-lg shadow-sm flex items-center space-x-4`}>
         <div className={`${iconBg} p-3 rounded-full`}>
             <Icon className={`h-6 w-6 ${iconText}`} />
@@ -45,8 +61,8 @@ const StatCard = ({ title, value, icon: Icon, mainBg, iconBg, mainText, iconText
     </div>
 );
 
-const AppointmentStatusBadge = ({ status }: { status: AppointmentStatus }) => {
-    const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full";
+const AppointmentStatusBadge: FC<{ status: AppointmentStatus }> = ({ status }) => {
+    const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full inline-block";
     const statusClasses = {
         'Upcoming': "bg-blue-100 text-blue-800",
         'Completed': "bg-green-100 text-green-800",
@@ -54,36 +70,30 @@ const AppointmentStatusBadge = ({ status }: { status: AppointmentStatus }) => {
         'Cancelled': "bg-red-100 text-red-800",
         'Inprogress': "bg-yellow-100 text-yellow-800",
     };
-    return <span className={clsx(baseClasses, statusClasses[status])}>{status}</span>;
+    return <span className={clsx(baseClasses, statusClasses[status] || 'bg-gray-100 text-gray-800')}>{status}</span>;
 };
 
 // --- CALENDAR COMPONENTS ---
-// --- CALENDAR COMPONENTS ---
-const CalendarView = ({ appointments }: { appointments: Appointment[] }) => {
-    // Note: It's better to initialize selectedDate based on the currentDate to avoid mismatches
-    // if you decide to change the initial month later. But for today's date, this is fine.
+const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
-    const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday...
+    const startDayOfWeek = firstDayOfMonth.getDay();
 
     const appointmentsByDate = useMemo(() => {
         const map = new Map<string, Appointment[]>();
         appointments.forEach(appt => {
             const dateKey = appt.date;
-            if (!map.has(dateKey)) {
-                map.set(dateKey, []);
-            }
+            if (!map.has(dateKey)) map.set(dateKey, []);
             map.get(dateKey)?.push(appt);
         });
         return map;
     }, [appointments]);
 
     const selectedDaySchedule = useMemo(() => {
-        // FIX #1: Use the consistent, timezone-safe formatDate function
         const dateKey = formatDate(selectedDate);
         return appointmentsByDate.get(dateKey) || [];
     }, [selectedDate, appointmentsByDate]);
@@ -94,21 +104,20 @@ const CalendarView = ({ appointments }: { appointments: Appointment[] }) => {
     }
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        // FIX #2: Use the same formatDate function for generating keys
         const dateKey = formatDate(date);
         const hasAppointments = appointmentsByDate.has(dateKey);
         const isSelected = selectedDate.toDateString() === date.toDateString();
+        const isToday = new Date().toDateString() === date.toDateString();
 
         calendarDays.push(
             <div 
                 key={day} 
                 onClick={() => setSelectedDate(date)}
-                className={clsx("h-24 p-2 border-t border-gray-200 cursor-pointer hover:bg-gray-50", {
-                    'bg-blue-50': isSelected
-                })}
+                className={clsx("h-24 p-2 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors", { 'bg-blue-50': isSelected })}
             >
-                <div className={clsx("w-8 h-8 flex items-center justify-center rounded-full", {
-                    'bg-blue-600 text-white': isSelected
+                <div className={clsx("w-8 h-8 flex items-center justify-center rounded-full font-medium", {
+                    'bg-blue-600 text-white': isSelected,
+                    'text-blue-600': isToday && !isSelected,
                 })}>
                     {day}
                 </div>
@@ -129,18 +138,18 @@ const CalendarView = ({ appointments }: { appointments: Appointment[] }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className="lg:col-span-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Schedule for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    Schedule for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                 </h3>
-                <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
                     {selectedDaySchedule.length > 0 ? selectedDaySchedule.map(appt => (
-                         <div key={appt.id} className="p-3 rounded-lg border border-blue-200 bg-blue-50">
-                             <p className="font-semibold text-blue-800">{appt.time}</p>
-                             <p className="text-sm text-blue-700 mt-1">{appt.service}</p>
-                             <p className="text-xs text-blue-600 mt-1">with {appt.customerName}</p>
-                         </div>
+                        <div key={appt.id} className="p-3 rounded-lg border border-blue-200 bg-blue-50">
+                            <p className="font-semibold text-blue-800">{appt.time}</p>
+                            <p className="text-sm text-blue-700 mt-1">{appt.service}</p>
+                            <p className="text-xs text-blue-600 mt-1">with {appt.customerName}</p>
+                        </div>
                     )) : (
                         <div className="text-center text-gray-500 p-8">
-                             <p className="mt-2 text-sm">No appointments scheduled for this day.</p>
+                            <p className="mt-2 text-sm">No appointments scheduled.</p>
                         </div>
                     )}
                 </div>
@@ -152,13 +161,7 @@ const CalendarView = ({ appointments }: { appointments: Appointment[] }) => {
                     <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
                 </div>
                 <div className="grid grid-cols-7 text-center text-sm">
-                    <div className="font-semibold text-gray-500 py-2">Sun</div>
-                    <div className="font-semibold text-gray-500 py-2">Mon</div>
-                    <div className="font-semibold text-gray-500 py-2">Tue</div>
-                    <div className="font-semibold text-gray-500 py-2">Wed</div>
-                    <div className="font-semibold text-gray-500 py-2">Thu</div>
-                    <div className="font-semibold text-gray-500 py-2">Fri</div>
-                    <div className="font-semibold text-gray-500 py-2">Sat</div>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day} className="font-semibold text-gray-500 py-2">{day}</div>)}
                     {calendarDays}
                 </div>
             </div>
@@ -180,18 +183,17 @@ const formatDate = (date: Date): string => {
 const getDateRangeForPreset = (preset: string): { start: string, end: string } => {
     const now = new Date();
     let start: Date, end: Date;
-
     switch (preset) {
         case 'This Week':
             start = new Date(now.setDate(now.getDate() - now.getDay()));
             end = new Date(now.setDate(now.getDate() - now.getDay() + 6));
             break;
         case 'Last Week':
-            end = new Date();
-            end.setDate(end.getDate() - end.getDay() - 1);
-            start = new Date(end);
-            start.setDate(start.getDate() - 6);
-            break;
+             end = new Date();
+             end.setDate(end.getDate() - end.getDay() - 1);
+             start = new Date(end);
+             start.setDate(start.getDate() - 6);
+             break;
         case 'This Month':
             start = new Date(now.getFullYear(), now.getMonth(), 1);
             end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -200,8 +202,7 @@ const getDateRangeForPreset = (preset: string): { start: string, end: string } =
             start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             end = new Date(now.getFullYear(), now.getMonth(), 0);
             break;
-        default:
-            return { start: '', end: '' };
+        default: return { start: '', end: '' };
     }
     return { start: formatDate(start), end: formatDate(end) };
 };
@@ -209,7 +210,10 @@ const getDateRangeForPreset = (preset: string): { start: string, end: string } =
 // --- MAIN PAGE COMPONENT ---
 export default function AppointmentsPage() {
     const [view, setView] = useState<'list' | 'calendar'>('list');
-    const [appointments, setAppointments] = useState(allAppointments);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -218,6 +222,65 @@ export default function AppointmentsPage() {
     const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('All');
     
     const handleGoBack = useGoBack();
+    const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+
+    const fetchAppointments = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${BASE_URL}/professionals/appointments/list`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${userToken}`,
+                },
+            });
+            if (!response.ok) throw new Error('Failed to fetch appointments');
+            const result = await response.json();
+            const apiData = result.data || [];
+            
+            // Map the new API response to the frontend Appointment type
+            const formattedData: Appointment[] = apiData.map((appt: ApiAppointment) => {
+                // The date from the API is already in YYYY-MM-DD format, so no changes are needed.
+                const formattedDate = appt.date;
+
+                // The time from the API is in HH:mm format, so we format it for display.
+                const [hours, minutes] = appt.time.split(':');
+                const timeObj = new Date();
+                timeObj.setHours(parseInt(hours), parseInt(minutes));
+                const appointmentTime = timeObj.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                return {
+                    id: appt.id,
+                    appointmentId: `#APPT-${String(appt.id).padStart(3, '0')}`,
+                    customerName: `${appt.customer_firstname} ${appt.customer_lastname}`,
+                    service: appt.service_name,
+                    appointmentStatus: appt.appointment_status || 'Upcoming', // Default null to Upcoming
+                    date: formattedDate,
+                    time: appointmentTime,
+                };
+            });
+            
+            setAppointments(formattedData);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (userToken) {
+            fetchAppointments();
+        } else {
+            setIsLoading(false);
+            setError("Authentication token not found.");
+        }
+    }, [userToken]);
 
     const handleClearFilters = () => {
         setSearchTerm('');
@@ -235,8 +298,7 @@ export default function AppointmentsPage() {
             setDateRange({ start: '', end: '' });
             return;
         }
-        const { start, end } = getDateRangeForPreset(preset);
-        setDateRange({ start, end });
+        setDateRange(getDateRangeForPreset(preset));
     };
 
     const handleManualDateChange = (e: React.ChangeEvent<HTMLInputElement>, part: 'start' | 'end') => {
@@ -247,16 +309,12 @@ export default function AppointmentsPage() {
 
     const filteredAppointments = useMemo(() => {
         return appointments.filter(appt => {
-            const apptDate = new Date(appt.date);
-            const startDate = dateRange.start ? new Date(dateRange.start) : null;
-            const endDate = dateRange.end ? new Date(dateRange.end) : null;
-            
             const searchLower = searchTerm.toLowerCase();
             const searchMatch = searchTerm === '' || 
                                 appt.appointmentId.toLowerCase().includes(searchLower) || 
                                 appt.customerName.toLowerCase().includes(searchLower);
 
-            const dateMatch = (!startDate || apptDate >= startDate) && (!endDate || apptDate <= endDate);
+            const dateMatch = !dateRange.start || !dateRange.end || (appt.date >= dateRange.start && appt.date <= dateRange.end);
             const statusMatch = appointmentStatusFilter === 'All' || appt.appointmentStatus === appointmentStatusFilter;
             
             return searchMatch && dateMatch && statusMatch;
@@ -264,17 +322,11 @@ export default function AppointmentsPage() {
     }, [appointments, searchTerm, appointmentStatusFilter, dateRange]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.checked) {
-            setSelectedRows(filteredAppointments.map(appt => appt.id));
-        } else {
-            setSelectedRows([]);
-        }
+        setSelectedRows(e.target.checked ? filteredAppointments.map(appt => appt.id) : []);
     };
 
     const handleSelectRow = (id: number) => {
-        setSelectedRows(prev =>
-            prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
-        );
+        setSelectedRows(prev => prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]);
     };
 
     const paginatedAppointments = useMemo(() => {
@@ -283,6 +335,14 @@ export default function AppointmentsPage() {
     }, [filteredAppointments, currentPage]);
 
     const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE);
+
+    if (isLoading) {
+        return <DashboardLayout><div className="text-center p-12">Loading Appointments...</div></DashboardLayout>;
+    }
+
+    if (error) {
+         return <DashboardLayout><div className="text-center p-12 text-red-600">Error: {error}</div></DashboardLayout>;
+    }
 
     return (
         <DashboardLayout>
@@ -296,8 +356,7 @@ export default function AppointmentsPage() {
                         <Copy className="w-4 h-4" /> 
                         <span>Copy Booking Link</span> 
                     </Link>
-                    
-                    <Link href="/appointments/new" className="btn-primary">
+                    <Link href="/appointments/new" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
                         <Plus className="w-4 h-4" /> 
                         <span>New Appointment</span>
                     </Link>
@@ -312,15 +371,9 @@ export default function AppointmentsPage() {
                 <StatCard title="Cancelled" value={appointments.filter(a => a.appointmentStatus === 'Cancelled').length.toString()} icon={X} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" />
             </div>
 
-            <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap items-center gap-4">
+            <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap items-center gap-4 border border-gray-200">
                 <div className="relative flex-shrink-0 w-full sm:w-64">
-                    <input
-                        type="text"
-                        placeholder="Search by ID or Name..."
-                        value={searchTerm}
-                        onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input type="text" placeholder="Search by ID or Name..." value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                        <Search className="h-5 w-5 text-gray-400" />
                     </div>
@@ -340,7 +393,7 @@ export default function AppointmentsPage() {
                         <input type="date" value={dateRange.end} onChange={e => handleManualDateChange(e, 'end')} className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                 )}
-                <select value={appointmentStatusFilter} onChange={(e) => {setAppointmentStatusFilter(e.target.value); setCurrentPage(1);}} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-40 flex-shrink-0">
+                <select value={appointmentStatusFilter} onChange={(e) => {setAppointmentStatusFilter(e.target.value as AppointmentStatus | 'All'); setCurrentPage(1);}} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-40 flex-shrink-0">
                     <option value="All">All Statuses</option>
                     <option value="Upcoming">Upcoming</option>
                     <option value="Completed">Completed</option>
@@ -348,32 +401,25 @@ export default function AppointmentsPage() {
                     <option value="Cancelled">Cancelled</option>
                 </select>
                 <div className="flex-grow"></div>
-               
                 <div className="flex items-center space-x-2 flex-shrink-0">
-                            <button onClick={handleClearFilters} className="text-sm text-gray-600 hover:text-primary-600 p-2  cursor-pointer hover:bg-gray-200 bg-gray-100  font-medium">Clear Filters</button>
-                            <button onClick={() => setAppointments(allAppointments)} className="p-2 text-gray-500 cursor-pointer hover:text-primary-600 hover:bg-gray-200 bg-gray-100 rounded-full">
-                                <Icons.refresh className="h-6 w-6 " />
-                            </button> 
-                    </div>
+                    <button onClick={handleClearFilters} className="text-sm text-gray-600 hover:text-purple-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 rounded-md font-medium">Clear Filters</button>
+                    <button onClick={fetchAppointments} className="p-2 text-gray-500 cursor-pointer hover:text-purple-600 hover:bg-gray-200 bg-gray-100 rounded-full">
+                        <Icons.refresh className="h-6 w-6" />
+                    </button> 
+                </div>
             </div>
 
             <div className="flex items-center space-x-2 mb-6">
-                <button 
-                    onClick={() => setView('list')} 
-                    className={clsx("font-semibold py-2 px-4 rounded-lg flex items-center", view === 'list' ? 'bg-purple-800 text-white' : 'bg-white text-gray-700 border border-gray-300')}
-                >
+                <button onClick={() => setView('list')} className={clsx("font-semibold py-2 px-4 rounded-lg flex items-center", view === 'list' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300')}>
                     <List className="w-4 h-4 mr-2" /> List View
                 </button>
-                <button 
-                    onClick={() => setView('calendar')} 
-                    className={clsx("font-semibold py-2 px-4 rounded-lg flex items-center", view === 'calendar' ? 'bg-purple-800 text-white' : 'bg-white text-gray-700 border border-gray-300')}
-                >
+                <button onClick={() => setView('calendar')} className={clsx("font-semibold py-2 px-4 rounded-lg flex items-center", view === 'calendar' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300')}>
                     <CalendarIcon className="w-4 h-4 mr-2" /> Calendar View
                 </button>
             </div>
 
             {view === 'list' && (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -391,7 +437,7 @@ export default function AppointmentsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {paginatedAppointments.map((appt) => (
-                                    <tr key={appt.id} className="bg-white border-b hover:bg-gray-50">
+                                    <tr key={appt.id} className="bg-white hover:bg-gray-50">
                                         <td className="w-4 p-4">
                                             <input type="checkbox" checked={selectedRows.includes(appt.id)} onChange={() => handleSelectRow(appt.id)} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
                                         </td>
@@ -399,12 +445,12 @@ export default function AppointmentsPage() {
                                         <td className="px-6 py-4">{appt.customerName}</td>
                                         <td className="px-6 py-4">{appt.service}</td>
                                         <td className="px-6 py-4"><AppointmentStatusBadge status={appt.appointmentStatus} /></td>
-                                        <td className="px-6 py-4">{appt.date} at {appt.time}</td>
+                                        <td className="px-6 py-4">{new Date(appt.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {appt.time}</td>
                                         <td className="px-6 py-4">
-                                            <Link href={`/appointments/${appt.id}`}>
-                                                <button className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-200">
-                                                    View Details
-                                                </button>
+                                            <Link href={`/appointments/view/${appt.id}`}>
+                                                 <button className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-200">
+                                                     View Details
+                                                 </button>
                                             </Link>
                                         </td>
                                     </tr>
@@ -436,3 +482,4 @@ export default function AppointmentsPage() {
         </DashboardLayout>
     );
 }
+

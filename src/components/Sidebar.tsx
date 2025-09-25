@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { 
     Package, ShoppingCart, BarChart2, Tag, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2, Plus, 
     LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, ArrowLeftRight, CreditCard,
-    Megaphone, Wallet, Palette, Settings,File,
+    Megaphone, Wallet, Palette, Settings,
     Landmark
 } from 'lucide-react';
 
@@ -30,7 +30,7 @@ const sidebarNavItems = [
     title: 'Professional Toolkit',
     items: [
         { title: 'Services', href: '/services', icon: Briefcase },
-        { title: 'Forms', href: '/forms', icon: File },
+        { title: 'Forms', href: '/forms', icon: KanbanSquare },
         { title: 'Appointments', href: '/appointments', icon: Calendar },
         { title: 'Client Works', href: '/projects', icon: KanbanSquare },
     ],
