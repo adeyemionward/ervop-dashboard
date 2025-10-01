@@ -53,9 +53,41 @@ export default function CreateAppointmentPage() {
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
     // Get the clients
-        const { data, loading } = useFetchData<ClientResponse>('/professionals/contacts/list');
-        // Correctly and safely access the 'services' array
-        const clients = data?.clients || [];
+        // const { data, loading } = useFetchData<ClientResponse>(`${BASE_URL}/professionals/contacts/list`);
+        // // Correctly and safely access the 'services' array
+        // const clients = data?.clients || [];
+
+        const [clients, setClients] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      setIsLoadingClients(true);
+      try {
+        const response = await fetch(`${BASE_URL}/professionals/contacts/list`, {
+          headers: {
+            "Authorization": `Bearer ${userToken}`,
+            "Accept": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch clients");
+        }
+
+        const result = await response.json();
+        setClients(result.data || []); // Assuming API returns { data: [...] }
+      } catch (err) {
+        console.error("Error fetching clients:", err);
+        setClients([]); // fallback to empty array
+      } finally {
+        setIsLoadingClients(false);
+      }
+    };
+
+    if (userToken) {
+      fetchClients();
+    }
+  }, [userToken, BASE_URL]);
 
     // Fetch projects whenever a client is selected
     useEffect(() => {
@@ -78,7 +110,7 @@ export default function CreateAppointmentPage() {
                     setProjects([]); // Ensure projects is an empty array on error
                 } finally {
                     setIsLoadingProjects(false);
-                }
+                } 
             };
             fetchProjectsForClient();
             setSelectedProjectId(""); // Reset project selection

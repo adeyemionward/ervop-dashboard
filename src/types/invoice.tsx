@@ -13,10 +13,11 @@ export interface Invoice {
   invoiceNumber: string;
   issuedDate: string;
   dueDate: string;
-  taxPercentage: number;
+  taxPercentage: number; 
   discountPercentage: number;
   taxAmount: number;
   discountAmount: number;
+  remainingBalance: number;
   status: 'Paid' | 'Pending';
   items: InvoiceItem[];
   notes: string;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 interface NoteModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const NoteModal: React.FC<NoteModalProps> = ({
   onNoteSaved,
 }) => {
   const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (noteToEdit) {
@@ -34,6 +36,8 @@ const NoteModal: React.FC<NoteModalProps> = ({
 
   const handleSubmit = async () => {
     if (!note.trim()) return;
+
+    setLoading(true);
 
     try {
       let savedNote: NoteItem;
@@ -50,6 +54,7 @@ const NoteModal: React.FC<NoteModalProps> = ({
         url = `http://127.0.0.1:8000/api/v1/professionals/appointments/notes/create/${appointmentId}`;
         method = "POST";
       }
+
       const token = localStorage.getItem("token");
       const res = await fetch(url, {
         method,
@@ -74,10 +79,17 @@ const NoteModal: React.FC<NoteModalProps> = ({
         ).toLocaleDateString("en-US"),
       };
 
-      onNoteSaved(savedNote, !!noteToEdit); // true = update
+      onNoteSaved(savedNote, !!noteToEdit);
+
+      // ✅ success toast
+      toast.success(noteToEdit ? "Note updated successfully 🎉" : "Note added successfully 🎉");
+
       onClose();
     } catch (err) {
       console.error("Error saving note", err);
+      toast.error("Failed to save note ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,14 +112,21 @@ const NoteModal: React.FC<NoteModalProps> = ({
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-gray-300"
+            disabled={loading}
           >
             Cancel
           </button>
+
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 rounded-lg bg-[#7E51FF] text-white hover:bg-purple-700"
+            disabled={loading || !note.trim()} // ✅ disabled if empty or loading
+            className={`px-4 py-2 rounded-lg text-white ${
+              loading || !note.trim()
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#7E51FF] hover:bg-purple-700"
+            }`}
           >
-            {noteToEdit ? "Update" : "Save"}
+            {loading ? "Submitting..." : noteToEdit ? "Update" : "Save"}
           </button>
         </div>
       </div>

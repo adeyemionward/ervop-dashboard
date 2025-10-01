@@ -1,27 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
-
-export const useFetchData = <T,>(endpoint: string) => {
+export const useFetchData = <T,>(url: string) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
     const fetchData = async () => {
       try {
         if (!token) {
-          throw new Error('No authentication token provided.');
+          throw new Error("No authentication token provided.");
         }
 
-        const res = await fetch(`${BASE_URL}${endpoint}`, {
-          method: 'GET',
+        const res = await fetch(url, {
+          method: "GET",
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -37,19 +35,19 @@ export const useFetchData = <T,>(endpoint: string) => {
         const result: T = await res.json();
         setData(result);
       } catch (err: any) {
-        console.error('Fetching failed:', err);
-        setError(err.message || 'An unexpected error occurred.');
+        console.error("Fetching failed:", err);
+        setError(err.message || "An unexpected error occurred.");
       } finally {
         setLoading(false);
       }
     };
 
-    if (endpoint && token) {
+    if (url && token) {
       fetchData();
     } else {
       setLoading(false);
     }
-  }, [endpoint]);
+  }, [url]);
 
   return { data, loading, error };
 };

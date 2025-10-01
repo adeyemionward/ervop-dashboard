@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { InvoiceItem, Invoice } from "@/types/invoice"; // ✅ import shared types
+import toast from "react-hot-toast";
 
 type EditableInvoiceItemFields = "description" | "quantity" | "rate";
 
@@ -34,18 +35,47 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const [invoiceTax, setInvoiceTax] = useState("0");
   const [invoiceDiscount, setInvoiceDiscount] = useState("0");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(false);
+  
+  const hasValidItems =
+  invoiceItems.length > 0 &&
+  invoiceItems.every(
+    (i) => i.description.trim() !== "" && i.quantity > 0 && i.rate > 0
+  );
+
+  const isFormValid = invoiceNumber && invoiceIssueDate && invoiceDueDate && hasValidItems;
+
+
+  const subtotal = invoiceItems.reduce((acc, item) => acc + (item.amount ?? 0), 0);
+  const taxAmount = (subtotal * Number(invoiceTax)) / 100;
+  const discountAmount = (subtotal * Number(invoiceDiscount)) / 100;
+  const total = subtotal + taxAmount - discountAmount;
+
+
 useEffect(() => {
   if (mode === "edit" && existingInvoice) {
-      setInvoiceNumber(existingInvoice.invoiceNumber);
-      setInvoiceIssueDate(existingInvoice.issuedDate || "");
-      setInvoiceDueDate(existingInvoice.dueDate || "");
-      setInvoiceTax(existingInvoice.taxPercentage?.toString() || "0");
-      setInvoiceDiscount(existingInvoice.discountPercentage?.toString() || "0");
-      setInvoiceNotes(existingInvoice.notes || "");
-      setInvoiceItems(existingInvoice.items || []);
-    } else if (mode === "create") {
+    setInvoiceNumber(existingInvoice.invoiceNumber || "");
+
+    // Convert pretty strings (e.g. "September 25, 2025") back to ISO for <input type="date">
+    if (existingInvoice.issuedDate) {
+      setInvoiceIssueDate(
+        new Date(existingInvoice.issuedDate).toISOString().split("T")[0]
+      );
+    }
+    if (existingInvoice.dueDate) {
+      setInvoiceDueDate(
+        new Date(existingInvoice.dueDate).toISOString().split("T")[0]
+      );
+    }
+
+    setInvoiceTax(existingInvoice.taxPercentage?.toString() || "0");
+    setInvoiceDiscount(existingInvoice.discountPercentage?.toString() || "0");
+    setInvoiceNotes(existingInvoice.notes || "");
+    setInvoiceItems(existingInvoice.items || []);
+  } else if (mode === "create") {
     setInvoiceNumber("");
-    setInvoiceIssueDate(new Date().toISOString().split("T")[0]); // today
+    setInvoiceIssueDate(new Date().toISOString().split("T")[0]); // today in ISO
     setInvoiceDueDate("");
     setInvoiceItems([
       { id: `new-${Date.now()}`, description: "", quantity: 1, rate: 0, amount: 0 },
@@ -56,12 +86,8 @@ useEffect(() => {
   }
 }, [mode, existingInvoice]);
 
-
   if (!isOpen) return null;
 
-  //
-  // --- Handlers ---
-  //
   const handleItemChange = <K extends EditableInvoiceItemFields>(
     index: number,
     field: K,
@@ -89,10 +115,10 @@ useEffect(() => {
   };
 
  const handleSubmit = async () => {
-  if (!invoiceDueDate || invoiceItems.some(i => !i.description || i.quantity <= 0 || i.rate <= 0)) {
-    alert("Please fill out all required invoice fields.");
-    return;
-  }
+  // if (!invoiceDueDate || invoiceItems.some(i => !i.description || i.quantity <= 0 || i.rate <= 0)) {
+  //   alert("Please fill out all required invoice fields.");
+  //   return;
+  // }
 
     const payload: any = {
         contact_id: contactId,
@@ -118,6 +144,11 @@ useEffect(() => {
     method = "PUT";
   } 
 
+  if (loading) return;
+
+  setLoading(true);
+
+
   try {
     const token = localStorage.getItem("token");
 
@@ -133,8 +164,17 @@ useEffect(() => {
     const data = await res.json(); // 👈 parse first, THEN check
 
     if (!res.ok || !data.status) {
+      if (data.errors) {
+          setValidationErrors(data.errors);
+      }
       throw new Error(data.message || "Failed to save invoice");
     }
+    setValidationErrors({});
+    // ✅ success toast
+    toast.success(
+      mode === "edit" ? "Invoice updated successfully 🎉" : "Invoice created successfully 🎉"
+    );
+  
 
     // ✅ Build the invoice object directly from modal state
     const localInvoice: Invoice = {
@@ -143,7 +183,8 @@ useEffect(() => {
         taxPercentage: payload.tax_percentage, 
         discountPercentage: payload.discount_percentage, 
         taxAmount: payload.tax_amount, 
-        discountAmount:payload.disoount,
+        discountAmount:payload.discount,
+        remainingBalance: data.data?.remaining_balance ?? total,
         notes: payload.notes,
         issuedDate: new Date(payload.issue_date).toLocaleDateString("en-US", {
             year: "numeric",
@@ -164,8 +205,9 @@ useEffect(() => {
     // onInvoiceSaved(data.data);
     onClose();
   } catch (err: any) {
-    console.error("Invoice error:", err);
-    alert(err.message || "Error saving invoice");
+    console.error("Invoice error:", err.message);
+  }finally {
+    setLoading(false);
   }
 };
 
@@ -173,10 +215,6 @@ useEffect(() => {
   //
   // --- Totals ---
   //
-  const subtotal = invoiceItems.reduce((acc, item) => acc + (item.amount ?? 0), 0);
-  const taxAmount = (subtotal * Number(invoiceTax)) / 100;
-  const discountAmount = (subtotal * Number(invoiceDiscount)) / 100;
-  const total = subtotal + taxAmount - discountAmount;
 
   //
   // --- JSX ---
@@ -194,184 +232,210 @@ useEffect(() => {
 
         {/* Form Body */}
         <div className="max-h-[70vh] overflow-y-auto pr-2">
-  {/* Invoice Number, Issue Date, Due Date */}
-  <div className="grid grid-cols-3 gap-4 mb-4">
-  <div>
-    <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-1">
-      Invoice #
-    </label>
-    <input
-      type="text"
-      id="invoiceNumber"
-      value={invoiceNumber}
-      onChange={(e) => setInvoiceNumber(e.target.value)}
-      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-      placeholder="e.g., INV-001"
-    />
-  </div>
+            {/* Invoice Number, Issue Date, Due Date */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Invoice #
+                </label>
+                <input
+                  type="text"
+                  id="invoiceNumber"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                  placeholder="e.g., INV-001"
+                />
+                {validationErrors.invoice_no && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.invoice_no[0]}</p>
+                )}
+              </div>
 
-  <div>
-    <label htmlFor="invoiceIssueDate" className="block text-sm font-medium text-gray-700 mb-1">
-      Issue Date
-    </label>
-    <input
-      type="date"
-      id="invoiceIssueDate"
-      value={invoiceIssueDate}
-      onChange={(e) => setInvoiceIssueDate(e.target.value)}
-      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-    />
-  </div>
+              <div>
+                <label htmlFor="invoiceIssueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Issue Date
+                </label>
+                <input
+                  type="date"
+                  id="invoiceIssueDate"
+                  value={invoiceIssueDate}
+                  onChange={(e) => setInvoiceIssueDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+                {validationErrors.issue_date && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.issue_date[0]}</p>
+                )}
+              </div>
 
-  <div>
-    <label htmlFor="invoiceDueDate" className="block text-sm font-medium text-gray-700 mb-1">
-      Due Date
-    </label>
-    <input
-      type="date"
-      id="invoiceDueDate"
-      value={invoiceDueDate}
-      onChange={(e) => setInvoiceDueDate(e.target.value)}
-      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-    />
-  </div>
-</div>
+              <div>
+                <label htmlFor="invoiceDueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  id="invoiceDueDate"
+                  value={invoiceDueDate}
+                  onChange={(e) => setInvoiceDueDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+                {validationErrors.due_date && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.due_date[0]}</p>
+                )}
+              </div>
+            </div>
 
 
-  {/* Items */}
-  <div className="mt-6">
-    <h4 className="font-semibold mb-2">Invoice Items</h4>
-    <div className="space-y-3">
-      {invoiceItems.map((item, index) => (
-        <div
-          key={item.id}
-          className="grid grid-cols-12 gap-2 items-center"
-        >
-          <input
-            type="text"
-            value={item.description}
-            onChange={(e) =>
-              handleItemChange(index, "description", e.target.value)
-            }
-            placeholder="Description"
-            className="col-span-5 p-2 border rounded-md"
-          />
-          <input
-            type="number"
-            value={item.quantity}
-            onChange={(e) =>
-              handleItemChange(index, "quantity", Number(e.target.value))
-            }
-            placeholder="Qty"
-            className="col-span-2 p-2 border rounded-md"
-          />
-          <input
-            type="number"
-            value={item.rate}
-            onChange={(e) =>
-              handleItemChange(index, "rate", Number(e.target.value))
-            }
-            placeholder="Rate"
-            className="col-span-2 p-2 border rounded-md"
-          />
-          <span className="col-span-2 text-right">
-            ₦{(item.amount ?? 0).toLocaleString()}
-          </span>
-          <button
-            onClick={() => handleRemoveItem(index)}
-            className="text-red-500 hover:text-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
-    </div>
-    <button
-      onClick={handleAddItem}
-      className="mt-3 flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-800"
-    >
-      <Plus className="w-4 h-4" /> Add Item
-    </button>
-  </div>
+            {/* Items */}
+            <div className="mt-6">
+              <h4 className="font-semibold mb-2">Invoice Items</h4>
+              <div className="space-y-3">
+                {invoiceItems.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-12 gap-2 items-center"
+                  >
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={(e) =>
+                        handleItemChange(index, "description", e.target.value)
+                      }
+                      placeholder="Description"
+                      className="col-span-5 p-2 border rounded-md"
+                    />
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        handleItemChange(index, "quantity", Number(e.target.value))
+                      }
+                      placeholder="Qty"
+                      className="col-span-2 p-2 border rounded-md"
+                    />
+                    <input
+                      type="number"
+                      value={item.rate}
+                      onChange={(e) =>
+                        handleItemChange(index, "rate", Number(e.target.value))
+                      }
+                      placeholder="Rate"
+                      className="col-span-2 p-2 border rounded-md"
+                    />
+                    <span className="col-span-2 text-right">
+                      ₦{(item.amount ?? 0).toLocaleString()}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveItem(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {validationErrors.item && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.item[0]}</p>
+              )}
 
-  {/* Tax & Discount */}
-  <div className="grid grid-cols-2 gap-4 mt-6">
-    <div>
-      <label
-        htmlFor="invoiceTax"
-        className="block text-sm font-medium text-gray-700 mb-1"
-      >
-        Tax (%)
-      </label>
-      <input
-        type="number"
-        id="invoiceTax"
-        value={invoiceTax}
-        onChange={(e) => setInvoiceTax(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-4 py-2"
-      />
-    </div>
-    <div>
-      <label
-        htmlFor="invoiceDiscount"
-        className="block text-sm font-medium text-gray-700 mb-1"
-      >
-        Discount (%)
-      </label>
-      <input
-        type="number"
-        id="invoiceDiscount"
-        value={invoiceDiscount}
-        onChange={(e) => setInvoiceDiscount(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-4 py-2"
-      />
-    </div>
-  </div>
+              <button
+                onClick={handleAddItem}
+                className="mt-3 flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-800"
+              >
+                <Plus className="w-4 h-4" /> Add Item
+              </button>
+            </div>
 
-  {/* Notes */}
-  <div className="mt-6">
-    <label
-      htmlFor="invoiceNotes"
-      className="block text-sm font-medium text-gray-700 mb-1"
-    >
-      Notes
-    </label>
-    <textarea
-      id="invoiceNotes"
-      value={invoiceNotes}
-      onChange={(e) => setInvoiceNotes(e.target.value)}
-      rows={3}
-      className="w-full border border-gray-300 rounded-lg px-4 py-2"
-      placeholder="e.g., 50% deposit..."
-    />
-  </div>
+            {/* Tax & Discount */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div>
+                <label
+                  htmlFor="invoiceTax"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Tax (%)
+                </label>
+                <input
+                  type="number"
+                  id="invoiceTax"
+                  value={invoiceTax}
+                  onChange={(e) => setInvoiceTax(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="invoiceDiscount"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  id="invoiceDiscount"
+                  value={invoiceDiscount}
+                  onChange={(e) => setInvoiceDiscount(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+              </div>
+            </div>
 
-  {/* Totals */}
-  <div className="mt-6 pt-4 border-t text-right space-y-2 font-medium">
-    <div className="flex justify-end gap-4">
-      <span>Subtotal:</span> <span>₦{subtotal.toLocaleString()}</span>
-    </div>
-    <div className="flex justify-end gap-4">
-      <span>Tax ({invoiceTax || 0}%):</span>{" "}
-      <span>₦{taxAmount.toLocaleString()}</span>
-    </div>
-    <div className="flex justify-end gap-4">
-      <span>Discount ({invoiceDiscount || 0}%):</span>{" "}
-      <span>-₦{discountAmount.toLocaleString()}</span>
-    </div>
-    <div className="flex justify-end gap-4 text-lg font-bold">
-      <span>Total:</span> <span>₦{total.toLocaleString()}</span>
-    </div>
-  </div>
-</div>
+            {/* Notes */}
+            <div className="mt-6">
+              <label
+                htmlFor="invoiceNotes"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Notes
+              </label>
+              <textarea
+                id="invoiceNotes"
+                value={invoiceNotes}
+                onChange={(e) => setInvoiceNotes(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                placeholder="e.g., 50% deposit..."
+              />
+            </div>
+
+            {/* Totals */}
+            <div className="mt-6 pt-4 border-t text-right space-y-2 font-medium">
+              <div className="flex justify-end gap-4">
+                <span>Subtotal:</span> <span>₦{subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-end gap-4">
+                <span>Tax ({invoiceTax || 0}%):</span>{" "}
+                <span>₦{taxAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-end gap-4">
+                <span>Discount ({invoiceDiscount || 0}%):</span>{" "}
+                <span>-₦{discountAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-end gap-4 text-lg font-bold">
+                <span>Total:</span> <span>₦{total.toLocaleString()}</span>
+              </div>
+            </div>
+      </div>
 
 
         {/* Footer */}
         <div className="mt-6 flex justify-end gap-4">
           <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
-          <button onClick={handleSubmit} className="px-4 py-2 bg-[#7E51FF] text-white rounded-md">
-            {mode === "edit" ? "Update Invoice" : "Create Invoice"}
+          <button
+            onClick={handleSubmit}
+            disabled={!isFormValid || loading}
+            className={`px-4 py-2 rounded-md text-white ${
+              !isFormValid || loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#7E51FF] hover:bg-[#6a42e6]"
+            }`}
+          >
+            {loading
+              ? "Submitting..."
+              : mode === "edit"
+              ? "Update Invoice"
+              : "Create Invoice"}
           </button>
+
         </div>
       </div>
     </div>

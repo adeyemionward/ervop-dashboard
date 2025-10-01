@@ -165,45 +165,45 @@ export default function CreateAppointment() {
               <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-1">Select Document Destination</label>
             <div className="flex gap-6 mb-4">
                 
-            <label className="flex items-center gap-2">
-                <input
-                type="radio"
-                name="documentType"
-                checked={showClientDocuments}
-                onChange={() => setShowClientDocuments(true)}
-                className="h-4 w-4"
-                />
-                Client Document
-            </label>
-            <label className="flex items-center gap-2">
-                <input
-                type="radio"
-                name="documentType"
-                checked={!showClientDocuments}
-                onChange={() => setShowClientDocuments(false)}
-                className="h-4 w-4"
-                />
-                My Business Document
-            </label>
+              <label className="flex items-center gap-2">
+                  <input
+                  type="radio"
+                  name="documentType"
+                  checked={showClientDocuments}
+                  onChange={() => setShowClientDocuments(true)}
+                  className="h-4 w-4"
+                  />
+                  Client Document
+              </label>
+              <label className="flex items-center gap-2">
+                  <input
+                  type="radio"
+                  name="documentType"
+                  checked={!showClientDocuments}
+                  onChange={() => setShowClientDocuments(false)}
+                  className="h-4 w-4"
+                  />
+                  My Business Document
+              </label>
             </div>
 
-        {/* Show ClientSelector only if Client Document is selected */}
-        {showClientDocuments && (
-        <ClientSelector
-            selectedClient={selectedClient}
-            setSelectedClient={setSelectedClient}
-            selectedProject={selectedProject}
-            setSelectedProject={setSelectedProject}
-            selectedAppointment={selectedAppointment}
-            setSelectedAppointment={setSelectedAppointment}
-            contacts={contacts}
-        />
-        )}
+            {/* Show ClientSelector only if Client Document is selected */}
+            {showClientDocuments && (
+            <ClientSelector
+                selectedClient={selectedClient}
+                setSelectedClient={setSelectedClient}
+                selectedProject={selectedProject}
+                setSelectedProject={setSelectedProject}
+                selectedAppointment={selectedAppointment}
+                setSelectedAppointment={setSelectedAppointment}
+                contacts={contacts}
+            />
+            )}
 
-        {/* Optional: Show placeholder if My Business Document selected */}
-        {!showClientDocuments && (
-        <p className="text-gray-500 mb-4">Files will be uploaded to My Business Document</p>
-        )}
+            {/* Optional: Show placeholder if My Business Document selected */}
+            {!showClientDocuments && (
+            <p className="text-gray-500 mb-4">Files will be uploaded to My Business Document</p>
+            )}
 
              
 

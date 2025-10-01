@@ -7,9 +7,9 @@ import { Plus, Search, ChevronDown, ArrowUpRight, ArrowDownLeft, Trash2, Edit, D
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import { toast } from "react-hot-toast";
 import clsx from "clsx";
+import Link from "next/link";
 
 const useGoBack = () => () => { if (typeof window !== 'undefined') window.history.back(); };
-const Link: FC<{ href: string; children: ReactNode; className?: string }> = ({ href, children, className }) => <a href={href} className={className}>{children}</a>;
 
 // --- TYPE DEFINITIONS ---
 type TransactionType = 'income' | 'expense';
@@ -257,7 +257,7 @@ export default function TransactionsListPage() {
     return (
         <DashboardLayout>
             <HeaderTitleCard onGoBack={handleGoBack} title="Transactions" description="Track all your income and expenses in one place.">
-                <Link href="/transactions/create" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+                <Link href="/transactions/new" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
                     <Plus className="w-4 h-4" />
                     <span>Add Transaction</span>
                 </Link>

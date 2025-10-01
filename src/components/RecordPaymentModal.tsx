@@ -60,7 +60,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
         throw new Error(errorData.message || "Failed to record payment");
       }
 
-// Example output: "October 27, 2023
+      // Example output: "October 27, 2023
 
       // 1. Await the response data from your API.
       const result = await response.json();
