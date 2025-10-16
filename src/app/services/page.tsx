@@ -67,7 +67,7 @@ export default function ServicesPage() {
     };
 
      // Get the services
-    const { data, loading, error } = useFetchData<ServicesResponse>('/professionals/services/list');
+    const { data, loading, error } = useFetchData<ServicesResponse>('http://127.0.0.1:8000/api/v1/professionals/services/list');
     // Correctly and safely access the 'services' array
     const services = data?.services || [];
 

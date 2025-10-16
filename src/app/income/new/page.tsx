@@ -307,14 +307,14 @@ const createCategoryMutation = useMutation({
       <div className="w-full max-w-4xl mx-auto">
         <HeaderTitleCard
           onGoBack={handleGoBack}
-          title="Add Transaction"
-          description="Manually record income or expenses for your business."
+          title="Add Income"
+          description="Manually record income for your business."
         />
 
         <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
           <form onSubmit={handleSave} className="space-y-8">
             {/* --- Transaction Type Toggle --- */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Transaction Type
               </label>
@@ -350,11 +350,11 @@ const createCategoryMutation = useMutation({
                   Expense
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* --- CONDITIONAL FORMS --- */}
-            {transactionType === "income" ? (
-              // --- INCOME FORM ---
+            {/* {transactionType === "income" ? ( */}
+              {/* // --- INCOME FORM --- */}
               <div className="space-y-6 animate-fade-in">
                 {/* amount + date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -472,11 +472,11 @@ const createCategoryMutation = useMutation({
                   />
                 </div>
               </div>
-            ) : (
-              // --- EXPENSE FORM ---
+            {/* ) : ( */}
+              {/* // --- EXPENSE FORM --- */}
               <div className="space-y-6 animate-fade-in">
                 {/* title */}
-                <div>
+                {/* <div>
                   <label
                     htmlFor="title"
                     className="block text-sm font-medium text-gray-700"
@@ -493,10 +493,10 @@ const createCategoryMutation = useMutation({
                     className="mt-1 block w-full border border-gray-300 rounded-lg  py-3 px-4"
                     required
                   />
-                </div>
+                </div> */}
 
                 {/* line items */}
-                <div className="border border-gray-200 rounded-lg p-4">
+                {/* <div className="border border-gray-200 rounded-lg p-4">
                   <h4 className="text-md font-semibold mb-3">Line Items</h4>
                   <div className="space-y-3">
                     {expenseData.items.map((item) => (
@@ -549,10 +549,10 @@ const createCategoryMutation = useMutation({
                     <PlusCircle className="w-4 h-4 mr-2" />
                     Add Item
                   </button>
-                </div>
+                </div> */}
 
                 {/* total + date */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Total Amount
@@ -586,11 +586,11 @@ const createCategoryMutation = useMutation({
                       required
                     />
                   </div>
-                </div>
+                </div> */}
 
                 {/* Checkbox: Linked to contact/project/appointment */}
                   <div className="flex items-center mb-4">
-                    <input
+                    {/* <input
                         type="checkbox"
                         id="isLinked"
                         checked={isLinked}
@@ -603,12 +603,12 @@ const createCategoryMutation = useMutation({
                         }
                         }}
                         className="h-4 w-4 text-purple-600 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isLinked" className="ml-2 block text-sm text-gray-700">
+                    /> */}
+                    {/* <label htmlFor="isLinked" className="ml-2 block text-sm text-gray-700">
                         This payment is linked to a Contact / Project / Appointment
-                    </label>
+                    </label> */}
                   </div>
-                  {isLinked && (
+                  {/* {isLinked && (
                     <ClientSelector
                         selectedClient={selectedClient}
                         setSelectedClient={setSelectedClient}
@@ -618,10 +618,10 @@ const createCategoryMutation = useMutation({
                         setSelectedAppointment={setSelectedAppointment}
                         contacts={contacts}
                     />
-                  )}
+                  )} */}
 
                 {/* payment method */}
-                <div>
+                {/* <div>
                   <label
                     htmlFor="paymentMethod"
                     className="block text-sm font-medium text-gray-700"
@@ -640,17 +640,17 @@ const createCategoryMutation = useMutation({
                     <option value="POS">POS</option>
                     <option value="Cheque">Cheque</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* category */}
                 <div>
-                  <label
+                  {/* <label
                     htmlFor="category"
                     className="block text-sm font-medium text-gray-700"
                   >
                     Category
-                  </label>
-                  <select
+                  </label> */}
+                  {/* <select
                       id="category"
                       name="category"
                       value={expenseData.category}
@@ -667,20 +667,20 @@ const createCategoryMutation = useMutation({
                           {cat.title ?? cat}
                         </option>
                       ))}
-                  </select>
+                  </select> */}
 
                   {/* ✅ New link/button */}
-                  <button
+                  {/* <button
                     type="button"
                     onClick={() => setIsCategoryModalOpen(true)}
                     className="mt-2 text-sm text-purple-600 hover:underline"
                   >
                     + Create Expense Category
-                  </button>
+                  </button> */}
                 </div>
 
               </div>
-            )}
+            {/* )} */}
 
             {/* --- ACTION BUTTONS --- */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

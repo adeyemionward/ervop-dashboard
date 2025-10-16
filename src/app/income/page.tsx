@@ -256,10 +256,10 @@ export default function TransactionsListPage() {
 
     return (
         <DashboardLayout>
-            <HeaderTitleCard onGoBack={handleGoBack} title="Transactions" description="Track all your income and expenses in one place.">
-                <Link href="/transactions/new" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+            <HeaderTitleCard onGoBack={handleGoBack} title="Transactions" description="Track all your income in one place.">
+                <Link href="/income/new" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
                     <Plus className="w-4 h-4" />
-                    <span>Add Transaction</span>
+                    <span>Add Income</span>
                 </Link>
             </HeaderTitleCard>
 

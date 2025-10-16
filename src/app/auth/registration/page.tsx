@@ -7,40 +7,15 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 // import { useRouter } from 'next/router';
 import { useRouter } from 'next/navigation';
+import Select from "react-select";
+import { industryOptions, customStyles as industryStyles } from "@/components/IndustryOptions";
+import { currencyOptions, customStyles as currencyStyles } from "@/components/CurrencyOptions";
 
 // --- TYPE DEFINITIONS ---
 type BusinessType = 'seller' | 'professional' | 'hybrid' | null;
 
 // --- INDUSTRY OPTIONS ---
-const industryOptions = [
-    'Agriculture',
-    'Arts & Entertainment',
-    'Automotive',
-    'Beauty & Wellness',
-    'Business Services',
-    'Construction & Engineering',
-    'Consulting',
-    'Education',
-    'Fashion',
-    'Finance & Accounting',
-    'Food & Beverage',
-    'Healthcare & Medical',
-    'Home Services',
-    'IT & Technology',
-    'Legal Services',
-    'Logistics & Transportation',
-    'Manufacturing',
-    'Marketing & Advertising',
-    'Media & Communications',
-    'Photography',
-    'Professional Services',
-    'Real Estate',
-    'Retail',
-    'Software & SaaS',
-    'Travel & Hospitality',
-    'Writing & Editing',
-    'Other'
-];
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function RegistrationPage() {
@@ -56,6 +31,8 @@ export default function RegistrationPage() {
     const [password, setPassword] = useState('');
     const [businessName, setBusinessName] = useState('');
     const [industry, setIndustry] = useState(''); // New state for industry
+    const [currency, setCurrency] = useState(''); // New state for industry
+    const [businessDescription, setBusinessDescription] = useState(''); // New state for industry
     const [ervopUrl, setErvopUrl] = useState('');
     const [phone, setPhone] = useState('');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -199,6 +176,8 @@ export default function RegistrationPage() {
                 businessType,
                 industry,
                 ervopUrl,
+                currency,
+                businessDescription,
             };
 
         try {
@@ -304,7 +283,7 @@ export default function RegistrationPage() {
         agreedToTerms &&
         (businessType === 'professional' ? email : phone); // Email is required for professional, phone for seller/hybrid
 
-    const isStepThreeComplete = businessName && ervopUrl && industry;
+    const isStepThreeComplete = businessName && ervopUrl && industry &&  currency && businessDescription,;
 
     // Check if OTP is a valid 4-digit number
     const isOtpValid = otp.length === 4;
@@ -369,7 +348,7 @@ export default function RegistrationPage() {
                                               step === 4 ?  'Verify your account'
                                                 : ''}
                                 </h2>
-                                {(step === 1 || step === 2) && (
+                                {(step != 4) && (
                                     <p className="mt-2 text-gray-500">
                                         Step {step} of 4. Already have an account?{' '}
                                         <Link href="/auth/login" className="font-semibold text-purple-600 hover:underline">
@@ -612,25 +591,62 @@ export default function RegistrationPage() {
                                             
                                         </div>
                                     </div>
-                                    <div>
-                                        <label htmlFor="industry" className="block text-sm font-medium text-gray-700">Industry</label>
-                                        <select
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Industry */}
+                                        <div>
+                                            <label htmlFor="industry" className="block text-sm font-medium text-gray-700">
+                                            Industry
+                                            </label>
+                                            <Select
                                             id="industry"
                                             name="industry"
-                                            value={industry}
-                                            onChange={(e) => setIndustry(e.target.value)}
-                                            required
-                                            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                                        >
-                                            <option value="" disabled>Select an industry</option>
-                                            {industryOptions.map((option) => (
-                                                <option key={option} value={option}>
-                                                    {option}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {fieldErrors.industry && (
+                                            value={industryOptions.find((opt) => opt.value === industry) || null}
+                                            onChange={(selectedOption) => setIndustry(selectedOption?.value || "")}
+                                            options={industryOptions}
+                                            styles={industryStyles}
+                                            placeholder="Select an industry"
+                                            isClearable
+                                            />
+                                            {fieldErrors.industry && (
                                             <p className="text-red-500 text-sm">{fieldErrors.industry}</p>
+                                            )}
+                                        </div>
+
+                                        {/* Currency */}
+                                        <div>
+                                            <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+                                            Currency
+                                            </label>
+                                            <Select
+                                                id="currency"
+                                                name="currency"
+                                                value={currencyOptions.find((opt) => opt.value === currency) || null}
+                                                onChange={(selectedOption) => setCurrency(selectedOption?.value || "")}
+                                                options={currencyOptions}
+                                                styles={currencyStyles}
+                                                placeholder="Select a currency"
+                                                isClearable
+                                            />
+                                            {fieldErrors.currency && (
+                                            <p className="text-red-500 text-sm">{fieldErrors.currency}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 mt-4">
+                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Business Description
+                                        </label>
+                                        <textarea
+                                            id="description"
+                                            rows="3"
+                                            placeholder="Briefly describe your business..."
+                                            value={businessDescription}
+                                            onChange={(e) => setBusinessDescription(e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        ></textarea>
+
+                                        {fieldErrors.description && (
+                                            <p className="text-red-500 text-sm">{fieldErrors.description}</p>
                                         )}
                                     </div>
                                 </div>

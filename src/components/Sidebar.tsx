@@ -7,9 +7,8 @@ import { Icons } from './icons';
 import clsx from 'clsx';
 import { 
     Package, ShoppingCart, BarChart2, Tag, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2, Plus, 
-    LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, ArrowLeftRight, CreditCard,
-    Megaphone, Wallet, Palette, Settings,
-    Landmark
+    LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, ArrowLeftRight, ArrowRightLeft, CreditCard,
+    Megaphone, Wallet, Palette, Settings, Landmark
 } from 'lucide-react';
 
 // --- Navigation Data ---
@@ -39,12 +38,13 @@ const sidebarNavItems = [
     title: 'General Toolkit',
     isCollapsible: false, // This flag prevents it from being a dropdown
     items: [
-      { title: 'Analytics', href: '/analytics', icon: BarChart2 }, // CORRECTED: Using Lucide Icon
+      // { title: 'Analytics', href: '/analytics', icon: BarChart2 }, // CORRECTED: Using Lucide Icon
       { title: 'Document Manager', href: '/docs-manager', icon: FolderKanban },
       { title: 'Contact Manager', href: '/contacts', icon: Users },
-      { title: 'Invoices', href: '/invoices', icon: FileText },
-      { title: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
-      { title: 'Subscriptions', href: '/subscriptions', icon: CreditCard },
+      { title: 'Invoicing', href: '/invoices', icon: FileText },
+      { title: 'Income', href: '/income', icon: Wallet },
+      { title: 'Expenses', href: '/expenses', icon: CreditCard },
+      { title: 'Subscriptions', href: '/subscriptions', icon: DollarSign },
       // { title: 'Payouts', href: '/payouts', icon: Landmark },
       // { title: 'Campaigns', href: '/campaigns', icon: Megaphone },
       // { title: 'Payment Methods', href: '/payment-methods', icon: Wallet },
@@ -167,7 +167,7 @@ export default function Sidebar({ isCollapsed, isMobileOpen, onClose }: SidebarP
                       key={subItem.href}
                       href={subItem.href}
                       className={clsx(
-                        'flex items-center p-2 text-base rounded-lg transition-colors hover:bg-gray-100',
+                        'flex items-center p-2 text-[15px] text-base rounded-lg transition-colors hover:bg-gray-100',
                         { 'justify-center': isCollapsed },
                         (pathname.startsWith(subItem.href) && subItem.href !== '/') || pathname === subItem.href
                           ? 'btn-side-menu-active text-white font-semibold'

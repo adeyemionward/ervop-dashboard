@@ -58,3 +58,16 @@
             hover:bg-purple-700
            cursor-pointer;
 }
+
+
+/* scrols hide for tabs eg: settings nitiication */
+/* Hide scrollbar for all browsers */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+

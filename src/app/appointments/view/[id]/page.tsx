@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import clsx from "clsx";
 import DashboardLayout from "@/components/DashboardLayout";
-import InvoiceModal from "@/components/InvoiceModal";
+import InvoiceModal from "@/components/InvoiceModal"; 
+import AppointmentStatusModal from "@/components/AppointmentStatusModal";
 import NoteModal from "@/components/NoteModal";
 import RecordPaymentModal from "@/components/RecordPaymentModal";
 import { CheckCircle, Clock, Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle, Loader2, FileText, Download } from 'lucide-react';
@@ -141,216 +142,225 @@ export default function AppointmentDetailsPage() {
     // });
 
 
-     const [isUpdating, setIsUpdating] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [updateSuccess, setUpdateSuccess] = useState(false);
     const [updateError, setUpdateError] = useState(null);
 
-  const [appointment, setAppointment] = useState<AppointmentDisplayData | null>(null);
-   const [rawApiAppointment, setRawApiAppointment] = useState<ApiAppointment | null>(null);
+    const [appointment, setAppointment] = useState<AppointmentDisplayData | null>(null);
+    const [rawApiAppointment, setRawApiAppointment] = useState<ApiAppointment | null>(null);
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
-  const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
-  const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-    const [invoiceDueDate, setInvoiceDueDate] = useState('');
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
+    const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
+    const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+    const [isAppointmentStatusModalOpen, setIsAppointmentStatusModalOpen] = useState(false);
+    const [invoiceDueDate, setInvoiceDueDate] = useState(''); 
     const [invoiceTax, setInvoiceTax] = useState('0');
     const [invoiceDiscount, setInvoiceDiscount] = useState('0');
 
     const [invoiceNotes, setInvoiceNotes] = useState('');
 
-  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
-  const [noteToEdit, setNoteToEdit] = useState<NoteItem | null>(null);
-  const [newNote, setNewNote] = useState('');
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+    const [noteToEdit, setNoteToEdit] = useState<NoteItem | null>(null);
+    const [newNote, setNewNote] = useState('');
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-  const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-    
-  const [paymentToDelete, setPaymentToDelete] = useState<PaymentHistoryItem | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+    const [newDate, setNewDate] = useState('');
+    const [newTime, setNewTime] = useState('');
+    const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+        
+    const [paymentToDelete, setPaymentToDelete] = useState<PaymentHistoryItem | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
-const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
+    const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+    const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
 
-const [noteToDelete, setNoteToDelete] = useState<AppointmentNote | null>(null);
-const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
+    const [noteToDelete, setNoteToDelete] = useState<AppointmentNote | null>(null);
+    const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
 
- // modal state
- const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
-  const [fileToDelete, setFileToDelete] = useState<DocumentFile | null>(null);
-  const [files, setFiles] = useState<DocumentFile[]>([]);
-  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
+    // modal state
+    const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
+    const [fileToDelete, setFileToDelete] = useState<DocumentFile | null>(null);
+    const [files, setFiles] = useState<DocumentFile[]>([]);
+    const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   
 
-  // Helpers
-  const fileNameFromPath = (p: string) =>
-    p ? p.split("/").pop() || p : "file";
-  const isImage = (t: string) => t?.toLowerCase().startsWith("image/");
-  const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
+    // Helpers
+    const fileNameFromPath = (p: string) =>
+        p ? p.split("/").pop() || p : "file";
+    const isImage = (t: string) => t?.toLowerCase().startsWith("image/");
+    const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [token, setToken] = useState<string | null>(null);
+
+    //   TABS
+    const [activeTab, setActiveTab] = useState("summary");
+
+    const tabs = [
+        { key: "summary", label: "Summary" },
+        { key: "financials", label: "Financials" },
+        { key: "documents", label: "Documents" },
+        { key: "notes", label: "Notes" },
+    ];
 
   
-const [totals, setTotals] = useState({ totalBudget: 0, totalSpent: 0, outstanding: 0 });
+    const [totals, setTotals] = useState({ totalBudget: 0, totalPaid: 0, outstanding: 0 });
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      if (token) setToken(token);
-    }
-  }, []);
-  const fetchAppointment = async () => {
-  if (!appointmentIdFromUrl || !BASE_URL || !token) return;
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        if (token) setToken(token);
+        }
+    }, []);
+    const fetchAppointment = async () => {
+    if (!appointmentIdFromUrl || !BASE_URL || !token) return;
 
-  setIsLoading(true);
-  setError(null);
-  try {
-    const response = await fetch(
-      `${BASE_URL}/professionals/appointments/show/${appointmentIdFromUrl}`,
-      {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
+    setIsLoading(true);
+    setError(null);
+    try {
+        const response = await fetch(
+        `${BASE_URL}/professionals/appointments/show/${appointmentIdFromUrl}`,
+        {
+            headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+            },
+        }
+        );
+        if (!response.ok) throw new Error("Failed to fetch appointment details.");
+
+        const result = await response.json();
+        const apiData: ApiAppointment = result.data;
+
+        // Map API data -> display structure
+        const formatted: AppointmentDisplayData = {
+        id: String(apiData.id),
+        appointmentId: apiData.id,
+        createdAt: new Date(apiData.created_at).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        }),
+        date: new Date(apiData.date + "T00:00:00").toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        }),
+        time: new Date(`1970-01-01T${apiData.time}`).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        }),
+        appointmentAmount: apiData.amount || 0 ,
+        appointmentStatus: apiData.appointment_status || "Upcoming",
+        notes: apiData.notes ?? "",
+        serviceName: apiData.service?.name || "",
+        customer: {
+            customer_id: apiData.customer?.id ?? 0,
+            name: `${apiData.customer?.firstname ?? ""} ${apiData.customer?.lastname ?? ""}`,
+            email: apiData.customer?.email ?? "",
+            phone: apiData.customer?.phone ?? "",
         },
-      }
-    );
-    if (!response.ok) throw new Error("Failed to fetch appointment details.");
-
-    const result = await response.json();
-    const apiData: ApiAppointment = result.data;
-
-    // Map API data -> display structure
-    const formatted: AppointmentDisplayData = {
-      id: String(apiData.id),
-      appointmentId: apiData.id,
-      createdAt: new Date(apiData.created_at).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      date: new Date(apiData.date + "T00:00:00").toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      time: new Date(`1970-01-01T${apiData.time}`).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      appointmentAmount: apiData.amount || 0 ,
-      appointmentStatus: apiData.appointment_status || "Upcoming",
-      notes: apiData.notes ?? "",
-      serviceName: apiData.service?.name || "",
-      customer: {
-        customer_id: apiData.customer?.id ?? 0,
-        name: `${apiData.customer?.firstname ?? ""} ${apiData.customer?.lastname ?? ""}`,
-        email: apiData.customer?.email ?? "",
-        phone: apiData.customer?.phone ?? "",
-      },
-      paymentStatus: apiData.invoices?.every((inv) => inv.status === "Paid")
-        ? "Paid"
-        : apiData.invoices?.some((inv) => inv.status === "Paid")
-        ? "Partially Paid"
-        : "Unpaid",
-      paymentHistory:
-        apiData.invoices?.flatMap(
-          (inv) =>
-            inv.payments?.map((p: any) => ({
-              id: p.id,
-              date: new Date(p.payment_date).toLocaleDateString("en-US"),
-              amount: `₦${Number(p.amount).toLocaleString()}`,
-              method: (p.payment_method || "Manual Entry")
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (c) => c.toUpperCase()),
-              invoiceNumber: inv.invoice_no || `#INV-${inv.id}`, // 👈 include invoice number
-            })) ?? []
-        ) ?? [],
-      notesHistory:
-        apiData.notesHistory?.map((n) => ({
-          id: n.id,
-          content: n.content,
-          author: n.author || "Unknown",
-          date: new Date(n.created_at).toLocaleDateString("en-US"),
-        })) ?? [],
-
-        // ✅ Add documents with files
-      documents:
-        apiData.documents?.map((doc: any) => ({
-            id: doc.id,
-            title: doc.title,
-            description: doc.description,
-            uploadedAt: new Date(doc.created_at).toLocaleDateString("en-US"),
-            files: doc.files?.map((f: any) => ({
-                id: f.id,
-                name: fileNameFromPath(f.file_path),
-                file_path: f.file_path,
-                file_type: f.file_type,
-                uploadedAt: new Date(f.created_at).toLocaleDateString("en-US"),
+        paymentStatus: apiData.invoices?.every((inv) => inv.status === "Paid")
+            ? "Paid"
+            : apiData.invoices?.some((inv) => inv.status === "Paid")
+            ? "Partially Paid"
+            : "Unpaid",
+        paymentHistory:
+            apiData.invoices?.flatMap(
+            (inv) =>
+                inv.payments?.map((p: any) => ({
+                id: p.id,
+                date: new Date(p.payment_date).toLocaleDateString("en-US"),
+                amount: `₦${Number(p.amount).toLocaleString()}`,
+                method: (p.payment_method || "Manual Entry")
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase()),
+                invoiceNumber: inv.invoice_no || `#INV-${inv.id}`, // 👈 include invoice number
+                })) ?? []
+            ) ?? [],
+        notesHistory:
+            apiData.notesHistory?.map((n) => ({
+            id: n.id,
+            content: n.content,
+            author: n.author || "Unknown",
+            date: new Date(n.created_at).toLocaleDateString("en-US"),
             })) ?? [],
-        })) ?? [],
+
+            // ✅ Add documents with files
+        documents:
+            apiData.documents?.map((doc: any) => ({
+                id: doc.id,
+                title: doc.title,
+                description: doc.description,
+                uploadedAt: new Date(doc.created_at).toLocaleDateString("en-US"),
+                files: doc.files?.map((f: any) => ({
+                    id: f.id,
+                    name: fileNameFromPath(f.file_path),
+                    file_path: f.file_path,
+                    file_type: f.file_type,
+                    uploadedAt: new Date(f.created_at).toLocaleDateString("en-US"),
+                })) ?? [],
+            })) ?? [],
+        };
+
+        setAppointment(formatted);
+
+        setInvoices(
+        apiData.invoices?.map((inv) => ({
+            id: inv.id,
+            invoiceNumber: inv.invoice_no || `#INV-${inv.id}`,
+            issuedDate: new Date(inv.issue_date).toLocaleDateString("en-US"),
+            dueDate: new Date(inv.due_date).toLocaleDateString("en-US"),
+            taxPercentage: inv.tax_percentage,
+            discountPercentage: inv.discount_percentage,
+            taxAmount: inv.tax_amount,
+            discountAmount: inv.discount,
+            remainingBalance: inv.remaining_balance,
+            notes: inv.notes,
+            status: inv.status || "Pending",
+            items:
+            inv.items?.map((it: any) => ({
+                id: it.id,
+                description: it.description,
+                quantity: it.quantity,
+                rate: it.rate,
+                // 🔥 calculate amount right here
+                amount: (Number(it.quantity) || 0) * (Number(it.rate) || 0),
+            })) ?? [],
+        })) ?? []
+        );
+
+        // ✅ Compute totals here
+        // Assuming apiData.appointments is an array of appointments
+        // total budget comes straight from appointment.amount
+        const totalBudget = Number(formatted.appointmentAmount)
+
+        // sum of all payments
+        const totalPaid =
+        apiData.invoices?.flatMap(inv => inv.payments || [])
+            .reduce((sum: number, pay: any) => sum + (Number(pay.amount) || 0), 0) || 0;
+
+        // outstanding balance
+        const outstanding = totalBudget - totalPaid;
+
+        setTotals({ totalBudget, totalPaid, outstanding }); // 👈 store it in state
+        } catch (err) {
+            setError(
+            err instanceof Error ? err.message : "An unknown error occurred."
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
-
-    setAppointment(formatted);
-
-    setInvoices(
-      apiData.invoices?.map((inv) => ({
-        id: inv.id,
-        invoiceNumber: inv.invoice_no || `#INV-${inv.id}`,
-        issuedDate: new Date(inv.issue_date).toLocaleDateString("en-US"),
-        dueDate: new Date(inv.due_date).toLocaleDateString("en-US"),
-        taxPercentage: inv.tax_percentage,
-        discountPercentage: inv.discount_percentage,
-        taxAmount: inv.tax_amount,
-        discountAmount: inv.discount,
-        remainingBalance: inv.remaining_balance,
-        notes: inv.notes,
-        status: inv.status || "Pending",
-        items:
-          inv.items?.map((it: any) => ({
-            id: it.id,
-            description: it.description,
-            quantity: it.quantity,
-            rate: it.rate,
-            // 🔥 calculate amount right here
-            amount: (Number(it.quantity) || 0) * (Number(it.rate) || 0),
-          })) ?? [],
-      })) ?? []
-    );
-
-    // ✅ Compute totals here
-   // Assuming apiData.appointments is an array of appointments
-    // total budget comes straight from appointment.amount
-    const totalBudget = Number(formatted.appointmentAmount)
-
-    // sum of all payments
-    const totalSpent =
-    apiData.invoices?.flatMap(inv => inv.payments || [])
-        .reduce((sum: number, pay: any) => sum + (Number(pay.amount) || 0), 0) || 0;
-
-    // outstanding balance
-    const outstanding = totalBudget - totalSpent;
-
-
-
-    setTotals({ totalBudget, totalSpent, outstanding }); // 👈 store it in state
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "An unknown error occurred."
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
 
 
   // Load on mount
@@ -389,72 +399,108 @@ useEffect(() => {
         setIsInvoiceModalOpen(true);
     };
 
-    const updateAppointmentStatus = async (newStatus: string) => {
-        setIsUpdating(true);
-        setUpdateSuccess(false);
-        setUpdateError(null);
+    // const updateAppointmentStatus = async (newStatus: string) => {
+    //     setIsUpdating(true);
+    //     setUpdateSuccess(false);
+    //     setUpdateError(null);
 
-        try {
-            // Assume you have the user's token stored somewhere
-            const token = localStorage.getItem("token");
-            const payload = {
-                status: newStatus,
-            };
+    //     try {
+    //         // Assume you have the user's token stored somewhere
+    //         const token = localStorage.getItem("token");
+    //         const payload = {
+    //             status: newStatus,
+    //         };
 
-            const response = await fetch(
-                `http://127.0.0.1:8000/api/v1/professionals/appointments/updateStatus/${appointment.id}`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(payload),
-                }
-            );
+    //         const response = await fetch(
+    //             `http://127.0.0.1:8000/api/v1/professionals/appointments/updateStatus/${appointment.id}`,
+    //             {
+    //                 method: "POST",
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                     Authorization: `Bearer ${token}`,
+    //                 },
+    //                 body: JSON.stringify(payload),
+    //             }
+    //         );
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Failed to update status");
-            }
+    //         if (!response.ok) {
+    //             const errorData = await response.json();
+    //             throw new Error(errorData.message || "Failed to update status");
+    //         }
 
-            // Update the local state with the new status after a successful API call
-            setAppointment(prev => prev ? {...prev, appointmentStatus: newStatus} : null);
-            setUpdateSuccess(true);
-            toast.success("Status updated successfully!");
+    //         // Update the local state with the new status after a successful API call
+    //         setAppointment(prev => prev ? {...prev, appointmentStatus: newStatus} : null);
+    //         setUpdateSuccess(true);
+    //         toast.success("Status updated successfully!");
 
-        } catch (error: any) {
-            console.error("API error:", error);
-            setUpdateError(error.message);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+    //     } catch (error: any) {
+    //         console.error("API error:", error);
+    //         setUpdateError(error.message);
+    //     } finally {
+    //         setIsUpdating(false);
+    //     }
+    // };
     
     // The provided AppointmentTimeline component
     const AppointmentTimeline: React.FC<{ currentStatus: string }> = ({ currentStatus }) => {
       const statuses = ['Upcoming', 'Inprogress', 'Completed', 'Converted'];
       const currentIndex = statuses.indexOf(currentStatus);
 
-      return (
-        <div className="flex items-center justify-between bg-white p-6 rounded-xl shadow-sm">
-          {statuses.map((status, index) => (
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+        {/* Timeline row */}
+        <div className="flex items-center overflow-x-auto whitespace-nowrap px-2 -mx-2 scrollbar-hide">
+            {statuses.map((status, index) => (
             <div key={status} className="flex items-center w-full">
-              <div className={clsx("flex flex-col items-center text-center", { 'text-purple-600': index <= currentIndex, 'text-gray-400': index > currentIndex })}>
-                <div className={clsx("w-8 h-8 rounded-full flex items-center justify-center font-semibold border-2", { 
-                  'bg-purple-600 text-white border-purple-600': index <= currentIndex, 
-                  'bg-gray-200 border-gray-200': index > currentIndex 
-                })}>
-                  {index < currentIndex ? <CheckCircle className="w-5 h-5" /> : index + 1}
+                <div
+                className={clsx("flex flex-col items-center text-center", {
+                    "text-purple-600": index <= currentIndex,
+                    "text-gray-400": index > currentIndex,
+                })}
+                >
+                <div
+                    className={clsx(
+                    "w-8 h-8 rounded-full flex items-center justify-center font-semibold border-2",
+                    {
+                        "bg-purple-600 text-white border-purple-600":
+                        index <= currentIndex,
+                        "bg-gray-200 border-gray-200": index > currentIndex,
+                    }
+                    )}
+                >
+                    {index < currentIndex ? (
+                    <CheckCircle className="w-5 h-5" />
+                    ) : (
+                    index + 1
+                    )}
                 </div>
                 <p className="text-xs font-medium mt-2">{status}</p>
-              </div>
-              {index < statuses.length - 1 && (
-                <div className={clsx("flex-1 h-0.5 mx-4", { 'bg-purple-600': index < currentIndex, 'bg-gray-200': index >= currentIndex })}></div>
-              )}
+                </div>
+
+                {index < statuses.length - 1 && (
+                <div
+                    className={clsx("flex-1 h-0.5 mx-4", {
+                    "bg-purple-600": index < currentIndex,
+                    "bg-gray-200": index >= currentIndex,
+                    })}
+                ></div>
+                )}
             </div>
-          ))}
+            ))}
         </div>
+
+        {/* Update button (full width, no breaking) */}
+        <div className="mt-6 flex ">
+            <button
+        onClick={() => setIsAppointmentStatusModalOpen(true)} 
+        className="text-sm bg-purple-200 font-medium text-purple-600 py-2 px-6 rounded-lg hover:text-purple-800"
+        >
+        Update Status
+        </button>
+
+        </div>
+        </div>
+
       );
     };
 
@@ -731,478 +777,558 @@ const deleteNoteMutation = useMutation({
                 </div>
             </div>
             
-            <div className="mb-8"><AppointmentTimeline currentStatus={appointment.appointmentStatus} /></div>
+            {/* Timeline + Update Status */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
+                {/* Timeline (left, 2/3 width) */}
+                <div className="lg:col-span-2">
+                    <AppointmentTimeline currentStatus={appointment.appointmentStatus} />
+                    
+                </div>
+
+            </div>
+
+            {/* Tabs Navigation */}
+            <div className="flex space-x-6 border-b border-gray-300 mb-6 overflow-x-auto whitespace-nowrap px-2 scrollbar-hide">
+                {tabs.map((tab) => (
+                    <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`inline-block px-4 py-2 font-medium ${
+                        activeTab === tab.key
+                        ? "border-b-2 border-purple-600 text-purple-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    >
+                    {tab.label}
+                    </button>
+                ))}
+            </div>
+
+
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    {/* SUMMARY TAB */}
+                    {activeTab === "summary" && (
+                        <InfoCard title="Appointment Details">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                <div><p className="text-gray-500">Service</p><p className="font-medium text-gray-800 mt-1">{appointment.serviceName}</p></div>
+                                <div><p className="text-gray-500">Date</p><p className="font-medium text-gray-800 mt-1">{appointment.date}</p></div>
+                                <div><p className="text-gray-500">Time</p><p className="font-medium text-gray-800 mt-1">{appointment.time}</p></div>
+                                <div><p className="text-gray-500">Status</p><p className="font-medium text-gray-800 mt-1"><span className={clsx("px-2 py-1 text-xs font-medium rounded-full", {'bg-green-100 text-green-800': ['Completed', 'Converted'].includes(appointment.appointmentStatus),'bg-yellow-100 text-yellow-800': appointment.appointmentStatus === 'Inprogress','bg-blue-100 text-blue-800': appointment.appointmentStatus === 'Upcoming','bg-red-100 text-red-800': appointment.appointmentStatus === 'Cancelled','bg-orange-100 text-orange-800': appointment.appointmentStatus === 'Rescheduled',})}>{appointment.appointmentStatus}</span></p></div>
+                            </div>
+                            <div className="w-full mt-5"><p className="font-bold text-gray-800">Description</p><p className="text-gray-600 whitespace-pre-wrap">{appointment.notes || 'No notes provided.'}</p></div>
+                        </InfoCard>
+                    )}
+                    
+
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                    <InfoCard title="Appointment Details">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                            <div><p className="text-gray-500">Service</p><p className="font-medium text-gray-800 mt-1">{appointment.serviceName}</p></div>
-                            <div><p className="text-gray-500">Date</p><p className="font-medium text-gray-800 mt-1">{appointment.date}</p></div>
-                            <div><p className="text-gray-500">Time</p><p className="font-medium text-gray-800 mt-1">{appointment.time}</p></div>
-                            <div><p className="text-gray-500">Status</p><p className="font-medium text-gray-800 mt-1"><span className={clsx("px-2 py-1 text-xs font-medium rounded-full", {'bg-green-100 text-green-800': ['Completed', 'Converted'].includes(appointment.appointmentStatus),'bg-yellow-100 text-yellow-800': appointment.appointmentStatus === 'Inprogress','bg-blue-100 text-blue-800': appointment.appointmentStatus === 'Upcoming','bg-red-100 text-red-800': appointment.appointmentStatus === 'Cancelled','bg-orange-100 text-orange-800': appointment.appointmentStatus === 'Rescheduled',})}>{appointment.appointmentStatus}</span></p></div>
-                        </div>
-                        <div className="w-full mt-5"><p className="font-bold text-gray-800">Description</p><p className="text-gray-600 whitespace-pre-wrap">{appointment.notes || 'No notes provided.'}</p></div>
-                    </InfoCard>
+                    
+                    {activeTab === "financials" && (
 
-                    <InfoCard
-                        title="Invoices"
-                        action={
-                            <button
-                            onClick={openCreateInvoiceModal}
-                            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                            >
-                            + Create Invoice
-                            </button>
-                        }
-                        >
-                        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                            {invoices && invoices.length > 0 ? (
-                            invoices.map((invoice) => {
-                                const subtotal = invoice.items?.reduce((acc, item) => {
-                                const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                                return acc + base;
-                                }, 0) ?? 0;
-
-                                const discountPercentage = invoice.discountAmount ?? 0;
-                                const taxPercentage = invoice.taxAmount ?? 0;
-
-                                const discount = (subtotal * discountPercentage) / 100;
-                                const tax = (subtotal * taxPercentage) / 100;
-
-                                const total = subtotal - discount + tax;
-
-                                const finalTotal =
-                                subtotal +
-                                (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
-                                (subtotal * (invoice.discountPercentage ?? 0)) / 100;
-
-                                const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
-
-                                let statusLabel = "Pending";
-                                let statusClass = "bg-yellow-100 text-yellow-800";
-
-                                if (remainingBalance === 0) {
-                                statusLabel = "Fully Paid";
-                                statusClass = "bg-green-100 text-green-800";
-                                } else if (remainingBalance === finalTotal) {
-                                statusLabel = "Unpaid";
-                                statusClass = "bg-red-100 text-red-800";
-                                } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
-                                statusLabel = "Partially Paid";
-                                statusClass = "bg-blue-100 text-blue-800";
-                                }
-
-                                if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
-                                statusLabel = "Overdue";
-                                statusClass = "bg-red-200 text-red-900";
-                                }
-
-                                const isExpanded = expandedInvoice === invoice.id;
-
-                                return (
-                                <div
-                                    key={invoice.id}
-                                    className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition"
+                        <InfoCard
+                            title="Invoices"
+                            action={
+                                <button
+                                onClick={openCreateInvoiceModal}
+                                className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
                                 >
-                                    {/* Row Header */}
+                                + Create Invoice
+                                </button>
+                            }
+                            >
+                            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
+                                {invoices && invoices.length > 0 ? (
+                                invoices.map((invoice) => {
+                                    const subtotal = invoice.items?.reduce((acc, item) => {
+                                    const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
+                                    return acc + base;
+                                    }, 0) ?? 0;
+
+                                    const discountPercentage = invoice.discountAmount ?? 0;
+                                    const taxPercentage = invoice.taxAmount ?? 0;
+
+                                    const discount = (subtotal * discountPercentage) / 100;
+                                    const tax = (subtotal * taxPercentage) / 100;
+
+                                    const total = subtotal - discount + tax;
+
+                                    const finalTotal =
+                                    subtotal +
+                                    (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
+                                    (subtotal * (invoice.discountPercentage ?? 0)) / 100;
+
+                                    const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
+
+                                    let statusLabel = "Pending";
+                                    let statusclassName = "bg-yellow-100 text-yellow-800";
+
+                                    if (remainingBalance === 0) {
+                                    statusLabel = "Fully Paid";
+                                    statusclassName = "bg-green-100 text-green-800";
+                                    } else if (remainingBalance === finalTotal) {
+                                    statusLabel = "Unpaid";
+                                    statusclassName = "bg-red-100 text-red-800";
+                                    } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
+                                    statusLabel = "Partially Paid";
+                                    statusclassName = "bg-blue-100 text-blue-800";
+                                    }
+
+                                    if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
+                                    statusLabel = "Overdue";
+                                    statusclassName = "bg-red-200 text-red-900";
+                                    }
+
+                                    const isExpanded = expandedInvoice === invoice.id;
+
+                                    return (
                                     <div
-                                    className="flex justify-between items-center p-4 cursor-pointer"
-                                    onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
+                                        key={invoice.id}
+                                        className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition"
                                     >
+                                        {/* Row Header */}
+                                        <div
+                                        className="flex justify-between items-center p-4 cursor-pointer"
+                                        onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
+                                        >
+                                        <div>
+                                            <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
+                                            <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
+                                            <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
+                                            <p className="text-xs text-gray-500">
+                                            Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                            Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                            <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
+                                            <span
+                                                className={clsx(
+                                                "px-2 py-0.5 text-xs font-medium rounded-full",
+                                                statusclassName
+                                                )}
+                                            >
+                                                {statusLabel}
+                                            </span>
+                                            </div>
+
+                                            <div className="flex items-center space-x-1">
+                                            <button
+                                                onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEditInvoiceClick(invoice);
+                                                }}
+                                                className="p-2 rounded-full hover:bg-gray-200"
+                                                title="Edit Invoice"
+                                            >
+                                                <Edit className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                e.stopPropagation();
+                                                setInvoiceToDelete(invoice);
+                                                }}
+                                                className="p-2 rounded-full hover:bg-gray-200 text-red-600"
+                                                title="Delete Invoice"
+                                            >
+                                                <Trash2 className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedInvoiceId(invoice.id);
+                                                setIsPaymentModalOpen(true);
+                                                }}
+                                                className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
+                                                title="Record Payment"
+                                            >
+                                                <PlusCircle className="h-5 w-5" />
+                                            </button>
+                                            {isExpanded ? (
+                                                <ChevronUp className="h-5 w-5 text-gray-500" />
+                                            ) : (
+                                                <ChevronDown className="h-5 w-5 text-gray-500" />
+                                            )}
+                                            </div>
+                                        </div>
+                                        </div>
+
+                                        {/* Expanded Row */}
+                                        {isExpanded && (
+                                        <div className="px-4 pb-4">
+                                            <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
+                                            <thead>
+                                                <tr className="text-gray-600">
+                                                <th className="py-2">Description</th>
+                                                <th className="py-2 text-right">Qty</th>
+                                                <th className="py-2 text-right">Rate</th>
+                                                <th className="py-2 text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {invoice.items.map((item) => (
+                                                <tr key={item.id} className="border-t border-gray-100">
+                                                    <td className="py-2">{item.description}</td>
+                                                    <td className="py-2 text-right">{item.quantity}</td>
+                                                    <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
+                                                    <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
+                                                </tr>
+                                                ))}
+                                            </tbody>
+                                            </table>
+
+                                            <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
+                                            <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
+                                            <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
+                                            <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
+                                            <p className="text-lg">
+                                                Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
+                                            </p>
+                                            </div>
+                                        </div>
+                                        )}
+                                    </div>
+                                    );
+                                })
+                                ) : (
+                                <p className="text-gray-400 text-center py-4">No invoice available</p>
+                                )}
+                            </div>
+                        </InfoCard>
+                    )}
+               
+
+                </div>
+            
+
+                <div className="lg:col-span-1 space-y-8">
+                    <div className="lg:col-span-1 space-y-8">
+                       
+                        {activeTab === "financials" && (
+                             <>
+                            <InfoCard
+                                title="Payment History"
+                                action={
+                                    <span
+                                    className={clsx(
+                                        "px-3 py-1 text-xs font-medium rounded-full",
+                                        {
+                                        "bg-yellow-100 text-yellow-800":
+                                            totals.totalPaid > 0 && totals.totalPaid < appointment.appointmentAmount,
+                                        "bg-green-100 text-green-800":
+                                            totals.totalPaid >= appointment.appointmentAmount,
+                                        "bg-red-100 text-red-800": totals.totalPaid === 0,
+                                        }
+                                    )}
+                                    >
+                                    {totals.totalPaid === 0
+                                        ? "Unpaid"
+                                        : totals.totalPaid < appointment.appointmentAmount
+                                        ? "Partially Paid"
+                                        : "Paid"}
+                                    </span>
+                                }
+                                >
+                                {/* Totals */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 text-center">
                                     <div>
-                                        <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
-                                        <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
-                                        <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
-                                        <p className="text-xs text-gray-500">
-                                        Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
+                                        <p className="text-xs text-gray-500">Total Budget</p>
+                                        <p className="font-semibold text-gray-800">
+                                            ₦{Number(appointment.appointmentAmount).toLocaleString("en-NG", {
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 0,
+                                            })}
                                         </p>
-                                        <p className="text-xs text-gray-500">
-                                        Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}
-                                        </p>
+
+                                    </div>
+                                    <div>
+                                    <p className="text-xs text-gray-500">Total Paid</p>
+                                    <p className="font-semibold text-green-600">₦{totals.totalPaid.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                    <p className="text-xs text-gray-500">Outstanding</p>
+                                    <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                {/* Search bar */}
+                                <div className="mb-3">
+                                    <input
+                                    type="text"
+                                    placeholder="Search by Invoice Number..."
+                                    value={searchInvoice}
+                                    onChange={(e) => setSearchInvoice(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                </div>
+
+                                {/* History list */}
+                                <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+                                    {filteredHistory.map((p) => (
+                                    <div key={p.id} className="flex justify-between text-sm">
+                                        <div>
+                                        <p className="text-xs text-gray-500">{p.invoiceNumber}</p>
+                                        <p className="text-gray-500">{p.date}</p>
+                                        <p className="text-gray-800 text-xs"> {p.method}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                        <p className="font-medium text-gray-800">{p.amount}</p>
+                                        <button
+                                            onClick={() => setPaymentToDelete(p)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                        </div>
+                                    </div>
+                                    ))}
+                                </div>
+                                
+                            </InfoCard>
+
+                            <InfoCard title="Expenses">
+                                    {/* Totals */}
+                                    <div className="grid grid-cols-1 mb-4 text-center">
+                                        <div>
+                                            <p className="text-xs text-gray-500">Total Expenses</p>
+                                            <p className="font-semibold text-red-600">₦80,000</p>
+                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                        <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
-                                        <span
-                                            className={clsx(
-                                            "px-2 py-0.5 text-xs font-medium rounded-full",
-                                            statusClass
-                                            )}
+                                    {/* Search bar */}
+                                    <div className="mb-3">
+                                        <input
+                                            type="text"
+                                            placeholder="Search by description or category..."
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
+
+                                    {/* Expense list */}
+                                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+                                        {/* Expense item */}
+                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                                            <div>
+                                            <p className="text-gray-800 font-medium">Contractor Payment</p>
+                                            <p className="text-gray-500 text-xs">2025-10-01</p>
+                                            <p className="text-gray-400 text-xs">Labor</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800">₦50,000</p>
+                                            <button className="text-red-500 hover:text-red-700">
+                                                {/* Trash icon placeholder */}
+                                                🗑
+                                            </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                                            <div>
+                                            <p className="text-gray-800 font-medium">Material Purchase</p>
+                                            <p className="text-gray-500 text-xs">2025-10-03</p>
+                                            <p className="text-gray-400 text-xs">Supplies</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800">₦20,000</p>
+                                            <button className="text-red-500 hover:text-red-700">
+                                                🗑
+                                            </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                                            <div>
+                                            <p className="text-gray-800 font-medium">Transport Cost</p>
+                                            <p className="text-gray-500 text-xs">2025-10-05</p>
+                                            <p className="text-gray-400 text-xs">Logistics</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800">₦10,000</p>
+                                            <button className="text-red-500 hover:text-red-700">
+                                                🗑
+                                            </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Add expense button */}
+                                    <div className="mt-3 flex justify-end">
+                                    <button className="bg-[#7E51FF] text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm">
+                                        + Record Expense
+                                    </button>
+                                    </div>
+                            </InfoCard>
+                             </>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+
+            {/* other */}
+
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    
+                
+               
+
+                    {activeTab === "notes" && (
+                        <InfoCard
+                            title="Appointment Notes"
+                            action={
+                                <button
+                                onClick={() => {
+                                    setNoteToEdit(null);
+                                    setNewNote('');
+                                    setIsNoteModalOpen(true);
+                                }}
+                                className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+                                >
+                                + Add Note
+                                </button>
+                            }
+                            >
+                            <div className="max-h-64 overflow-y-auto pr-2 space-y-4">
+                                {appointment.notesHistory && appointment.notesHistory.length > 0 ? (
+                                appointment.notesHistory.map(note => (
+                                    <div
+                                    key={note.id}
+                                    className="flex items-start space-x-3 pt-4 first:pt-0 first:border-none border-t group relative"
+                                    >
+                                    <img
+                                        alt="User avatar"
+                                        src="https://i.pravatar.cc/150?u=ervop-admin"
+                                        className="h-8 w-8 rounded-full object-cover"
+                                    />
+                                    <div className="flex-1 bg-gray-50 p-3 rounded-lg">
+                                        <p className="text-sm text-gray-600">{note.content}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                        {note.author} - {note.date}
+                                        </p>
+                                    </div>
+                                    <div className="absolute top-4 right-2 flex items-center space-x-1">
+                                        <button
+                                        onClick={() => handleEditNoteClick(note)}
+                                        className="p-2 rounded-full hover:bg-gray-200"
                                         >
-                                            {statusLabel}
-                                        </span>
+                                        <Edit className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                        key={note.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNoteToDelete(note);
+                                        }}
+                                        className="p-2 rounded-full hover:bg-gray-200 text-red-600"
+                                        title="Delete Note"
+                                        >
+                                        <Trash2 className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                    </div>
+                                ))
+                                ) : (
+                                <p className="text-gray-400 text-center py-4">No data available</p>
+                                )}
+                            </div>
+                        </InfoCard>
+                    )}
+                        
+                    {activeTab === "documents" && (
+                        <InfoCard
+                            title="Project Documents"
+                            action={
+                                <button
+                                    onClick={() => setIsFileModalOpen(true)}
+                                    className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+                                >
+                                    + Upload File
+                                </button>
+                                
+                            }
+                            >
+                            <div className="max-width pr-2 space-y-3">
+                                {appointment.documents && appointment.documents.length > 0 ? (
+                                appointment.documents.map((doc) =>
+                                    doc.files.map((file) => (
+                                    <div
+                                        key={file.id}
+                                        className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group"
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                        <div className="bg-gray-200 p-3 rounded-full">
+                                            {isImage(file.url) ? (
+                                            <FileImage className="w-6 h-6 text-gray-600" />
+                                            ) : (
+                                            <FileText className="w-6 h-6 text-gray-600" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <a
+                                            href={file.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="font-semibold text-blue-600 hover:underline"
+                                            >
+                                            {fileNameFromPath(file.file_path)}
+                                            </a>
+
+                                            {doc.title && (
+                                            <p className="text-xs text-gray-400">{doc.title}</p>
+                                            )}
+
+                                            <p className="text-sm text-gray-500">
+                                            Uploaded: {formatDate(file.uploadedAt)} • {file.file_type.toUpperCase()}
+                                            </p>
+                                        </div>
                                         </div>
 
                                         <div className="flex items-center space-x-1">
                                         <button
-                                            onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditInvoiceClick(invoice);
-                                            }}
-                                            className="p-2 rounded-full hover:bg-gray-200"
-                                            title="Edit Invoice"
-                                        >
-                                            <Edit className="h-5 w-5" />
+                                            onClick={() => downloadFile(file.file_path)}
+                                            className="p-2 rounded-md text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                            aria-label={`Download ${fileNameFromPath(file.file_path)}`}
+                                            title="Download"
+                                            >
+                                            <Download className="w-5 h-5" />
                                         </button>
                                         <button
-                                            onClick={(e) => {
-                                            e.stopPropagation();
-                                            setInvoiceToDelete(invoice);
-                                            }}
-                                            className="p-2 rounded-full hover:bg-gray-200 text-red-600"
-                                            title="Delete Invoice"
+                                            onClick={() => setFileToDelete(file)}
+                                            disabled={deletingFileId === file.id}
+                                            className={`p-2 rounded-md text-red-600 hover:bg-red-50 cursor-pointer ${
+                                                deletingFileId === file.id ? "opacity-60 cursor-not-allowed" : ""
+                                            }`}
+                                        title="Delete"
                                         >
-                                            <Trash2 className="h-5 w-5" />
+                                        <Trash2 className="w-5 h-5" />
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedInvoiceId(invoice.id);
-                                            setIsPaymentModalOpen(true);
-                                            }}
-                                            className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
-                                            title="Record Payment"
-                                        >
-                                            <PlusCircle className="h-5 w-5" />
-                                        </button>
-                                        {isExpanded ? (
-                                            <ChevronUp className="h-5 w-5 text-gray-500" />
-                                        ) : (
-                                            <ChevronDown className="h-5 w-5 text-gray-500" />
-                                        )}
                                         </div>
                                     </div>
-                                    </div>
-
-                                    {/* Expanded Row */}
-                                    {isExpanded && (
-                                    <div className="px-4 pb-4">
-                                        <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
-                                        <thead>
-                                            <tr className="text-gray-600">
-                                            <th className="py-2">Description</th>
-                                            <th className="py-2 text-right">Qty</th>
-                                            <th className="py-2 text-right">Rate</th>
-                                            <th className="py-2 text-right">Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {invoice.items.map((item) => (
-                                            <tr key={item.id} className="border-t border-gray-100">
-                                                <td className="py-2">{item.description}</td>
-                                                <td className="py-2 text-right">{item.quantity}</td>
-                                                <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
-                                                <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                                            </tr>
-                                            ))}
-                                        </tbody>
-                                        </table>
-
-                                        <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
-                                        <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                                        <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
-                                        <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
-                                        <p className="text-lg">
-                                            Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
-                                        </p>
-                                        </div>
-                                    </div>
-                                    )}
-                                </div>
-                                );
-                            })
-                            ) : (
-                            <p className="text-gray-400 text-center py-4">No invoice available</p>
-                            )}
-                        </div>
-                    </InfoCard>
-
-
-                    <InfoCard
-                        title="Appointment Notes"
-                        action={
-                            <button
-                            onClick={() => {
-                                setNoteToEdit(null);
-                                setNewNote('');
-                                setIsNoteModalOpen(true);
-                            }}
-                            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                            >
-                            + Add Note
-                            </button>
-                        }
-                        >
-                        <div className="max-h-64 overflow-y-auto pr-2 space-y-4">
-                            {appointment.notesHistory && appointment.notesHistory.length > 0 ? (
-                            appointment.notesHistory.map(note => (
-                                <div
-                                key={note.id}
-                                className="flex items-start space-x-3 pt-4 first:pt-0 first:border-none border-t group relative"
-                                >
-                                <img
-                                    alt="User avatar"
-                                    src="https://i.pravatar.cc/150?u=ervop-admin"
-                                    className="h-8 w-8 rounded-full object-cover"
-                                />
-                                <div className="flex-1 bg-gray-50 p-3 rounded-lg">
-                                    <p className="text-sm text-gray-600">{note.content}</p>
-                                    <p className="text-xs text-gray-400 mt-1">
-                                    {note.author} - {note.date}
-                                    </p>
-                                </div>
-                                <div className="absolute top-4 right-2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                    onClick={() => handleEditNoteClick(note)}
-                                    className="p-2 rounded-full hover:bg-gray-200"
-                                    >
-                                    <Edit className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                    key={note.id}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setNoteToDelete(note);
-                                    }}
-                                    className="p-2 rounded-full hover:bg-gray-200 text-red-600"
-                                    title="Delete Note"
-                                    >
-                                    <Trash2 className="h-5 w-5" />
-                                    </button>
-                                </div>
-                                </div>
-                            ))
-                            ) : (
-                            <p className="text-gray-400 text-center py-4">No data available</p>
-                            )}
-                        </div>
-                    </InfoCard>
-
-
-                    
-
-                    {/* PROJECT FILES */}
-                    <InfoCard
-                        title="Project Files"
-                        action={
-                            <button
-                                onClick={() => setIsFileModalOpen(true)}
-                                className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                            >
-                                + Upload File
-                            </button>
-                            
-                        }
-                        >
-                        <div className="max-h-64 overflow-y-auto pr-2 space-y-3">
-                            {appointment.documents && appointment.documents.length > 0 ? (
-                            appointment.documents.map((doc) =>
-                                doc.files.map((file) => (
-                                <div
-                                    key={file.id}
-                                    className="flex justify-between items-center bg-gray-50 p-3 rounded-lg group"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                    <div className="bg-gray-200 p-3 rounded-full">
-                                        {isImage(file.url) ? (
-                                        <FileImage className="w-6 h-6 text-gray-600" />
-                                        ) : (
-                                        <FileText className="w-6 h-6 text-gray-600" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-semibold text-blue-600 hover:underline"
-                                        >
-                                        {fileNameFromPath(file.file_path)}
-                                        </a>
-
-                                        {doc.title && (
-                                        <p className="text-xs text-gray-400">{doc.title}</p>
-                                        )}
-
-                                        <p className="text-sm text-gray-500">
-                                        Uploaded: {formatDate(file.uploadedAt)} • {file.file_type.toUpperCase()}
-                                        </p>
-                                    </div>
-                                    </div>
-
-                                    <div className="flex items-center space-x-1">
-                                    <button
-                                        onClick={() => downloadFile(file.file_path)}
-                                        className="p-2 rounded-md text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                        aria-label={`Download ${fileNameFromPath(file.file_path)}`}
-                                        title="Download"
-                                        >
-                                        <Download className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => setFileToDelete(file)}
-                                        disabled={deletingFileId === file.id}
-                                        className={`p-2 rounded-md text-red-600 hover:bg-red-50 cursor-pointer ${
-                                            deletingFileId === file.id ? "opacity-60 cursor-not-allowed" : ""
-                                        }`}
-                                    title="Delete"
-                                    >
-                                    <Trash2 className="w-5 h-5" />
-                                    </button>
-                                    </div>
-                                </div>
-                                ))
-                            )
-                            ) : (
-                            <p className="text-gray-400 text-center py-4">No data available</p>
-                            )}
-                        </div>
-                    </InfoCard>
-
-                    
+                                    ))
+                                )
+                                ) : (
+                                <p className="text-gray-400 text-center py-4">No data available</p>
+                                )}
+                            </div>
+                        </InfoCard>
+                    )} 
                 </div>
-                <div className="lg:col-span-1 space-y-8">
-                 <div className="lg:col-span-1 space-y-8">
-                    <div className="w-full max-w-2xl">
+            
 
-                        <div className="">
-                            <InfoCard title="Update Status">
-                                <div>
-                                    <label htmlFor="order-status" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Update Appointment Status
-                                    </label>
-                                    <select
-                                        id="order-status"
-                                        value={appointment.appointmentStatus}
-                                        onChange={(e) => updateAppointmentStatus(e.target.value)}
-                                        className={clsx(
-                                            "w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500",
-                                            {"bg-gray-100 border-gray-300": !isUpdating},
-                                            {"bg-gray-300 border-gray-400 cursor-not-allowed": isUpdating}
-                                        )}
-                                        disabled={isUpdating}
-                                    >
-                                        <option>Upcoming</option>
-                                        <option>Inprogress</option>
-                                        <option>Completed</option>
-                                        <option>Converted</option>
-                                        <option>Cancelled</option>
-                                        {/* <option>Rescheduled</option> */}
-                                    </select>
-                                </div>
-
-                                <div className="mt-4 text-sm">
-                                    {isUpdating && (
-                                        <p className="text-gray-500 flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Updating status...
-                                        </p>
-                                    )}
-                                    {updateSuccess && (
-                                        <p className="text-green-600">
-                                            Status updated successfully!
-                                        </p>
-                                    )}
-                                    {updateError && (
-                                        <p className="text-red-600">
-                                            Error: {updateError}
-                                        </p>
-                                    )}
-                                </div>
-                            </InfoCard>
-                        </div>
-                    </div>
-                    <InfoCard
-                        title="Payment History"
-                        action={
-                            <span
-                            className={clsx(
-                                "px-3 py-1 text-xs font-medium rounded-full",
-                                {
-                                "bg-yellow-100 text-yellow-800":
-                                    totals.totalSpent > 0 && totals.totalSpent < appointment.appointmentAmount,
-                                "bg-green-100 text-green-800":
-                                    totals.totalSpent >= appointment.appointmentAmount,
-                                "bg-red-100 text-red-800": totals.totalSpent === 0,
-                                }
-                            )}
-                            >
-                            {totals.totalSpent === 0
-                                ? "Unpaid"
-                                : totals.totalSpent < appointment.appointmentAmount
-                                ? "Partially Paid"
-                                : "Paid"}
-                            </span>
-                        }
-                        >
-                        {/* Totals */}
-                        <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                            <div>
-                                <p className="text-xs text-gray-500">Total Budget</p>
-                                <p className="font-semibold text-gray-800">
-                                    ₦{Number(appointment.appointmentAmount).toLocaleString("en-NG", {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                    })}
-                                </p>
-
-                            </div>
-                            <div>
-                            <p className="text-xs text-gray-500">Total Spent</p>
-                            <p className="font-semibold text-green-600">₦{totals.totalSpent.toLocaleString()}</p>
-                            </div>
-                            <div>
-                            <p className="text-xs text-gray-500">Outstanding</p>
-                            <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
-                            </div>
-                        </div>
-
-                        {/* Search bar */}
-                        <div className="mb-3">
-                            <input
-                            type="text"
-                            placeholder="Search by Invoice Number..."
-                            value={searchInvoice}
-                            onChange={(e) => setSearchInvoice(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                        </div>
-
-                        {/* History list */}
-                        <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
-                            {filteredHistory.map((p) => (
-                            <div key={p.id} className="flex justify-between text-sm">
-                                <div>
-                                <p className="text-xs text-gray-500">{p.invoiceNumber}</p>
-                                <p className="text-gray-500">{p.date}</p>
-                                <p className="text-gray-800 text-xs"> {p.method}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                <p className="font-medium text-gray-800">{p.amount}</p>
-                                <button
-                                    onClick={() => setPaymentToDelete(p)}
-                                    className="text-red-500 hover:text-red-700"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                                </div>
-                            </div>
-                            ))}
-                        </div>
-                    </InfoCard>
-
-                    {/* <InfoCard title="Customer">
-                        <div className="space-y-1 text-sm">
-                            <p className="font-medium text-gray-800">{appointment.customer.name}</p>
-                            <p className="text-gray-500">{appointment.customer.email}</p>
-                            <p className="text-gray-500">{appointment.customer.phone}</p>
-                        </div>
-                    </InfoCard> */}
-                </div>
-                </div>
+               
             </div>
+
+
+
+            
             
             {/* All Modals */}
             {isPaymentModalOpen && selectedInvoiceId !== null && (
@@ -1279,6 +1405,23 @@ const deleteNoteMutation = useMutation({
                          fetchAppointment(); 
                 }}
             />
+
+            {/* Status Modal */}
+            {isAppointmentStatusModalOpen && (
+                <AppointmentStatusModal
+                isOpen={isAppointmentStatusModalOpen}
+                currentStatus={appointment.appointmentStatus}
+                appointmentId={appointment.id}
+                onClose={() => setIsAppointmentStatusModalOpen(false)}
+                onStatusUpdated={(newStatus) => {
+                    setAppointment((prev) =>
+                    prev ? { ...prev, appointmentStatus: newStatus } : prev
+                    );
+                }}
+                />
+            )}
+
+
 
             {isRescheduleModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
@@ -1370,7 +1513,7 @@ const deleteNoteMutation = useMutation({
                 deleting={deletingFileId === fileToDelete?.id}
             />
 
-        </DashboardLayout>
+    </DashboardLayout>
 
   );
 }
