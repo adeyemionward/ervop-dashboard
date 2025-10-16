@@ -4,11 +4,6 @@ import React, { useState, useEffect} from 'react';
 import { CheckCircle, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import clsx from 'clsx';
 import DashboardLayout from "@/components/DashboardLayout";
-import HeaderTitleCard from "@/components/HeaderTitleCard";
-
-
-
-
 
 // --- Type Definitions ---
 type DaySchedule = {
@@ -17,6 +12,14 @@ type DaySchedule = {
     startTime: string;
     endTime: string;
 };
+
+type ApiSchedule = {
+  day_of_week: string;
+  is_enabled: boolean;
+  start_time: string;
+  end_time: string;
+};
+
 
 // --- Initial State for the Schedule ---
 const initialSchedule: DaySchedule[] = [
@@ -70,7 +73,7 @@ export default function AvailabilitySettingsPage() {
                 const data = await response.json();
                 
                 if (data && data.schedule) {
-                    const formattedSchedule: DaySchedule[] = data.schedule.map((apiDay: any) => ({
+                    const formattedSchedule: DaySchedule[] = (data.schedule as ApiSchedule[]).map((apiDay) => ({
                         name: apiDay.day_of_week,
                         isEnabled: apiDay.is_enabled,
                         startTime: apiDay.start_time.substring(0, 5),
