@@ -1,30 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, FC, ReactNode } from 'react';
-import { CheckCircle, ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import React, { useState, useEffect} from 'react';
+import { CheckCircle, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import clsx from 'clsx';
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 
 
-// const HeaderTitleCard: FC<{ onGoBack?: () => void; title: string; description: string; children: ReactNode }> = ({ onGoBack, title, description, children }) => (
-//     <div className="p-6 bg-white border-b border-gray-200">
-//         <div className="flex justify-between items-start">
-//             <div>
-//                 {onGoBack && (
-//                     <button onClick={onGoBack} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-2">
-//                         <ArrowLeft className="w-4 h-4" />
-//                         Back
-//                     </button>
-//                 )}
-//                 <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-//                 <p className="mt-1 text-gray-500">{description}</p>
-//             </div>
-//             <div className="mt-4 sm:mt-0">{children}</div>
-//         </div>
-//     </div>
-// );
-// --- END OF PLACEHOLDERS ---
+
 
 
 // --- Type Definitions ---
@@ -87,15 +70,13 @@ export default function AvailabilitySettingsPage() {
                 const data = await response.json();
                 
                 if (data && data.schedule) {
-                    const formattedSchedule = initialSchedule.map(day => {
-                        const apiDay = data.schedule.find((d: any) => d.day_of_week === day.name);
-                        return apiDay ? {
-                            name: apiDay.day_of_week,
-                            isEnabled: !!apiDay.is_enabled,
-                            startTime: apiDay.start_time.substring(0, 5),
-                            endTime: apiDay.end_time.substring(0, 5),
-                        } : day;
-                    });
+                    const formattedSchedule: DaySchedule[] = data.schedule.map((apiDay: any) => ({
+                        name: apiDay.day_of_week,
+                        isEnabled: apiDay.is_enabled,
+                        startTime: apiDay.start_time.substring(0, 5),
+                        endTime: apiDay.end_time.substring(0, 5),
+                    }));
+
                     setSchedule(formattedSchedule);
                 }
                 if (data && data.overrideDates) {
