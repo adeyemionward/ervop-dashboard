@@ -283,7 +283,7 @@ export default function RegistrationPage() {
         agreedToTerms &&
         (businessType === 'professional' ? email : phone); // Email is required for professional, phone for seller/hybrid
 
-    const isStepThreeComplete = businessName && ervopUrl && industry &&  currency && businessDescription,;
+    const isStepThreeComplete = businessName && ervopUrl && industry &&  currency && businessDescription;
 
     // Check if OTP is a valid 4-digit number
     const isOtpValid = otp.length === 4;
@@ -637,8 +637,9 @@ export default function RegistrationPage() {
                                         Business Description
                                         </label>
                                         <textarea
+                                        
                                             id="description"
-                                            rows="3"
+                                            rows={3}
                                             placeholder="Briefly describe your business..."
                                             value={businessDescription}
                                             onChange={(e) => setBusinessDescription(e.target.value)}
