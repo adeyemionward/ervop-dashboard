@@ -3,26 +3,22 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
 // --- MAIN PAGE COMPONENT ---
 export default function LoginPage() {
 
   // State for form inputs
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State for password visibility
-  const [isLoading, setIsLoading] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false); // State for password visibility
+    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState('');
-    const [successMessage, setSuccessMessage] = useState(''); 
-    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
     const router = useRouter();
-   const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          setSubmitError('');
-          setSuccessMessage('');
-          setFieldErrors({});
           setIsSubmitting(true);
           setIsLoading(true);
           
@@ -32,7 +28,7 @@ export default function LoginPage() {
               };
   
           try {
-              const response = await fetch('http://127.0.0.1:8000/api/v1/auth/login', {
+              const response = await fetch(`${BASE_URL}/auth/login`, {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
@@ -52,7 +48,6 @@ export default function LoginPage() {
                           }
                       }
                       console.log('Setting fieldErrors:', extractedErrors); // ✅
-                      setFieldErrors(extractedErrors);
                   }
   
                   throw new Error(result.message || 'Login failed. Please fix the errors.');
@@ -69,15 +64,22 @@ export default function LoginPage() {
                 setIsLoading(false);
               }
   
-          } catch (error: any) {
-              setIsSubmitting(false);
-              console.error('Registration failed:', error);
-              toast.error(error.message || 'Registration failed. Please try again.');
-              setIsLoading(false);
-          } finally {
-              setIsSubmitting(false);
-              setIsLoading(false);
-          }
+          } catch (error: unknown) {
+            setIsSubmitting(false);
+            setIsLoading(false);
+
+            if (error instanceof Error) {
+                console.error('Registration failed:', error);
+                toast.error(error.message || 'Registration failed. Please try again.');
+            } else {
+                console.error('Registration failed:', error);
+                toast.error('Registration failed. Please try again.');
+            }
+        } finally {
+            setIsSubmitting(false);
+            setIsLoading(false);
+        }
+
       };
 
   const isFormFilled = email && password ;
@@ -87,11 +89,13 @@ export default function LoginPage() {
     <div className="min-h-screen font-sans lg:grid lg:grid-cols-2">
       {/* Left Column: Image */}
       <div className="hidden lg:block relative">
-        <img 
-          className="absolute inset-0 h-full w-full object-cover" 
-          src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop" 
-          alt="Professionals working"
-          onError={(e) => { e.currentTarget.src = 'https://placehold.co/1200x1800/e2e8f0/4a5568?text=Ervop'; }}
+        <Image
+            className="absolute inset-0 object-cover bg-center w-full h-full"
+            src="/assets/images/hero_image.png?height=1080&width=1920"
+            alt="background"
+            width={1920}
+            height={1080}
+            priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-purple-900/80 to-purple-600/30"></div>
         <div className="relative flex flex-col justify-center h-full p-12 text-white">
@@ -111,7 +115,7 @@ export default function LoginPage() {
                 <div className="text-left mb-8">
                     <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Login your account</h2>
                     <p className="mt-2 text-gray-500">
-                        Don't have an account?{' '}
+                       {`Don't have an account?`}
                         <Link href="/auth/registration" className="font-semibold text-purple-600 hover:underline">
                         Create a New Account
                         </Link>
@@ -119,9 +123,7 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    
-                    
-
+                     
                     {/* Step 2: Account Details */}
                     <div className="space-y-4">
                         <div>
@@ -156,12 +158,12 @@ export default function LoginPage() {
 
                     {/* Submit Button */}
                     <div>
-                    <button 
-                        type="submit" 
-                        disabled={!isFormFilled || isLoading}
-                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"  
-                    >
-                        Login Account
+                    <button
+                        type="submit"
+                        disabled={!isFormFilled || isLoading || isSubmitting} // use isSubmitting here
+                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                        {isSubmitting ? 'Submitting...' : 'Login Account'}
                     </button>
                     </div>
                 </form>

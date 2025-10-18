@@ -5,10 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icons } from './icons';
 import clsx from 'clsx';
-import { 
-    Package, ShoppingCart, BarChart2, Tag, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2, Plus, 
-    LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, ArrowLeftRight, ArrowRightLeft, CreditCard,
-    Megaphone, Wallet, Palette, Settings, Landmark
+import { DollarSign,
+    LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, Calendar, Users, FileText, CreditCard,Wallet, Palette, Settings
 } from 'lucide-react';
 
 // --- Navigation Data ---

@@ -52,8 +52,14 @@ const AppointmentStatusModal: React.FC<AppointmentStatusModalProps> = ({
       onStatusUpdated(selectedStatus);
       toast.success("Status updated successfully 🎉");
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update status ❌");
+    } catch (error: unknown) {
+
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to update status ❌");
+      } else {
+        toast.error("Failed to update status ❌");
+      }
+      
     } finally {
       setIsUpdating(false);
     }

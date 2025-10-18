@@ -21,6 +21,8 @@ export interface Appointment {
   appointment_status: string;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
 export function useClientData(selectedClient?: string) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
@@ -36,10 +38,17 @@ export function useClientData(selectedClient?: string) {
     const fetchContacts = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(
-          "http://127.0.0.1:8000/api/v1/professionals/contacts/list/",
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-        );
+        const res = await fetch(`${BASE_URL}/professionals/contacts/list/`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        // 🔐 Handle token expiry (unauthorized)
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/auth";
+          return;
+        }
+
         const result = await res.json();
         if (result.status) {
           setContacts(result.data);
@@ -64,9 +73,16 @@ export function useClientData(selectedClient?: string) {
       setProjectsLoading(true);
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/v1/professionals/projects/clientProjects/${selectedClient}`,
+          `${BASE_URL}/professionals/projects/clientProjects/${selectedClient}`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
+
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/auth";
+          return;
+        }
+
         const result = await res.json();
         setClientProjects(result.status ? result.data : []);
       } catch (err) {
@@ -81,9 +97,16 @@ export function useClientData(selectedClient?: string) {
       setAppointmentsLoading(true);
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/v1/professionals/appointments/clientAppointments/${selectedClient}`,
+          `${BASE_URL}/professionals/appointments/clientAppointments/${selectedClient}`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
+
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/auth";
+          return;
+        }
+
         const result = await res.json();
         setClientAppointments(result.status ? result.data : []);
       } catch (err) {

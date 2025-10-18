@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Calendar, Briefcase, Eye, EyeOff, ArrowLeft, Phone, Mail } from 'lucide-react';
+import {  Calendar, Briefcase, Eye, EyeOff, ArrowLeft, Phone, Mail, Info } from 'lucide-react';
+import Image from "next/image";
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 // import { useRouter } from 'next/router';
@@ -32,6 +33,7 @@ export default function RegistrationPage() {
     const [businessName, setBusinessName] = useState('');
     const [industry, setIndustry] = useState(''); // New state for industry
     const [currency, setCurrency] = useState(''); // New state for industry
+    const [needWebsite, setNeedWebsite] = useState('no');
     const [businessDescription, setBusinessDescription] = useState(''); // New state for industry
     const [ervopUrl, setErvopUrl] = useState('');
     const [phone, setPhone] = useState('');
@@ -51,7 +53,7 @@ export default function RegistrationPage() {
     const [phoneError, setPhoneError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
-    
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
     const router = useRouter();
     // rediredct to dashboard after successful registration
     useEffect(() => {
@@ -65,7 +67,7 @@ export default function RegistrationPage() {
     }, [step]);
     // end rediredct to dashboard after successful registration
 
-    const handleContinue = (nextStep:any) => {
+    const handleContinue = (nextStep:number) => {
         setIsLoading(true);
 
         setTimeout(() => {
@@ -105,17 +107,16 @@ export default function RegistrationPage() {
     };
 
     // Function to handle moving from Step 3 to Step 4 and generating OTP
-     const handleStepThreeContinue = () => {
-      
-
-        // Set message based on business type
+   
+    const handleStepThreeContinue = () => {
         if (businessType === 'seller') {
-            setOtpMessage(`A 4-digit code whas been sent to your phone number: ${phone}`);
+            setOtpMessage(`A 4-digit code has been sent to your phone number: ${phone}`);
         } else if (businessType === 'professional' || businessType === 'hybrid') {
-            setOtpMessage(`A 4-digit code has been senwwt to your email address: ${email}`);
+            setOtpMessage(`A 4-digit code has been sent to your email address: ${email}`);
         }
         setStep(4);
     };
+
 
     // step 2 form validation
     const handleStepTwoSubmit = async (e:React.FormEvent) => {
@@ -125,7 +126,7 @@ export default function RegistrationPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/v1/auth/secondStepValidation', {
+            const res = await fetch(`${BASE_URL}/auth/secondStepValidation`, {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -177,11 +178,12 @@ export default function RegistrationPage() {
                 industry,
                 ervopUrl,
                 currency,
+                needWebsite,
                 businessDescription,
             };
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/auth/register', {
+            const response = await fetch(`${BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -213,11 +215,18 @@ export default function RegistrationPage() {
             }
              handleContinue(4); 
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             setIsSubmitting(false);
-            console.error('Registration failed:', error);
-            setSubmitError(error.message);
             setIsLoading(false);
+
+            // Narrow the error to have a message
+            if (error instanceof Error) {
+                console.error('Registration failed:', error);
+                setSubmitError(error.message);
+            } else {
+                console.error('Registration failed:', error);
+                setSubmitError('An unexpected error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
             setIsLoading(false);
@@ -265,14 +274,24 @@ export default function RegistrationPage() {
             }
             // setSuccessMessage('Account created successfully! You can now log in.');
 
-        } catch (error: any) {
-            console.error('Verification failed:', error);
-            setSubmitError(error.message);
+        } catch (error: unknown) {
+            // Stop loading
             setIsLoading(false);
+
+            // Safely handle the error
+            const message =
+            error instanceof Error ? error.message : 'An unexpected error occurred.';
+            
+            console.error('Verification failed:', error);
+            setSubmitError(message);
         } finally {
+            // Always stop submitting
             setIsSubmitting(false);
         }
+
     };
+
+    
 
     // Validation logic for each step
     const isStepOneComplete = businessType !== null;
@@ -283,7 +302,7 @@ export default function RegistrationPage() {
         agreedToTerms &&
         (businessType === 'professional' ? email : phone); // Email is required for professional, phone for seller/hybrid
 
-    const isStepThreeComplete = businessName && ervopUrl && industry &&  currency && businessDescription;
+    const isStepThreeComplete = businessName && ervopUrl && industry &&  currency;
 
     // Check if OTP is a valid 4-digit number
     const isOtpValid = otp.length === 4;
@@ -307,12 +326,15 @@ export default function RegistrationPage() {
         <div className="min-h-screen font-sans lg:grid lg:grid-cols-2">
             {/* Left Column: Image */}
             <div className="hidden lg:block relative">
-                <img
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop"
-                    alt="Professionals working"
-                    onError={(e) => { e.currentTarget.src = 'https://placehold.co/1200x1800/e2e8f0/4a5568?text=Ervop'; }}
+                <Image
+                    className="absolute inset-0 object-cover bg-center w-full h-full"
+                    src="/assets/images/hero_image.png?height=1080&width=1920"
+                    alt="background"
+                    width={1920}
+                    height={1080}
+                    priority
                 />
+
                 <div className="absolute inset-0 bg-gradient-to-t from-purple-900/80 to-purple-600/30"></div>
                 <div className="relative flex flex-col justify-center h-full p-12 text-white">
                     <h1 className="text-4xl font-bold">Ervop</h1>
@@ -553,119 +575,161 @@ export default function RegistrationPage() {
                         {step === 3 && (
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="space-y-4">
+                                    {/* Business Name */}
                                     <div>
-                                        <label htmlFor="business-name" className="block text-sm font-medium text-gray-700">Business Name</label>
-                                        <input
-                                            type="text"
-                                            name="business-name"
-                                            id="business-name"
-                                            value={businessName}
-                                            onChange={(e) => {
-                                                handleBusinessNameChange(e); // ✅ Correct: pass the full event
-                                                setFieldErrors(prev => ({ ...prev, businessName: '' }));
-                                            }}
-                                            placeholder="e.g., Chioma's Designs"
-                                            required
-                                            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                        />
-                                        {fieldErrors.businessName && (
-                                            <p className="text-red-500 text-sm">{fieldErrors.businessName}</p>
-                                        )}
+                                    <label htmlFor="business-name" className="block text-sm font-medium text-gray-700">
+                                        Business Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="business-name"
+                                        id="business-name"
+                                        value={businessName}
+                                        onChange={(e) => {
+                                        handleBusinessNameChange(e);
+                                        setFieldErrors(prev => ({ ...prev, businessName: '' }));
+                                        }}
+                                        placeholder="e.g., Chioma's Designs"
+                                        required
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    {fieldErrors.businessName && <p className="text-red-500 text-sm">{fieldErrors.businessName}</p>}
                                     </div>
+
+                                    {/* Your Ervop URL */}
                                     <div>
-                                        <label htmlFor="ervop-url" className="block text-sm font-medium text-gray-700">Your Ervop URL</label>
-                                        <div className="flex rounded-lg shadow-sm mt-1">
-                                            <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                        <label htmlFor="ervop-url" className="block text-sm font-medium text-gray-700">
+                                            Your Ervop URL
+                                        </label>
+                                        <div className="mt-1 flex rounded-lg border border-gray-300 shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-purple-500">
+                                            {/* Prefix */}
+                                            <span className="inline-flex items-center px-3 bg-gray-50 text-gray-500 text-sm border-r border-gray-300">
                                                 ervop.com/
                                             </span>
+
+                                            {/* Input */}
                                             <input
                                                 type="text"
                                                 name="ervop-url"
                                                 id="ervop-url"
                                                 value={ervopUrl}
-                                                onChange={(e) =>  setErvopUrl(e.target.value)}
+                                                onChange={(e) => setErvopUrl(e.target.value)}
                                                 readOnly
                                                 required
-                                                className="flex-1 block w-full rounded-r-lg border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-0"
+                                                className="flex-1 block w-full px-4 py-3 text-sm border-none focus:ring-0 focus:outline-none"
                                             />
-                                            
                                         </div>
                                     </div>
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Industry */}
-                                        <div>
-                                            <label htmlFor="industry" className="block text-sm font-medium text-gray-700">
-                                            Industry
-                                            </label>
-                                            <Select
-                                            id="industry"
-                                            name="industry"
-                                            value={industryOptions.find((opt) => opt.value === industry) || null}
-                                            onChange={(selectedOption) => setIndustry(selectedOption?.value || "")}
-                                            options={industryOptions}
-                                            styles={industryStyles}
-                                            placeholder="Select an industry"
-                                            isClearable
-                                            />
-                                            {fieldErrors.industry && (
-                                            <p className="text-red-500 text-sm">{fieldErrors.industry}</p>
-                                            )}
-                                        </div>
 
-                                        {/* Currency */}
-                                        <div>
-                                            <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
-                                            Currency
-                                            </label>
-                                            <Select
-                                                id="currency"
-                                                name="currency"
-                                                value={currencyOptions.find((opt) => opt.value === currency) || null}
-                                                onChange={(selectedOption) => setCurrency(selectedOption?.value || "")}
-                                                options={currencyOptions}
-                                                styles={currencyStyles}
-                                                placeholder="Select a currency"
-                                                isClearable
-                                            />
-                                            {fieldErrors.currency && (
-                                            <p className="text-red-500 text-sm">{fieldErrors.currency}</p>
-                                            )}
-                                        </div>
+                                    {/* Industry and Currency */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label htmlFor="industry" className="block text-sm font-medium text-gray-700">Industry</label>
+                                        <Select
+                                        id="industry"
+                                        name="industry"
+                                        value={industryOptions.find((opt) => opt.value === industry) || null}
+                                        onChange={(selectedOption) => setIndustry(selectedOption?.value || "")}
+                                        options={industryOptions}
+                                        styles={industryStyles}
+                                        placeholder="Select an industry"
+                                        isClearable
+                                        />
+                                        {fieldErrors.industry && <p className="text-red-500 text-sm">{fieldErrors.industry}</p>}
                                     </div>
-                                    <div className="col-span-2 mt-4">
-                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Business Description
+
+                                    <div>
+                                        <label htmlFor="currency" className="block text-sm font-medium text-gray-700">Currency</label>
+                                        <Select
+                                        id="currency"
+                                        name="currency"
+                                        value={currencyOptions.find((opt) => opt.value === currency) || null}
+                                        onChange={(selectedOption) => setCurrency(selectedOption?.value || "")}
+                                        options={currencyOptions}
+                                        styles={currencyStyles}
+                                        placeholder="Select a currency"
+                                        isClearable
+                                        />
+                                        {fieldErrors.currency && <p className="text-red-500 text-sm">{fieldErrors.currency}</p>}
+                                    </div>
+                                    </div>
+
+                                    {/* Checkbox */}
+                                    <div className="flex items-start">
+                                    <div className="flex items-center h-5">
+                                        <input
+                                        id="need-website"
+                                        name="need-website"
+                                        type="checkbox"
+                                        checked={needWebsite === 'yes'} // checkbox is checked if needWebsite is "yes"
+                                        onChange={(e) => setNeedWebsite(e.target.checked ? 'yes' : 'no')} // toggle yes/no
+                                        className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        />
+                                    </div>
+                                    <div className="ml-3 text-sm">
+                                        <label htmlFor="need-website" className="font-medium text-gray-700">
+                                        I need a website for my business
                                         </label>
+                                    </div>
+                                    </div>
+
+                                    {/* Conditionally render Business Description */}
+                                    {needWebsite === 'yes' && (
+                                    <div className="col-span-2 mt-4 relative">
+                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                        Briefly Describe Your Business
+                                        {/* Tooltip icon */}
+                                        <span className="ml-2 relative group">
+                                            <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                                            {/* Tooltip content */}
+                                            <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 rounded-md bg-gray-800 text-white text-xs text-center px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            Describe your business clearly. Include your services, what makes you unique, the year you started, and how many clients you’ve served.
+                                            </span>
+                                        </span>
+                                        </label>
+
                                         <textarea
-                                        
-                                            id="description"
-                                            rows={3}
-                                            placeholder="Briefly describe your business..."
-                                            value={businessDescription}
-                                            onChange={(e) => setBusinessDescription(e.target.value)}
-                                            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        id="description"
+                                        rows={3}
+                                        maxLength={400}
+                                        placeholder="Briefly describe your business..."
+                                        value={businessDescription}
+                                        onChange={(e) => setBusinessDescription(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         ></textarea>
 
+                                        {/* Character count */}
+                                        <p className="text-gray-500 text-sm mt-1">
+                                        {businessDescription.length}/400 characters
+                                        </p>
+
                                         {fieldErrors.description && (
-                                            <p className="text-red-500 text-sm">{fieldErrors.description}</p>
+                                        <p className="text-red-500 text-sm">{fieldErrors.description}</p>
                                         )}
                                     </div>
-                                </div>
-                                <div>
+                                    )}
 
+
+
+
+                                    {/* Success or Error Messages */}
+                                    {successMessage && <p className="text-green-600 text-sm">{successMessage}</p>}
+                                    {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
+                                </div>
+
+                                {/* Submit Button */}
+                                <div>
                                     <button
-                                        type="submit"
-                                        disabled={!isStepThreeComplete || isLoading}
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    type="submit"
+                                    disabled={!isStepThreeComplete || isLoading}
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     >
-                                        {isLoading ? (
-                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                            </svg>
-                                        ) : (
-                                            'Continue'
-                                        )}
+                                    {isLoading ? (
+                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                        </svg>
+                                    ) : 'Continue'}
                                     </button>
                                 </div>
                             </form>
@@ -697,36 +761,36 @@ export default function RegistrationPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    {/* <button
-                                        type="submit"
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                        disabled={!isOtpValid}
-                                    >
-                                        Verify and Create Account
-                                    </button> */}
 
                                     <button
                                         type="submit"
-                                        disabled={!isOtpValid || isLoading}
+                                        disabled={!isOtpValid || isLoading || isSubmitting}
                                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                    >
-                                        {isLoading ? (
+                                        >
+                                        {isLoading || isSubmitting ? (
                                             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                                             </svg>
                                         ) : (
                                             'Verify and Create Account'
                                         )}
                                     </button>
-                                    
+                                    <div className="flex flex-col items-center justify-center text-center mb-4">
+                                        {otpMessage && (
+                                            <p className="text-gray-700 text-sm">
+                                            {otpMessage}
+                                            </p>
+                                        )}
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={handleStepThreeContinue} // Re-use this function to resend OTP
                                         className="mt-4 w-full text-center text-sm font-medium text-purple-600 hover:underline"
-                                    >
+                                        >
                                         Resend code
                                     </button>
+
                                 </div>
                             </form>
 

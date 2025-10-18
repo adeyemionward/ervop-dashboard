@@ -7,6 +7,7 @@ import Image from 'next/image';
 // Update the import path below to the correct relative path based on your project structure.
 // For example, if 'auth.ts' is in 'src/utils/', use:
 import {logout} from '@/app/utils/auth'
+import { useAutoLogout } from '@/hooks/useAutoLogout';
 import { useRouter } from 'next/navigation';
 
 
@@ -19,7 +20,9 @@ export default function Header({ onDesktopToggle, onMobileToggle }: HeaderProps)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  
+  //autologout hook
+  useAutoLogout();
+
 
   const router = useRouter();
 
@@ -28,7 +31,7 @@ export default function Header({ onDesktopToggle, onMobileToggle }: HeaderProps)
     if (!token) {
       router.push('/auth/login');
     }
-  }, []);
+  }, [router]);
 
   // Effect to handle clicks outside of the dropdown to close it
   useEffect(() => {

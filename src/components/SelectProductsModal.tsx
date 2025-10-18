@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Icons } from './icons';
 import Image from 'next/image';
 
@@ -48,22 +48,6 @@ export default function SelectProductsModal({ isOpen, onClose, onAddProducts }: 
         );
     };
 
-    // When you pick up a crayon...
-    // const handleSelectProduct = (theCrayon: Crayon) => {
-
-    //     // You tell yourself: "Okay, I'm about to change the box of crayons."
-    //     setSelectedProductIds( (theBoxAsItWasBefore) =>
-
-    //         // First, look inside the box. Is the "Blue" crayon already in there?
-    //         theBoxAsItWasBefore.includes("Blue Crayon")
-
-    //             // If YES, it's already in the box...
-    //             ? theBoxAsItWasBefore.filter(crayon => crayon !== "Blue Crayon") // ...then take it out.
-
-    //             // If NO, it's not in the box...
-    //             : [...theBoxAsItWasBefore, "Blue Crayon"] // ...then add it in.
-    //     );
-    // };
 
     const handleAddClick = () => {
         const selected = allProducts.filter(p => selectedProductIds.includes(p.id));

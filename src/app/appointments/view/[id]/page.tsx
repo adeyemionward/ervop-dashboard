@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, FC } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, FC } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import clsx from "clsx";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,76 +9,20 @@ import InvoiceModal from "@/components/InvoiceModal";
 import AppointmentStatusModal from "@/components/AppointmentStatusModal";
 import NoteModal from "@/components/NoteModal";
 import RecordPaymentModal from "@/components/RecordPaymentModal";
-import { CheckCircle, Clock, Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle, Loader2, FileText, Download } from 'lucide-react';
+import {  Clock, Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle,  FileText, Download, FileImage } from 'lucide-react';
 import { formatDate } from "@/app/utils/formatDate";
-import { InvoiceItem, Invoice } from "@/types/invoice";
+import {Invoice } from "@/types/invoice";
 import { downloadFile } from "@/app/utils/downloadFile";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import FileUploadModal from "@/components/FileUploadModal";
+import { PaymentHistoryItem, NoteItem, AppointmentDisplayData  } from "@/types/AppointmentTypes";
+import { useAppointmentState } from "@/hooks/useAppointmentState";
+import { AppointmentApi } from "@/app/actions/AppointmentApi"; // NEW
+
+import Image from "next/image";
 import toast from "react-hot-toast";
-
-// -------------------- TYPES --------------------
-type PaymentHistoryItem = { id: number; date: string; amount: string; method: string; };
-type NoteItem = { id: number; content: string; author: string; date: string; };
-type DocumentFileItem = {
-  id: number;
-  file_path: string;   // file URL
-  file_type: string;   // MIME type, e.g., "image/jpeg"
-  created_at: string;  // upload timestamp
-};
-
-type DocumentItem = {
-  id: number;
-  title: string;
-  tags?: string | null;
-  created_at: string;
-  files: DocumentFileItem[];
-};
-
-
-interface Customer {
-  customer_id: number;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-interface AppointmentDisplayData {
-  id: string;
-  appointmentId: number;
-  createdAt: string;
-  date: string;
-  time: string;
-  appointmentStatus: string;
-  notes: string;
-  serviceName: string;
-  customer: Customer;
-  paymentStatus: string;
-  paymentHistory: PaymentHistoryItem[];
-  notesHistory: NoteItem[];
-  documents: DocumentItem[];
-}
-
-interface ApiAppointment {
-  id: number;
-  user_id: number; 
-  date: string;
-  time: string;
-  appointment_status: string | null;
-  notes: string;
-  service_id: number;
-  service_name: string;
-  customer_id: number;
-  customer_firstname: string;
-  customer_lastname: string;
-  customer_email: string;
-  customer_phone: string;
-  created_at: string;
-  invoices?: any[];
-  notesHistory?: any[];
-  service?: { name: string };
-  customer?: { id: number; firstname: string; lastname: string; email: string; phone: string; };
-}
+import HeaderTitleCard from "@/components/HeaderTitleCard";
+import { useGoBack } from "@/hooks/useGoBack";
 
 // -------------------- HOOKS --------------------
 const useParams = () => {
@@ -100,103 +44,59 @@ const InfoCard: FC<{ title: string; children: React.ReactNode; className?: strin
   </div>
 );
 
-// const AppointmentTimeline: FC<{ currentStatus: string }> = ({ currentStatus }) => {
-//   const statuses = ['Upcoming', 'Inprogress', 'Completed', 'Converted'];
-//   const currentIndex = statuses.indexOf(currentStatus);
-
-//   return (
-//     <div className="flex items-center justify-between bg-white p-6 rounded-xl shadow-sm">
-//       {statuses.map((status, index) => (
-//         <div key={status} className="flex items-center w-full">
-//           <div className={clsx("flex flex-col items-center text-center", { 'text-purple-600': index <= currentIndex, 'text-gray-400': index > currentIndex })}>
-//             <div className={clsx("w-8 h-8 rounded-full flex items-center justify-center font-semibold border-2", { 
-//               'bg-purple-600 text-white border-purple-600': index <= currentIndex, 
-//               'bg-gray-200 border-gray-200': index > currentIndex 
-//             })}>
-//               {index < currentIndex ? <CheckCircle className="w-5 h-5" /> : index + 1}
-//             </div>
-//             <p className="text-xs font-medium mt-2">{status}</p>
-//           </div>
-//           {index < statuses.length - 1 && (
-//             <div className={clsx("flex-1 h-0.5 mx-4", { 'bg-purple-600': index < currentIndex, 'bg-gray-200': index >= currentIndex })}></div>
-//           )}
-//         </div>
-//       ))}
-//     </div>
-//   );
-// };
-
 // -------------------- MAIN COMPONENT --------------------
-
 
 export default function AppointmentDetailsPage() {
   const params = useParams();
-  const appointmentIdFromUrl = params.id as any;
+  const appointmentIdFromUrl = params.id as string;
   const queryClient = useQueryClient();
-  const orderId = params.id as string;
+
+  // 1. STATE & DATA
+
+    // call the appointment state
+  const {
+    appointment, setAppointment,
+    invoices, setInvoices,
+    expandedInvoice, setExpandedInvoice,
+    invoiceToEdit, setInvoiceToEdit,
+    isInvoiceModalOpen, setIsInvoiceModalOpen,
+    isAppointmentStatusModalOpen, setIsAppointmentStatusModalOpen,
+    isNoteModalOpen, setIsNoteModalOpen,
+    noteToEdit, setNoteToEdit,
+   
+    isPaymentModalOpen, setIsPaymentModalOpen,
+    selectedInvoiceId, setSelectedInvoiceId,
+    isRescheduleModalOpen, setIsRescheduleModalOpen,
+    newDate, setNewDate,
+    newTime, setNewTime,
+    availableSlots, setAvailableSlots,
+    isLoadingSlots, setIsLoadingSlots,
+    paymentToDelete, setPaymentToDelete,
+    deletingId, setDeletingId,
+    invoiceToDelete, setInvoiceToDelete,
+    deletingInvoiceId, setDeletingInvoiceId,
+    noteToDelete, setNoteToDelete,
+    deletingNoteId, setDeletingNoteId,
+    deletingFileId, setDeletingFileId,
+    fileToDelete, setFileToDelete,
+    isFileModalOpen, setIsFileModalOpen
+  } = useAppointmentState();
   
-    // const { data: order, isLoading, isError } = useQuery<OrderType>({
-    //   queryKey: ["order", orderId],
-    //   queryFn: () => fetchOrder(orderId),
-    //   staleTime: 1000 * 60 * 5,
-    // });
+    const { appointment: fetchedAppointment, fetchAppointment, isLoading, error } = AppointmentApi(appointmentIdFromUrl);
 
 
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [updateSuccess, setUpdateSuccess] = useState(false);
-    const [updateError, setUpdateError] = useState(null);
 
-    const [appointment, setAppointment] = useState<AppointmentDisplayData | null>(null);
-    const [rawApiAppointment, setRawApiAppointment] = useState<ApiAppointment | null>(null);
+     const [isOpen, setIsOpen] = useState(false);
 
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
-    const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
-    const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
-    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-    const [isAppointmentStatusModalOpen, setIsAppointmentStatusModalOpen] = useState(false);
-    const [invoiceDueDate, setInvoiceDueDate] = useState(''); 
-    const [invoiceTax, setInvoiceTax] = useState('0');
-    const [invoiceDiscount, setInvoiceDiscount] = useState('0');
-
-    const [invoiceNotes, setInvoiceNotes] = useState('');
-
-    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
-    const [noteToEdit, setNoteToEdit] = useState<NoteItem | null>(null);
-    const [newNote, setNewNote] = useState('');
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
-
-    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-    const [newDate, setNewDate] = useState('');
-    const [newTime, setNewTime] = useState('');
-    const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-        
-    const [paymentToDelete, setPaymentToDelete] = useState<PaymentHistoryItem | null>(null);
-    const [deletingId, setDeletingId] = useState<number | null>(null);
-
-    const [invoiceToDelete, setInvoiceToDelete] = useState(null);
-    const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
-
-    const [noteToDelete, setNoteToDelete] = useState<AppointmentNote | null>(null);
-    const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
-
-    // modal state
-    const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
-    const [fileToDelete, setFileToDelete] = useState<DocumentFile | null>(null);
-    const [files, setFiles] = useState<DocumentFile[]>([]);
-    const [isFileModalOpen, setIsFileModalOpen] = useState(false);
-  
 
     // Helpers
     const fileNameFromPath = (p: string) =>
         p ? p.split("/").pop() || p : "file";
     const isImage = (t: string) => t?.toLowerCase().startsWith("image/");
-    const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
+    // const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // const [isLoading, setIsLoading] = useState(true);
+    // const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
     //   TABS
@@ -209,8 +109,10 @@ export default function AppointmentDetailsPage() {
         { key: "notes", label: "Notes" },
     ];
 
-  
-    const [totals, setTotals] = useState({ totalBudget: 0, totalPaid: 0, outstanding: 0 });
+    
+
+    const handleGoBack = useGoBack();
+    const [totals] = useState({ totalBudget: 0, totalPaid: 0, outstanding: 0 });
 
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
@@ -220,294 +122,47 @@ export default function AppointmentDetailsPage() {
         if (token) setToken(token);
         }
     }, []);
-    const fetchAppointment = async () => {
-    if (!appointmentIdFromUrl || !BASE_URL || !token) return;
+    
+    // Load on mount
 
-    setIsLoading(true);
-    setError(null);
-    try {
-        const response = await fetch(
-        `${BASE_URL}/professionals/appointments/show/${appointmentIdFromUrl}`,
-        {
-            headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-            },
+    useEffect(() => {
+        if (fetchedAppointment) {
+            setAppointment(fetchedAppointment);
         }
-        );
-        if (!response.ok) throw new Error("Failed to fetch appointment details.");
-
-        const result = await response.json();
-        const apiData: ApiAppointment = result.data;
-
-        // Map API data -> display structure
-        const formatted: AppointmentDisplayData = {
-        id: String(apiData.id),
-        appointmentId: apiData.id,
-        createdAt: new Date(apiData.created_at).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }),
-        date: new Date(apiData.date + "T00:00:00").toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }),
-        time: new Date(`1970-01-01T${apiData.time}`).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-        }),
-        appointmentAmount: apiData.amount || 0 ,
-        appointmentStatus: apiData.appointment_status || "Upcoming",
-        notes: apiData.notes ?? "",
-        serviceName: apiData.service?.name || "",
-        customer: {
-            customer_id: apiData.customer?.id ?? 0,
-            name: `${apiData.customer?.firstname ?? ""} ${apiData.customer?.lastname ?? ""}`,
-            email: apiData.customer?.email ?? "",
-            phone: apiData.customer?.phone ?? "",
-        },
-        paymentStatus: apiData.invoices?.every((inv) => inv.status === "Paid")
-            ? "Paid"
-            : apiData.invoices?.some((inv) => inv.status === "Paid")
-            ? "Partially Paid"
-            : "Unpaid",
-        paymentHistory:
-            apiData.invoices?.flatMap(
-            (inv) =>
-                inv.payments?.map((p: any) => ({
-                id: p.id,
-                date: new Date(p.payment_date).toLocaleDateString("en-US"),
-                amount: `₦${Number(p.amount).toLocaleString()}`,
-                method: (p.payment_method || "Manual Entry")
-                    .replace(/_/g, " ")
-                    .replace(/\b\w/g, (c) => c.toUpperCase()),
-                invoiceNumber: inv.invoice_no || `#INV-${inv.id}`, // 👈 include invoice number
-                })) ?? []
-            ) ?? [],
-        notesHistory:
-            apiData.notesHistory?.map((n) => ({
-            id: n.id,
-            content: n.content,
-            author: n.author || "Unknown",
-            date: new Date(n.created_at).toLocaleDateString("en-US"),
-            })) ?? [],
-
-            // ✅ Add documents with files
-        documents:
-            apiData.documents?.map((doc: any) => ({
-                id: doc.id,
-                title: doc.title,
-                description: doc.description,
-                uploadedAt: new Date(doc.created_at).toLocaleDateString("en-US"),
-                files: doc.files?.map((f: any) => ({
-                    id: f.id,
-                    name: fileNameFromPath(f.file_path),
-                    file_path: f.file_path,
-                    file_type: f.file_type,
-                    uploadedAt: new Date(f.created_at).toLocaleDateString("en-US"),
-                })) ?? [],
-            })) ?? [],
-        };
-
-        setAppointment(formatted);
-
-        setInvoices(
-        apiData.invoices?.map((inv) => ({
-            id: inv.id,
-            invoiceNumber: inv.invoice_no || `#INV-${inv.id}`,
-            issuedDate: new Date(inv.issue_date).toLocaleDateString("en-US"),
-            dueDate: new Date(inv.due_date).toLocaleDateString("en-US"),
-            taxPercentage: inv.tax_percentage,
-            discountPercentage: inv.discount_percentage,
-            taxAmount: inv.tax_amount,
-            discountAmount: inv.discount,
-            remainingBalance: inv.remaining_balance,
-            notes: inv.notes,
-            status: inv.status || "Pending",
-            items:
-            inv.items?.map((it: any) => ({
-                id: it.id,
-                description: it.description,
-                quantity: it.quantity,
-                rate: it.rate,
-                // 🔥 calculate amount right here
-                amount: (Number(it.quantity) || 0) * (Number(it.rate) || 0),
-            })) ?? [],
-        })) ?? []
-        );
-
-        // ✅ Compute totals here
-        // Assuming apiData.appointments is an array of appointments
-        // total budget comes straight from appointment.amount
-        const totalBudget = Number(formatted.appointmentAmount)
-
-        // sum of all payments
-        const totalPaid =
-        apiData.invoices?.flatMap(inv => inv.payments || [])
-            .reduce((sum: number, pay: any) => sum + (Number(pay.amount) || 0), 0) || 0;
-
-        // outstanding balance
-        const outstanding = totalBudget - totalPaid;
-
-        setTotals({ totalBudget, totalPaid, outstanding }); // 👈 store it in state
-        } catch (err) {
-            setError(
-            err instanceof Error ? err.message : "An unknown error occurred."
-            );
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-
-  // Load on mount
-useEffect(() => {
-  fetchAppointment();
-}, [appointmentIdFromUrl, BASE_URL, token]);
+    }, [fetchedAppointment, setAppointment]);
   
-  const handleEditInvoiceClick = (invoice: Invoice) => {
-    setInvoiceToEdit(invoice);
-    setInvoiceItems(invoice.items);
-    setIsInvoiceModalOpen(true);
-  };
-
-  const handleEditNoteClick = (note: NoteItem) => {
-    setNoteToEdit(note);
-    setNewNote(note.content);
-    setIsNoteModalOpen(true);
-  };
-
-  const handleNewPayment = (payment: PaymentHistoryItem) => {
-    setAppointment(prev => prev ? { ...prev, paymentHistory: [...prev.paymentHistory, payment], paymentStatus: "Paid" } : prev);
-  };
-
-
-   const [searchInvoice, setSearchInvoice] = useState("");
-
-  // only run filter when appointment is loaded
-  const filteredHistory = appointment?.paymentHistory?.filter((p) =>
-    p.invoiceNumber?.toLowerCase().includes(searchInvoice.toLowerCase())
-  ) ?? [];
-
-    const openCreateInvoiceModal = () => {
-        setInvoiceToEdit(null);
-        setInvoiceItems([{ id: `new-${Date.now()}`, description: '', quantity: 1, rate: 0, amount: 0 }]);
-        setInvoiceDueDate(''); setInvoiceTax('0'); setInvoiceNotes('');
+    const handleEditInvoiceClick = (invoice: Invoice) => {
+        setInvoiceToEdit(invoice);
+       
         setIsInvoiceModalOpen(true);
     };
 
-    // const updateAppointmentStatus = async (newStatus: string) => {
-    //     setIsUpdating(true);
-    //     setUpdateSuccess(false);
-    //     setUpdateError(null);
-
-    //     try {
-    //         // Assume you have the user's token stored somewhere
-    //         const token = localStorage.getItem("token");
-    //         const payload = {
-    //             status: newStatus,
-    //         };
-
-    //         const response = await fetch(
-    //             `http://127.0.0.1:8000/api/v1/professionals/appointments/updateStatus/${appointment.id}`,
-    //             {
-    //                 method: "POST",
-    //                 headers: {
-    //                     "Content-Type": "application/json",
-    //                     Authorization: `Bearer ${token}`,
-    //                 },
-    //                 body: JSON.stringify(payload),
-    //             }
-    //         );
-
-    //         if (!response.ok) {
-    //             const errorData = await response.json();
-    //             throw new Error(errorData.message || "Failed to update status");
-    //         }
-
-    //         // Update the local state with the new status after a successful API call
-    //         setAppointment(prev => prev ? {...prev, appointmentStatus: newStatus} : null);
-    //         setUpdateSuccess(true);
-    //         toast.success("Status updated successfully!");
-
-    //     } catch (error: any) {
-    //         console.error("API error:", error);
-    //         setUpdateError(error.message);
-    //     } finally {
-    //         setIsUpdating(false);
-    //     }
-    // };
-    
-    // The provided AppointmentTimeline component
-    const AppointmentTimeline: React.FC<{ currentStatus: string }> = ({ currentStatus }) => {
-      const statuses = ['Upcoming', 'Inprogress', 'Completed', 'Converted'];
-      const currentIndex = statuses.indexOf(currentStatus);
-
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-        {/* Timeline row */}
-        <div className="flex items-center overflow-x-auto whitespace-nowrap px-2 -mx-2 scrollbar-hide">
-            {statuses.map((status, index) => (
-            <div key={status} className="flex items-center w-full">
-                <div
-                className={clsx("flex flex-col items-center text-center", {
-                    "text-purple-600": index <= currentIndex,
-                    "text-gray-400": index > currentIndex,
-                })}
-                >
-                <div
-                    className={clsx(
-                    "w-8 h-8 rounded-full flex items-center justify-center font-semibold border-2",
-                    {
-                        "bg-purple-600 text-white border-purple-600":
-                        index <= currentIndex,
-                        "bg-gray-200 border-gray-200": index > currentIndex,
-                    }
-                    )}
-                >
-                    {index < currentIndex ? (
-                    <CheckCircle className="w-5 h-5" />
-                    ) : (
-                    index + 1
-                    )}
-                </div>
-                <p className="text-xs font-medium mt-2">{status}</p>
-                </div>
-
-                {index < statuses.length - 1 && (
-                <div
-                    className={clsx("flex-1 h-0.5 mx-4", {
-                    "bg-purple-600": index < currentIndex,
-                    "bg-gray-200": index >= currentIndex,
-                    })}
-                ></div>
-                )}
-            </div>
-            ))}
-        </div>
-
-        {/* Update button (full width, no breaking) */}
-        <div className="mt-6 flex ">
-            <button
-        onClick={() => setIsAppointmentStatusModalOpen(true)} 
-        className="text-sm bg-purple-200 font-medium text-purple-600 py-2 px-6 rounded-lg hover:text-purple-800"
-        >
-        Update Status
-        </button>
-
-        </div>
-        </div>
-
-      );
+    const handleEditNoteClick = (note: NoteItem) => {
+        setNoteToEdit(note);
+        setIsNoteModalOpen(true);
     };
 
+    const handleNewPayment = (payment: PaymentHistoryItem) => {
+        setAppointment(prev => prev ? { ...prev, paymentHistory: [...prev.paymentHistory, payment], paymentStatus: "Paid" } : prev);
+    };
+
+    const [searchInvoice, setSearchInvoice] = useState("");
+
+    // only run filter when appointment is loaded
+    const filteredHistory = appointment?.paymentHistory?.filter((p) =>
+        p.invoice_no?.toLowerCase().includes(searchInvoice.toLowerCase())
+    ) ?? [];
+
+        const openCreateInvoiceModal = () => {
+            setInvoiceToEdit(null);
+            
+            setIsInvoiceModalOpen(true);
+        };
+    
     const deleteInvoiceMutation = useMutation({
         mutationFn: async (id: number) => {
             const token = localStorage.getItem("token") || "";
-            const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/invoices/delete/${id}`, {
+            const res = await fetch(`${BASE_URL}/professionals/invoices/delete/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -537,14 +192,14 @@ useEffect(() => {
             toast.success("Invoice deleted successfully!");
             setInvoiceToDelete(null);
             setDeletingInvoiceId(null);
-            queryClient.invalidateQueries(["invoices"]); // optional refetch for server sync
+            queryClient.invalidateQueries(); // optional refetch for server sync
         }
     });
 
     const deletePaymentMutation = useMutation({
         mutationFn: (id: number) => {
             const token = localStorage.getItem("token") || "";
-            return fetch(`http://127.0.0.1:8000/api/v1/professionals/invoices/deletePayment/${id}`, {
+            return fetch(`${BASE_URL}/professionals/invoices/deletePayment/${id}`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             }).then(async (res) => {
@@ -593,134 +248,142 @@ useEffect(() => {
         },
     });
 
-const deleteNoteMutation = useMutation({
-    mutationFn: (id: number) => {
-        const token = localStorage.getItem("token") || "";
-        return fetch(`http://127.0.0.1:8000/api/v1/professionals/appointments/notes/delete/${id}`, {
-            method: "DELETE",
-            headers: { 
-                "Content-Type": "application/json", 
-                Authorization: `Bearer ${token}` 
+    const deleteNoteMutation = useMutation<
+        string, // response type
+        Error, // error type
+        number, // variable type (the id)
+        { previousNotes: NoteItem[] } // context type
+        >
+        ({
+            mutationFn: async (id: number) => {
+                const token = localStorage.getItem("token") || "";
+                const res = await fetch(`${BASE_URL}/professionals/appointments/notes/delete/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to delete note");
+                return data;
             },
-        }).then(async (res) => {
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to delete note");
-            return data;
-        });
-    },
-    onMutate: (id: number) => {
-        const previousNotes = appointment?.notesHistory || [];
 
-        setAppointment(prev => prev ? {
-            ...prev,
-            notesHistory: [...prev.notesHistory.filter(n => n.id !== id)]
-        } : null);
+            onMutate: (id: number) => {
+                const previousNotes = appointment?.notesHistory || [];
 
-        setDeletingNoteId(id);
-        return { previousNotes };
-    },
+                setAppointment(prev =>
+                prev
+                    ? {
+                        ...prev,
+                        notesHistory: prev.notesHistory.filter(n => n.id !== id),
+                    }
+                    : null
+                );
 
+                setDeletingNoteId(id);
+                return { previousNotes };
+            },
 
-    onSuccess: () => {
-        toast.success("Note deleted successfully!");
-        setNoteToDelete(null);
-        setDeletingNoteId(null);
-        // No need to refetch appointment
-        // Optionally invalidateQueries if you have a separate appointment query you want synced
-        // queryClient.invalidateQueries({ queryKey: ["appointment", appointmentIdFromUrl] });
-    },
-    onError: (error, variables, context) => {
-        // Rollback on error
-        if (context?.previousNotes) {
-            setAppointment(prev => prev ? {
-                ...prev,
-                notes: Array.isArray(context.previousNotes) ? context.previousNotes : [],
-            } : null);
+            onError: (error, id, context) => {
+                if (context?.previousNotes) {
+                setAppointment(prev =>
+                    prev
+                    ? { ...prev, notesHistory: context.previousNotes }
+                    : null
+                );
+                }
+
+                setDeletingNoteId(null);
+                toast.error(error.message || "Failed to delete note.");
+            },
+
+            onSuccess: () => {
+                toast.success("Note deleted successfully!");
+                setNoteToDelete(null);
+                setDeletingNoteId(null);
+            },
+    });
+
+    // ---------- Delete File ----------
+    const handleDelete = async (fileId: number): Promise<void> => {
+    setDeletingFileId(fileId);
+
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+        toast.error("Authentication token missing");
+        return;
         }
-        setDeletingNoteId(null);
-        toast.error(error.message || "Failed to delete note.");
-    },
-});
 
-
-// ---------- Delete File ----------
-  const handleDelete = async (fileId: number) => {
-    setDeletingFileId(fileId); // ✅ must happen before await
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/v1/professionals/documents/delete/${fileId}`,
-        { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      );
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status === false) {
-        throw new Error(data.message || "Delete failed");
-      }
-
-     // ✅ Update appointment.documents directly
-    const updatedDocuments = appointment.documents.map((doc) => ({
-      ...doc,
-      files: doc.files.filter((f) => f.id !== fileId),
-    }))
-    // Remove empty documents if needed:
-    // .filter(doc => doc.files.length > 0);
-
-    setAppointment((prev) => ({
-      ...prev,
-      documents: updatedDocuments,
-    }));
-      toast.success("File deleted successfully");
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred while deleting the file.");
-    } finally {
-      setDeletingFileId(null);
-      setFileToDelete(null);
-    }
-  };
-    
-   
-  const invoiceTotals = useMemo(() => {
-    const subtotal = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
-    const taxVal = parseFloat(invoiceItems[0]?.tax?.toString() || "0");
-    const taxAmount = (subtotal * taxVal) / 100;
-    return { subtotal, taxAmount, total: subtotal + taxAmount };
-  }, [invoiceItems]);
-
-  const handleFetchAvailableSlots = async (date: string) => {
-    console.log("handleFetchAvailableSlots called with date:", date);
-
-    // Only check the date for now
-    if (!date) return;
-
-    setNewTime('');
-    setIsLoadingSlots(true);
-    setAvailableSlots([]);
-
-    try {
-        const response = await fetch(`${BASE_URL}/professionals/appointments/getAvailableSlots?date=${date}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${BASE_URL}/professionals/documents/delete/${fileId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("Raw response:", response);
+        // Try to parse JSON safely
+        const data: { status?: boolean; message?: string } = await res.json().catch(() => ({}));
 
-        if (!response.ok) throw new Error("Failed to fetch slots");
+        if (!res.ok || data.status === false) {
+        throw new Error(data.message || "Delete failed");
+        }
 
-        const data = await response.json();
-        console.log("Fetched slots:", data);
+        // ✅ Safely handle possible null
+        setAppointment((prev) => {
+        if (!prev) return prev; // keep null if it was null
 
-        setAvailableSlots(data.available_slots || []);
-    } catch (error) {
-        console.error("Fetch error:", error);
+        const updatedDocuments = prev.documents.map((doc) => ({
+            ...doc,
+            files: doc.files.filter((f) => f.id !== fileId),
+        }));
+
+        return { ...prev, documents: updatedDocuments };
+        });
+
+        toast.success("File deleted successfully");
+    } catch (err) {
+        // ✅ Type-safe error handling (no `any`)
+        const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred while deleting the file.";
+        toast.error(errorMessage);
     } finally {
-        setIsLoadingSlots(false);
+        setDeletingFileId(null);
+        setFileToDelete(null);
     }
-};
+    };
 
+    const handleFetchAvailableSlots = async (date: string) => {
+        console.log("handleFetchAvailableSlots called with date:", date);
 
+        // Only check the date for now
+        if (!date) return;
 
-  const handleConfirmReschedule = async () => {
+        setNewTime('');
+        setIsLoadingSlots(true);
+        setAvailableSlots([]);
+
+        try {
+            const response = await fetch(`${BASE_URL}/professionals/appointments/getAvailableSlots?date=${date}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            console.log("Raw response:", response);
+
+            if (!response.ok) throw new Error("Failed to fetch slots");
+
+            const data = await response.json();
+            console.log("Fetched slots:", data);
+
+            setAvailableSlots(data.available_slots || []);
+        } catch (error) {
+            console.error("Fetch error:", error);
+        } finally {
+            setIsLoadingSlots(false);
+        }
+    };
+
+    const handleConfirmReschedule = async () => {
         if (!newDate || !newTime || !appointment) return;
         try {
             const response = await fetch(`${BASE_URL}/professionals/appointments/reschedule/${appointment.id}`, {
@@ -736,57 +399,71 @@ const deleteNoteMutation = useMutation({
         }
     };
 
-  const formatSlotTime = (time: string) => new Date(`1970-01-01T${time}`).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  if (isLoading) return <DashboardLayout><div className="text-center p-12">Loading...</div></DashboardLayout>;
-  if (error) return <DashboardLayout><div className="text-center p-12 text-red-600">{error}</div></DashboardLayout>;
-  if (!appointment) return <DashboardLayout><div className="text-center p-12">No appointment data found.</div></DashboardLayout>;
+    const formatSlotTime = (time: string) => new Date(`1970-01-01T${time}`).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  // -------------------- JSX --------------------
-  return (
-    <DashboardLayout>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-                <div>
-                    <Link href="/appointments" className="w-35 p-2 flex items-center text-sm hover:bg-gray-200 text-gray-500 font-medium hover:text-primary-600 mb-2 rounded-md">
-                        <ChevronDown className="w-4 h-4 mr-1 rotate-90" />
-                        Back to Appointments
-                    </Link>
-                    <div className="flex items-center gap-4 mt-2">
-                        <h1 className="text-3xl font-bold text-gray-900">{appointment.serviceName}</h1>
-                        <span className={clsx("px-3 py-1 text-sm font-medium rounded-full", {
-                            'bg-green-100 text-green-800': ['Completed', 'Converted'].includes(appointment.appointmentStatus),
-                            'bg-yellow-100 text-yellow-800': appointment.appointmentStatus === 'Inprogress',
-                            'bg-blue-100 text-blue-800': appointment.appointmentStatus === 'Upcoming',
-                            'bg-red-100 text-red-800': appointment.appointmentStatus === 'Cancelled',
-                            'bg-orange-100 text-orange-800': appointment.appointmentStatus === 'Rescheduled',
-                        })}>
-                            {appointment.appointmentStatus}
-                        </span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">Created on: {appointment.createdAt}</p>
-                </div>
-                <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-                    <button onClick={() => setIsRescheduleModalOpen(true)} className="bg-white border border-purple-300 cursor-pointer text-purple-800 px-4 py-2 font-medium rounded-lg hover:bg-purple-50 flex items-center space-x-2">
-                        <Clock className="h-5 w-5" />
-                        <span>Reschedule</span>
-                    </button> 
-                    <button className="bg-[#7E51FF] text-white font-medium px-4 py-2 rounded-lg shadow-sm hover:bg-purple-700 flex items-center space-x-2">
-                        <RefreshCw className="h-5 w-5" />
-                        <span>Convert to Project</span>
+    if (isLoading) return <DashboardLayout><div className="text-center p-12">Loading...</div></DashboardLayout>;
+    if (error) return <DashboardLayout><div className="text-center p-12 text-red-600">{error}</div></DashboardLayout>;
+    if (!appointment) return <DashboardLayout><div className="text-center p-12">No appointment data found.</div></DashboardLayout>;
+
+    // -------------------- JSX --------------------
+    return (
+        <DashboardLayout>
+            <HeaderTitleCard
+                onGoBack={handleGoBack}
+                title="Appointments"
+                description="Manage your schedule, availability, and client bookings."
+                >
+                <div className="relative">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                        <span>Quick Actions</span>
+                        <ChevronDown
+                        className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
                     </button>
-                </div>
-            </div>
-            
-            {/* Timeline + Update Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-                {/* Timeline (left, 2/3 width) */}
-                <div className="lg:col-span-2">
-                    <AppointmentTimeline currentStatus={appointment.appointmentStatus} />
-                    
-                </div>
 
-            </div>
+                    {isOpen && (
+                        <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        
+                        {/* Button to open modal */}
+                        <button
+                            onClick={() => {
+                            setIsAppointmentStatusModalOpen(true);
+                            setIsOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                            <Clock className="w-4 h-4 text-purple-600" />
+                            <span>Update Status</span>
+                        </button>
 
+                        {/* Navigation Link */}
+                        <Link
+                            href="/appointments/availability"
+                            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            <Clock className="w-4 h-4 text-purple-600" />
+                            <span>Reschedule</span>
+                        </Link>
+
+                        <Link
+                            href="/booking-link"
+                            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            <RefreshCw className="w-4 h-4 text-purple-600" />
+                            <span>Convert to Project</span>
+                        </Link>
+
+                        </div>
+                    )}
+                </div>
+            </HeaderTitleCard>
+               
             {/* Tabs Navigation */}
             <div className="flex space-x-6 border-b border-gray-300 mb-6 overflow-x-auto whitespace-nowrap px-2 scrollbar-hide">
                 {tabs.map((tab) => (
@@ -803,7 +480,6 @@ const deleteNoteMutation = useMutation({
                     </button>
                 ))}
             </div>
-
 
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -848,13 +524,13 @@ const deleteNoteMutation = useMutation({
                                     return acc + base;
                                     }, 0) ?? 0;
 
-                                    const discountPercentage = invoice.discountAmount ?? 0;
-                                    const taxPercentage = invoice.taxAmount ?? 0;
+                                    // const discountPercentage = invoice.discountAmount ?? 0;
+                                    // const taxPercentage = invoice.taxAmount ?? 0;
 
-                                    const discount = (subtotal * discountPercentage) / 100;
-                                    const tax = (subtotal * taxPercentage) / 100;
+                                    // const discount = (subtotal * discountPercentage) / 100;
+                                    // const tax = (subtotal * taxPercentage) / 100;
 
-                                    const total = subtotal - discount + tax;
+                                    // const total = subtotal - discount + tax;
 
                                     const finalTotal =
                                     subtotal +
@@ -1003,16 +679,16 @@ const deleteNoteMutation = useMutation({
                             </div>
                         </InfoCard>
                     )}
-               
+            
 
                 </div>
             
 
                 <div className="lg:col-span-1 space-y-8">
                     <div className="lg:col-span-1 space-y-8">
-                       
+                    
                         {activeTab === "financials" && (
-                             <>
+                            <>
                             <InfoCard
                                 title="Payment History"
                                 action={
@@ -1074,7 +750,7 @@ const deleteNoteMutation = useMutation({
                                     {filteredHistory.map((p) => (
                                     <div key={p.id} className="flex justify-between text-sm">
                                         <div>
-                                        <p className="text-xs text-gray-500">{p.invoiceNumber}</p>
+                                        <p className="text-xs text-gray-500">{p.invoice_no}</p>
                                         <p className="text-gray-500">{p.date}</p>
                                         <p className="text-gray-800 text-xs"> {p.method}</p>
                                         </div>
@@ -1165,7 +841,7 @@ const deleteNoteMutation = useMutation({
                                     </button>
                                     </div>
                             </InfoCard>
-                             </>
+                            </>
                         )}
 
                     </div>
@@ -1173,13 +849,8 @@ const deleteNoteMutation = useMutation({
             </div>
 
             {/* other */}
-
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                    
-                
-               
-
                     {activeTab === "notes" && (
                         <InfoCard
                             title="Appointment Notes"
@@ -1187,7 +858,6 @@ const deleteNoteMutation = useMutation({
                                 <button
                                 onClick={() => {
                                     setNoteToEdit(null);
-                                    setNewNote('');
                                     setIsNoteModalOpen(true);
                                 }}
                                 className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
@@ -1203,11 +873,13 @@ const deleteNoteMutation = useMutation({
                                     key={note.id}
                                     className="flex items-start space-x-3 pt-4 first:pt-0 first:border-none border-t group relative"
                                     >
-                                    <img
+                                    <Image
                                         alt="User avatar"
                                         src="https://i.pravatar.cc/150?u=ervop-admin"
-                                        className="h-8 w-8 rounded-full object-cover"
-                                    />
+                                        width={32} // your desired width
+                                        height={32} // your desired height
+                                        className="rounded-full object-cover"
+                                        />
                                     <div className="flex-1 bg-gray-50 p-3 rounded-lg">
                                         <p className="text-sm text-gray-600">{note.content}</p>
                                         <p className="text-xs text-gray-400 mt-1">
@@ -1265,7 +937,7 @@ const deleteNoteMutation = useMutation({
                                     >
                                         <div className="flex items-center space-x-3">
                                         <div className="bg-gray-200 p-3 rounded-full">
-                                            {isImage(file.url) ? (
+                                            {isImage(file.file_path) ? (
                                             <FileImage className="w-6 h-6 text-gray-600" />
                                             ) : (
                                             <FileText className="w-6 h-6 text-gray-600" />
@@ -1273,7 +945,7 @@ const deleteNoteMutation = useMutation({
                                         </div>
                                         <div>
                                             <a
-                                            href={file.url}
+                                            href={file.file_path}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="font-semibold text-blue-600 hover:underline"
@@ -1286,7 +958,7 @@ const deleteNoteMutation = useMutation({
                                             )}
 
                                             <p className="text-sm text-gray-500">
-                                            Uploaded: {formatDate(file.uploadedAt)} • {file.file_type.toUpperCase()}
+                                            Uploaded: {formatDate(file.created_at)} • {file.file_type.toUpperCase()}
                                             </p>
                                         </div>
                                         </div>
@@ -1320,15 +992,8 @@ const deleteNoteMutation = useMutation({
                             </div>
                         </InfoCard>
                     )} 
-                </div>
-            
-
-               
-            </div>
-
-
-
-            
+                </div>  
+            </div>  
             
             {/* All Modals */}
             {isPaymentModalOpen && selectedInvoiceId !== null && (
@@ -1337,72 +1002,85 @@ const deleteNoteMutation = useMutation({
                     onClose={() => setIsPaymentModalOpen(false)}
                     invoiceId={selectedInvoiceId} // ✅ always number now
                     onPaymentRecorded={(payment) => {
-                        handleNewPayment(payment); // your optimistic update
-                        fetchAppointment();        // 🔥 refresh from server
+                        const fullPayment: PaymentHistoryItem = {
+                            ...payment,
+                            status: "Paid",              // default or from modal
+                            payments: [],                // could push the new PaymentItem here
+                            invoice_no: `#INV-${selectedInvoiceId}`,
+                            created_at: new Date().toISOString(),
+                        };
+                        handleNewPayment(fullPayment);
+                        fetchAppointment(); // refresh
                     }}
+
                 />
             )}
 
-            {isNoteModalOpen && ( 
-                <NoteModal
-                    isOpen={isNoteModalOpen}
-                    onClose={() => {
-                        setIsNoteModalOpen(false);
-                        setNoteToEdit(null);
-                        setNewNote("");
-                    }}
-                    noteToEdit={noteToEdit}
-                    appointmentId={appointmentIdFromUrl} // 👈 pass the ID
-                    onNoteSaved={(savedNote) => {   // 👈 must match NoteModalProps
-                        setAppointment((prev) =>
-                        prev
-                            ? {
-                                ...prev,
-                                notesHistory: noteToEdit
-                                ? prev.notesHistory.map((n) =>
-                                    n.id === savedNote.id ? savedNote : n
-                                    )
-                                : [savedNote, ...prev.notesHistory],
-                            }
-                            : null
-                        );
-
-                        setIsNoteModalOpen(false);
-                        setNoteToEdit(null);
-                        setNewNote("");
-                    }}
-                />
-            )}
-         
-           {isInvoiceModalOpen && (
-            <InvoiceModal
-                isOpen={isInvoiceModalOpen}
+            {isNoteModalOpen && (
+            <NoteModal
+                isOpen={isNoteModalOpen}
                 onClose={() => {
-                    setIsInvoiceModalOpen(false);
-                    setInvoiceToEdit(null); // reset when closing
+                setIsNoteModalOpen(false);
+                setNoteToEdit(null);
                 }}
-                onInvoiceSaved={(newInvoice) => {
-                    setInvoices((prev) =>
-                invoiceToEdit
-                    ? prev.map((inv) => (inv.id === newInvoice.id ? newInvoice : inv))
-                    : [newInvoice, ...prev]
-                )
-                    setIsInvoiceModalOpen(false);
-                    setInvoiceToEdit(null);
-                }}
-                sourceType="appointment"
-                sourceId={appointment.id}
-                contactId={appointment.customer.customer_id}
-                mode={invoiceToEdit ? "edit" : "create"}
-                existingInvoice={invoiceToEdit}
-            />
+                noteToEdit={noteToEdit}
+                appointmentId={appointmentIdFromUrl} // string
+                onNoteSaved={(savedNote, isUpdate) => {
+                setAppointment((prev: AppointmentDisplayData | null) => {
+            if (!prev) return prev;
+
+            const noteWithCreatedAt: NoteItem = {
+                ...savedNote,
+                created_at: savedNote.created_at ?? new Date().toISOString(),
+            };
+
+            return {
+                ...prev,
+                notesHistory: isUpdate
+                ? prev.notesHistory.map((n) =>
+                    n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
+                    )
+                : [noteWithCreatedAt, ...prev.notesHistory],
+            };
+            });
+
+
+
+            setIsNoteModalOpen(false);
+            setNoteToEdit(null);
+            }}
+        />
+            )}
+
+            {isInvoiceModalOpen && (
+                <InvoiceModal
+                    isOpen={isInvoiceModalOpen}
+                    onClose={() => {
+                        setIsInvoiceModalOpen(false);
+                        setInvoiceToEdit(null); // reset when closing
+                    }}
+                    onInvoiceSaved={(newInvoice) => {
+                        setInvoices((prev) =>
+                    invoiceToEdit
+                        ? prev.map((inv) => (inv.id === newInvoice.id ? newInvoice : inv))
+                        : [newInvoice, ...prev]
+                    )
+                        setIsInvoiceModalOpen(false);
+                        setInvoiceToEdit(null);
+                    }}
+                    sourceType="appointment"
+                    sourceId={appointment.id}
+                    contactId={appointment.customer.customer_id}
+                    mode={invoiceToEdit ? "edit" : "create"}
+                    existingInvoice={invoiceToEdit}
+                />
             )}
 
             <FileUploadModal
                 isOpen={isFileModalOpen}
                 onClose={() => setIsFileModalOpen(false)}
                 onFileUploaded={() => {
-                         fetchAppointment(); 
+                        fetchAppointment(); 
                 }}
             />
 
@@ -1411,7 +1089,7 @@ const deleteNoteMutation = useMutation({
                 <AppointmentStatusModal
                 isOpen={isAppointmentStatusModalOpen}
                 currentStatus={appointment.appointmentStatus}
-                appointmentId={appointment.id}
+                appointmentId={Number(appointment.id)}
                 onClose={() => setIsAppointmentStatusModalOpen(false)}
                 onStatusUpdated={(newStatus) => {
                     setAppointment((prev) =>
@@ -1420,7 +1098,6 @@ const deleteNoteMutation = useMutation({
                 }}
                 />
             )}
-
 
 
             {isRescheduleModalOpen && (
@@ -1513,7 +1190,6 @@ const deleteNoteMutation = useMutation({
                 deleting={deletingFileId === fileToDelete?.id}
             />
 
-    </DashboardLayout>
-
-  );
+        </DashboardLayout>
+    );
 }

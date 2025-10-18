@@ -1,20 +1,17 @@
 'use client';
 
-import React, { useState, useMemo, FC, ReactNode, useEffect } from 'react';
+import React, { useState, useMemo, FC, useEffect } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
-// import { useGoBack } from "@/hooks/useGoBack";
 import Link from "next/link";
-// import { Icons } from '@/components/icons';
-import { Calendar as CalendarIcon, List, Search, ChevronLeft, ChevronRight, Plus, Copy, Settings2, RefreshCw, X, Clock , CheckCircle} from 'lucide-react';
+import { Calendar as CalendarIcon, List, Search, ChevronLeft, ChevronRight, Plus, Copy, Settings2, RefreshCw, X, Clock , CheckCircle, MoreVerticalIcon, Trash2, Pencil, Eye, ChevronDown} from 'lucide-react';
 import clsx from 'clsx';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import toast from 'react-hot-toast';
 
-// --- MOCK COMPONENTS (to resolve import errors) ---
 
 const useGoBack = () => () => window.history.back();
-const Icons = { refresh: (props: any) => <RefreshCw {...props} /> };
-// const Link: FC<{ href: string; children: ReactNode; className?: string }> = ({ href, children, className }) => <a href={href} className={className}>{children}</a>;
-// --- END MOCK COMPONENTS ---
+
 
 
 // --- TYPE DEFINITIONS ---
@@ -26,9 +23,11 @@ interface Appointment {
     appointmentId: string;
     customerName: string;
     service: string;
+    project: string;
     appointmentStatus: AppointmentStatus;
     date: string; // YYYY-MM-DD
     time: string; // Formatted time
+    createdAt: string; // Formatted time
 }
 
 // This type now matches your new, flat API response
@@ -39,6 +38,7 @@ interface ApiAppointment {
     appointment_status: AppointmentStatus | null;
     service_id: number;
     service_name: string;
+    project_title: string;
     customer_id: number;
     customer_firstname: string;
     customer_lastname: string;
@@ -64,7 +64,7 @@ const StatCard: FC<{ title: string; value: string; icon: React.ElementType; main
 const AppointmentStatusBadge: FC<{ status: AppointmentStatus }> = ({ status }) => {
     const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full inline-block";
     const statusClasses = {
-        'Upcoming': "bg-blue-100 text-blue-800",
+        'Upcoming': "bg-purple-100 text-purple-800",
         'Completed': "bg-green-100 text-green-800",
         'Converted': "bg-purple-100 text-purple-800",
         'Cancelled': "bg-red-100 text-red-800",
@@ -113,17 +113,17 @@ const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => 
             <div 
                 key={day} 
                 onClick={() => setSelectedDate(date)}
-                className={clsx("h-24 p-2 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors", { 'bg-blue-50': isSelected })}
+                className={clsx("h-24 p-2 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors", { 'bg-purple-50': isSelected })}
             >
                 <div className={clsx("w-8 h-8 flex items-center justify-center rounded-full font-medium", {
-                    'bg-blue-600 text-white': isSelected,
-                    'text-blue-600': isToday && !isSelected,
+                    'bg-purple-600 text-white': isSelected,
+                    'text-purple-600': isToday && !isSelected,
                 })}>
                     {day}
                 </div>
                 {hasAppointments && (
                     <div className="mt-1 flex justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     </div>
                 )}
             </div>
@@ -133,6 +133,7 @@ const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => 
     const changeMonth = (offset: number) => {
         setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
     };
+    
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -142,10 +143,10 @@ const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => 
                 </h3>
                 <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
                     {selectedDaySchedule.length > 0 ? selectedDaySchedule.map(appt => (
-                        <div key={appt.id} className="p-3 rounded-lg border border-blue-200 bg-blue-50">
-                            <p className="font-semibold text-blue-800">{appt.time}</p>
-                            <p className="text-sm text-blue-700 mt-1">{appt.service}</p>
-                            <p className="text-xs text-blue-600 mt-1">with {appt.customerName}</p>
+                        <div key={appt.id} className="p-3 rounded-lg border border-purple-200 bg-purple-50">
+                            <p className="font-semibold text-purple-800">{appt.time}</p>
+                            <p className="text-sm text-purple-700 mt-1">{appt.service || appt.project || 'General'}</p>
+                            <p className="text-xs text-purple-600 mt-1">with {appt.customerName}</p>
                         </div>
                     )) : (
                         <div className="text-center text-gray-500 p-8">
@@ -169,7 +170,7 @@ const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => 
     );
 };
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 10;
 
 // --- Date Helper Functions ---
 const formatDate = (date: Date): string => {
@@ -214,12 +215,56 @@ export default function AppointmentsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
-    const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [datePreset, setDatePreset] = useState('All');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('All');
+
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+
+    //delete appointment
+    const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+
+    const [isOpen, setIsOpen] = useState(false);
+
+  
+    // --- Delete function ---
+
+
+    const deleteAppointment = async (id: number) => {
+    try {
+        setDeletingId(id);
+
+        const response = await fetch(`${BASE_URL}/professionals/appointments/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${userToken}`,
+        },
+        });
+
+        if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+        }
+
+        // Remove the deleted appointment from the state
+        setAppointments(prev => prev.filter(a => a.id !== id));
+        setAppointmentToDelete(null);
+
+        // ✅ Show success toast
+        toast.success('Appointment deleted successfully!');
+    } catch (err) {
+        console.error('Failed to delete appointment:', err);
+        toast.error('Failed to delete appointment. Please try again.');
+    } finally {
+        setDeletingId(null);
+    }
+    };
+
+
+
+
     
     const handleGoBack = useGoBack();
     const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -253,15 +298,22 @@ export default function AppointmentsPage() {
                     minute: '2-digit',
                     hour12: true
                 });
+                const createdAtDate = new Date(appt.created_at);
+                const createdAtFormatted = `${createdAtDate.toLocaleDateString()} ${createdAtDate.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                })}`;
 
                 return {
                     id: appt.id,
                     appointmentId: `#APPT-${String(appt.id).padStart(3, '0')}`,
                     customerName: `${appt.customer_firstname} ${appt.customer_lastname}`,
-                    service: appt.service_name,
+                    service: appt.service_name, 
+                    project: appt.project_title,
                     appointmentStatus: appt.appointment_status || 'Upcoming', // Default null to Upcoming
                     date: formattedDate,
                     time: appointmentTime,
+                    createdAt: createdAtFormatted,
                 };
             });
             
@@ -311,8 +363,8 @@ export default function AppointmentsPage() {
         return appointments.filter(appt => {
             const searchLower = searchTerm.toLowerCase();
             const searchMatch = searchTerm === '' || 
-                                appt.appointmentId.toLowerCase().includes(searchLower) || 
-                                appt.customerName.toLowerCase().includes(searchLower);
+                appt.appointmentId.toLowerCase().includes(searchLower) || 
+                appt.customerName.toLowerCase().includes(searchLower);
 
             const dateMatch = !dateRange.start || !dateRange.end || (appt.date >= dateRange.start && appt.date <= dateRange.end);
             const statusMatch = appointmentStatusFilter === 'All' || appt.appointmentStatus === appointmentStatusFilter;
@@ -321,14 +373,6 @@ export default function AppointmentsPage() {
         });
     }, [appointments, searchTerm, appointmentStatusFilter, dateRange]);
 
-    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedRows(e.target.checked ? filteredAppointments.map(appt => appt.id) : []);
-    };
-
-    const handleSelectRow = (id: number) => {
-        setSelectedRows(prev => prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]);
-    };
-
     const paginatedAppointments = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
         return filteredAppointments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -336,36 +380,58 @@ export default function AppointmentsPage() {
 
     const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE);
 
-    if (isLoading) {
-        return <DashboardLayout><div className="text-center p-12">Loading Appointments...</div></DashboardLayout>;
-    }
-
-    if (error) {
-         return <DashboardLayout><div className="text-center p-12 text-red-600">Error: {error}</div></DashboardLayout>;
-    }
-
     return (
         <DashboardLayout>
-            <HeaderTitleCard onGoBack={handleGoBack} title="Appointments" description="Manage your schedule, availability, and client bookings.">
-                <div className="flex flex-col md:flex-row gap-2">
-                    <Link href="/appointments/availability" className="bg-white border border-purple-300 text-purple-800 px-4 py-2 font-medium rounded-lg hover:bg-purple-50 flex items-center space-x-2">
-                        <Settings2 className="w-4 h-4" /> 
+            <HeaderTitleCard
+                onGoBack={handleGoBack}
+                title="Appointments"
+                description="Manage your schedule, availability, and client bookings."
+                >
+                <div className="relative">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                        <span>Quick Actions</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {isOpen && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        <Link
+                        href="/appointments/availability"
+                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsOpen(false)}
+                        >
+                        <Settings2 className="w-4 h-4 text-purple-600" />
                         <span>Set Availability</span>
-                    </Link>
-                    <Link href="/booking-link" className="bg-white border border-purple-300 text-purple-800 px-4 py-2 font-medium rounded-lg hover:bg-purple-50 flex items-center space-x-2">
-                        <Copy className="w-4 h-4" /> 
-                        <span>Copy Booking Link</span> 
-                    </Link>
-                    <Link href="/appointments/new" className="btn-primary flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
-                        <Plus className="w-4 h-4" /> 
+                        </Link>
+
+                        <Link
+                        href="/booking-link"
+                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsOpen(false)}
+                        >
+                        <Copy className="w-4 h-4 text-purple-600" />
+                        <span>Copy Booking Link</span>
+                        </Link>
+
+                        <Link
+                        href="/appointments/new"
+                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsOpen(false)}
+                        >
+                        <Plus className="w-4 h-4 text-purple-600" />
                         <span>New Appointment</span>
-                    </Link>
-                </div> 
+                        </Link>
+                    </div>
+                    )}
+                </div>
             </HeaderTitleCard>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <StatCard title="Total Appointments" value={appointments.length.toString()} icon={CalendarIcon} mainBg="bg-white" iconBg="bg-purple-100" mainText="text-gray-900" iconText="text-purple-800" />
-                <StatCard title="Upcoming" value={appointments.filter(a => a.appointmentStatus === 'Upcoming').length.toString()} icon={Clock} mainBg="bg-white" iconBg="bg-blue-100" mainText="text-gray-900" iconText="text-blue-800" />
+                <StatCard title="Upcoming" value={appointments.filter(a => a.appointmentStatus === 'Upcoming').length.toString()} icon={Clock} mainBg="bg-white" iconBg="bg-purple-100" mainText="text-gray-900" iconText="text-purple-800" />
                 <StatCard title="Inprogress" value={appointments.filter(a => a.appointmentStatus === 'Inprogress').length.toString()} icon={RefreshCw} mainBg="bg-white" iconBg="bg-yellow-100" mainText="text-gray-900" iconText="text-yellow-800" />
                 <StatCard title="Completed" value={appointments.filter(a => a.appointmentStatus === 'Completed').length.toString()} icon={CheckCircle} mainBg="bg-white" iconBg="bg-green-100" mainText="text-gray-900" iconText="text-green-800" />
                 <StatCard title="Cancelled" value={appointments.filter(a => a.appointmentStatus === 'Cancelled').length.toString()} icon={X} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" />
@@ -373,12 +439,12 @@ export default function AppointmentsPage() {
 
             <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap items-center gap-4 border border-gray-200">
                 <div className="relative flex-shrink-0 w-full sm:w-64">
-                    <input type="text" placeholder="Search by ID or Name..." value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" placeholder="Search by ID or Name..." value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                        <Search className="h-5 w-5 text-gray-400" />
                     </div>
                 </div>
-                <select value={datePreset} onChange={handleDatePresetChange} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-36 flex-shrink-0">
+                <select value={datePreset} onChange={handleDatePresetChange} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-36 flex-shrink-0">
                     <option value="All">All Time</option>
                     <option value="This Week">This Week</option>
                     <option value="Last Week">Last Week</option>
@@ -388,12 +454,12 @@ export default function AppointmentsPage() {
                 </select>
                 {datePreset === 'Custom' && (
                     <div className="flex items-center space-x-2 flex-shrink-0">
-                        <input type="date" value={dateRange.start} onChange={e => handleManualDateChange(e, 'start')} className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="date" value={dateRange.start} onChange={e => handleManualDateChange(e, 'start')} className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
                         <span>-</span>
-                        <input type="date" value={dateRange.end} onChange={e => handleManualDateChange(e, 'end')} className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="date" value={dateRange.end} onChange={e => handleManualDateChange(e, 'end')} className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     </div>
                 )}
-                <select value={appointmentStatusFilter} onChange={(e) => {setAppointmentStatusFilter(e.target.value as AppointmentStatus | 'All'); setCurrentPage(1);}} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-40 flex-shrink-0">
+                <select value={appointmentStatusFilter} onChange={(e) => {setAppointmentStatusFilter(e.target.value as AppointmentStatus | 'All'); setCurrentPage(1);}} className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-40 flex-shrink-0">
                     <option value="All">All Statuses</option>
                     <option value="Upcoming">Upcoming</option>
                     <option value="Completed">Completed</option>
@@ -404,7 +470,8 @@ export default function AppointmentsPage() {
                 <div className="flex items-center space-x-2 flex-shrink-0">
                     <button onClick={handleClearFilters} className="text-sm text-gray-600 hover:text-purple-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 rounded-md font-medium">Clear Filters</button>
                     <button onClick={fetchAppointments} className="p-2 text-gray-500 cursor-pointer hover:text-purple-600 hover:bg-gray-200 bg-gray-100 rounded-full">
-                        <Icons.refresh className="h-6 w-6" />
+                        {/* <Icons.refresh className="h-6 w-6" /> */}
+                         <RefreshCw size={22} />
                     </button> 
                 </div>
             </div>
@@ -423,40 +490,119 @@ export default function AppointmentsPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                              
                                 <tr>
-                                    <th scope="col" className="p-4">
-                                        <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.length === filteredAppointments.length && filteredAppointments.length > 0} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
-                                    </th>
+                                                                   
                                     <th scope="col" className="px-6 py-4">Appointment ID</th>
                                     <th scope="col" className="px-6 py-4">Customer Name</th>
-                                    <th scope="col" className="px-6 py-4">Service</th>
+                                    <th scope="col" className="px-6 py-4">Purpose</th>
                                     <th scope="col" className="px-6 py-4">Status</th>
                                     <th scope="col" className="px-6 py-4">Date & Time</th>
-                                    <th scope="col" className="px-6 py-4">Actions</th>
+                                    <th scope="col" className="px-6 py-4">Created On</th>
+                                    <th scope="col" className="px-6 py-4 text-right">Actions</th>
                                 </tr>
+
                             </thead>
+
                             <tbody className="divide-y divide-gray-200">
-                                {paginatedAppointments.map((appt) => (
-                                    <tr key={appt.id} className="bg-white hover:bg-gray-50">
-                                        <td className="w-4 p-4">
-                                            <input type="checkbox" checked={selectedRows.includes(appt.id)} onChange={() => handleSelectRow(appt.id)} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
-                                        </td>
-                                        <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{appt.appointmentId}</th>
-                                        <td className="px-6 py-4">{appt.customerName}</td>
-                                        <td className="px-6 py-4">{appt.service}</td>
-                                        <td className="px-6 py-4"><AppointmentStatusBadge status={appt.appointmentStatus} /></td>
-                                        <td className="px-6 py-4">{new Date(appt.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {appt.time}</td>
-                                        <td className="px-6 py-4">
-                                            <Link href={`/appointments/view/${appt.id}`}>
-                                                 <button className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-200">
-                                                     View Details
-                                                 </button>
+                                {isLoading ? (
+                                <tr>
+                                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                                    Loading appointments...
+                                    </td>
+                                </tr>
+                                ) : error ? (
+                                <tr>
+                                    <td colSpan={7} className="text-center py-8 text-red-600">
+                                    Error: {error}
+                                    </td>
+                                </tr>
+                                ) : paginatedAppointments.length > 0 ? (
+                                paginatedAppointments.map((appt) => (
+                                    <tr key={appt.id} className="bg-white hover:bg-gray-50 relative">
+                                    <th
+                                        scope="row"
+                                        className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
+                                    >
+                                        {appt.appointmentId}
+                                    </th>
+                                    <td className="px-6 py-4">{appt.customerName}</td>
+                                    <td className="px-6 py-4">
+                                        {appt.service || appt.project || "General"}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <AppointmentStatusBadge status={appt.appointmentStatus} />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {new Date(appt.date + "T00:00:00").toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                        })}{" "}
+                                        at {appt.time}
+                                    </td>
+
+                                    <td className="px-6 py-4">
+                                        {new Date(appt.createdAt).toLocaleString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                        })}
+                                    </td>
+
+
+
+                                    {/* Actions dropdown */}
+                                    <td className="px-6 py-4 text-right relative">
+                                        <button
+                                        onClick={() =>
+                                            setOpenDropdownId(openDropdownId === appt.id ? null : appt.id)
+                                        }
+                                        className="inline-flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-100 focus:outline-none transition"
+                                        >
+                                        <MoreVerticalIcon className="w-5 h-5 text-gray-600" /> {/* lucide-react icon */}
+                                        </button>
+
+                                        {openDropdownId === appt.id && (
+                                        <div className="absolute right-6 mt-2 w-40 origin-top-right bg-white border border-gray-100 rounded-lg shadow-lg z-10 animate-fadeIn">
+                                            <Link
+                                            href={`/appointments/view/${appt.id}`}
+                                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+                                            >
+                                            <Eye className="w-4 h-4 text-gray-500" />
+                                            View Details
                                             </Link>
-                                        </td>
+                                            <Link
+                                            href={`/appointments/edit/${appt.id}`}
+                                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+                                            >
+                                            <Pencil className="w-4 h-4 text-gray-500" />
+                                            Update
+                                            </Link>
+                                           <button
+                                            onClick={() => setAppointmentToDelete(appt)}
+                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                                            >
+                                            <Trash2 className="w-4 h-4 text-red-500" />
+                                            Delete
+                                            </button>
+                                        </div>
+                                        )}
+                                    </td>
                                     </tr>
-                                ))}
+                                ))
+                                ) : (
+                                <tr>
+                                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                                    No appointments found.
+                                    </td>
+                                </tr>
+                                )}
                             </tbody>
                         </table>
+
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <span className="text-sm text-gray-700">
@@ -478,6 +624,20 @@ export default function AppointmentsPage() {
             {view === 'calendar' && (
                 <CalendarView appointments={filteredAppointments} />
             )}
+          <DeleteConfirmModal
+  isOpen={!!appointmentToDelete}
+  onCancel={() => setAppointmentToDelete(null)}
+  onConfirm={() => appointmentToDelete && deleteAppointment(appointmentToDelete.id)}
+  title="Delete Appointment"
+  message={
+    appointmentToDelete
+      ? `Are you sure you want to delete the appointment with ${appointmentToDelete.customerName} on ${appointmentToDelete.date}?`
+      : ""
+  }
+  deleting={deletingId === appointmentToDelete?.id}
+/>
+
+
 
         </DashboardLayout>
     );

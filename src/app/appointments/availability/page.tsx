@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect} from 'react';
-import { CheckCircle, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { CheckCircle,  Plus, Trash2 } from "lucide-react";
 import clsx from 'clsx';
 import DashboardLayout from "@/components/DashboardLayout";
+import HeaderTitleCard from '@/components/HeaderTitleCard';
+import { useGoBack } from '@/hooks/useGoBack';
+import toast from 'react-hot-toast';
 
 // --- Type Definitions ---
 type DaySchedule = {
@@ -42,6 +45,7 @@ export default function AvailabilitySettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const handleGoBack = useGoBack();
 
     const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
@@ -121,68 +125,76 @@ export default function AvailabilitySettingsPage() {
     };
     
     const handleAddOverride = () => {
-        if (newOverrideDate && !overrideDates.includes(newOverrideDate)) {
-            setOverrideDates([...overrideDates, newOverrideDate].sort());
-            setNewOverrideDate('');
+        if (!newOverrideDate) {
+            toast.error("Please select a date first ❗");
+            return;
         }
+
+        if (overrideDates.includes(newOverrideDate)) {
+            toast.error("This date is already added 🚫");
+            return;
+        }
+        setOverrideDates([...overrideDates, newOverrideDate].sort());
+        setNewOverrideDate("");
     };
 
     const handleRemoveOverride = (dateToRemove: string) => {
         setOverrideDates(overrideDates.filter(date => date !== dateToRemove));
     };
 
-    const handleSaveChanges = async () => {
-        setIsSaving(true);
-        setSaveStatus('idle');
-        setError(null);
+   
+  
+const handleSaveChanges = async () => {
+  setIsSaving(true);
+  setSaveStatus("idle");
+  setError(null);
 
-        // **MODIFIED PAYLOAD TO MATCH YOUR EXAMPLE**
-        const payload = {
-            schedule: schedule, // The state is already in the correct format
-            overrideDates: overrideDates,
-        };
+  const payload = {
+    schedule,
+    overrideDates,
+  };
 
-        try {
-            const response = await fetch(`${BASE_URL}/professionals/appointments/setAvailability`, {
-                method: 'POST', 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${userToken}`,
-                },
-                body: JSON.stringify(payload),
-            });
+  try {
+    const response = await fetch(
+      `${BASE_URL}/professionals/appointments/setAvailability`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save changes.');
-            }
-
-            setSaveStatus('success');
-
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-            setSaveStatus('error');
-        } finally {
-            setIsSaving(false);
-            setTimeout(() => setSaveStatus('idle'), 3000);
-        }
-    };
-    
-    if (isLoading) {
-        return <DashboardLayout><div className="text-center p-12">Loading Availability...</div></DashboardLayout>;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to save changes.");
     }
+
+    setSaveStatus("success");
+    toast.success("Availability saved successfully 🎉");
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "An unknown error occurred.";
+    setError(errorMessage);
+    setSaveStatus("error");
+    toast.error(`Error: ${errorMessage}`);
+  } finally {
+    setIsSaving(false);
+    setTimeout(() => setSaveStatus("idle"), 3000);
+  }
+};
 
     return (
         <DashboardLayout>
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                    <a href="/appointments" className="flex items-center text-md text-gray-500 hover:text-purple-600 mb-2 w-fit">
-                         <ArrowLeft className="h-4 w-4 mr-1" />
-                        Back to Appointments
-                    </a>
-                    <h1 className="text-3xl font-bold text-gray-900">Manage Availability</h1>
-                    <p className="text-gray-500 mt-1">Set your weekly schedule and add specific dates you're unavailable.</p>
+                   
+                    <p className="text-gray-500 mt-1"></p>
+                    <HeaderTitleCard onGoBack={handleGoBack} title="Manage Availability" description="Set your weekly schedule and add specific dates you are unavailable."/>
+               
                 </div>
 
                 <div className="w-full max-w-4xl mx-auto space-y-8">
@@ -193,42 +205,60 @@ export default function AvailabilitySettingsPage() {
                         <p className="text-sm text-gray-500 mb-6">Define your working hours for each day of the week.</p>
                         
                         <div className="space-y-6">
-                            {schedule.map((day) => (
-                                <div key={day.name} className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                                    <div className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id={`${day.name}-check`}
-                                            checked={day.isEnabled}
-                                            onChange={() => handleToggleDay(day.name)}
-                                            className="h-6 w-6 accent-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
-                                        />
-                                        <label htmlFor={`${day.name}-check`} className="ml-3 block font-medium text-gray-700 cursor-pointer">{day.name}</label>
-                                    </div>
-                                    
-                                    <div className="md:col-span-3 flex flex-col md:flex-row items-center gap-4">
-                                        {day.isEnabled ? (
-                                            <>
-                                                <input
-                                                    type="time"
-                                                    value={day.startTime}
-                                                    onChange={(e) => handleTimeChange(day.name, 'startTime', e.target.value)}
-                                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                />
-                                                <span className="text-gray-500">-</span>
-                                                <input
-                                                    type="time"
-                                                    value={day.endTime}
-                                                    onChange={(e) => handleTimeChange(day.name, 'endTime', e.target.value)}
-                                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                />
-                                            </>
-                                        ) : (
-                                            <span className="text-gray-400 font-medium">Closed</span>
-                                        )}
-                                    </div>
+                            {isLoading ? (
+                            <div className="text-center py-12 text-gray-500 font-medium">
+                                Loading Availability...
+                            </div>
+                            ) : (
+                            schedule.map((day) => (
+                                <div
+                                key={day.name}
+                                className="grid grid-cols-1 md:grid-cols-4 items-center gap-4"
+                                >
+                                <div className="flex items-center">
+                                    <input
+                                    type="checkbox"
+                                    id={`${day.name}-check`}
+                                    checked={day.isEnabled}
+                                    onChange={() => handleToggleDay(day.name)}
+                                    className="h-6 w-6 accent-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                    />
+                                    <label
+                                    htmlFor={`${day.name}-check`}
+                                    className="ml-3 block font-medium text-gray-700 cursor-pointer"
+                                    >
+                                    {day.name}
+                                    </label>
                                 </div>
-                            ))}
+
+                                <div className="md:col-span-3 flex flex-col md:flex-row items-center gap-4">
+                                    {day.isEnabled ? (
+                                    <>
+                                        <input
+                                        type="time"
+                                        value={day.startTime}
+                                        onChange={(e) =>
+                                            handleTimeChange(day.name, "startTime", e.target.value)
+                                        }
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                        <span className="text-gray-500">-</span>
+                                        <input
+                                        type="time"
+                                        value={day.endTime}
+                                        onChange={(e) =>
+                                            handleTimeChange(day.name, "endTime", e.target.value)
+                                        }
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </>
+                                    ) : (
+                                    <span className="text-gray-400 font-medium">Closed</span>
+                                    )}
+                                </div>
+                                </div>
+                            ))
+                            )}
                         </div>
                     </div>
 
@@ -246,7 +276,19 @@ export default function AvailabilitySettingsPage() {
                                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 />
                             </div>
-                            <button type="button" onClick={handleAddOverride} className="bg-purple-600 text-white p-3 rounded-lg shadow-sm hover:bg-purple-700 cursor-pointer"><Plus className="h-5 w-5" /></button>
+                            <button
+                                type="button"
+                                onClick={handleAddOverride}
+                                disabled={!newOverrideDate} // 🔥 Disable until a date is selected
+                                className={clsx(
+                                    "p-3 rounded-lg shadow-sm transition-colors",
+                                    newOverrideDate
+                                    ? "bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                )}
+                                >
+                                <Plus className="h-5 w-5" />
+                            </button>
                         </div>
                         <div className="space-y-2">
                             {overrideDates.map(date => (
