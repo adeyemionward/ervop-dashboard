@@ -34,12 +34,18 @@ export const useFetchData = <T,>(url: string) => {
 
         const result: T = await res.json();
         setData(result);
-      } catch (err: any) {
-        console.error("Fetching failed:", err);
-        setError(err.message || "An unexpected error occurred.");
-      } finally {
-        setLoading(false);
+      } catch (err: unknown) {
+      console.error("Fetching failed:", err);
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred.");
       }
+    } finally {
+      setLoading(false);
+    }
+
     };
 
     if (url && token) {

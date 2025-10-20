@@ -68,12 +68,13 @@ export default function DocsManagerPage() {
 
   // modal state
   const [fileToDelete, setFileToDelete] = useState<DocumentFile | null>(null);
-
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+ 
   // Helpers
   const fileNameFromPath = (p: string) =>
     p ? p.split("/").pop() || p : "file";
   const isImage = (t: string) => t?.toLowerCase().startsWith("image/");
-  const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
+  // const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
 
   // ---------- Fetch Folders ----------
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function DocsManagerPage() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          "http://127.0.0.1:8000/api/v1/professionals/documents/list/",
+          `${BASE_URL}/professionals/documents/list/`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
@@ -124,7 +125,7 @@ export default function DocsManagerPage() {
       setLoadingFiles(true);
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/v1/professionals/documents/userDocs/${idParam}`,
+        `${BASE_URL}/professionals/documents/userDocs/${idParam}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -147,7 +148,7 @@ export default function DocsManagerPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://127.0.0.1:8000/api/v1/professionals/documents/delete/${fileId}`,
+        `${BASE_URL}/professionals/documents/delete/${fileId}`,
         { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
 
@@ -158,12 +159,17 @@ export default function DocsManagerPage() {
 
       setFiles((prev) => prev.filter((f) => f.id !== fileId));
       toast.success("File deleted successfully");
-    } catch (err: any) {
+    } catch (err: unknown) {
+    if (err instanceof Error) {
       toast.error(err.message || "An error occurred while deleting the file.");
-    } finally {
-      setDeletingId(null);
-      setFileToDelete(null);
+    } else {
+      toast.error("An unexpected error occurred while deleting the file.");
     }
+  } finally {
+    setDeletingId(null);
+    setFileToDelete(null);
+  }
+
   };
 
   // ---------- Filter Folders ----------

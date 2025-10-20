@@ -106,12 +106,18 @@ export default function CreateContact() {
       setPhone("");
       setCompany("");
       setTags([]);
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong. Please try again.");
+    } catch (error: unknown) {
+    if (error instanceof Error) {
+      toast.error(error.message);
       console.error("Contact creation failed:", error);
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error("Something went wrong. Please try again.");
+      console.error("Contact creation failed:", error);
     }
+  } finally {
+    setIsSubmitting(false);
+  }
+
   };
 
   return (

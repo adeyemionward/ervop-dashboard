@@ -13,8 +13,9 @@ type Props = {
     teamVisible?: boolean;
     missionVisionVisible?: boolean;
   };
-  onUpdate: (field: string, value: any) => void;
+  onUpdate: (field: string, value: unknown) => void;
 };
+
 
 const AboutUsSection: React.FC<Props> = ({ data, onUpdate }) => {
   const [heroPreview, setHeroPreview] = useState<string | null>(data.heroImage ?? null);

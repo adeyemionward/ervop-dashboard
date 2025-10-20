@@ -66,12 +66,18 @@ export default function CustomizationTabs() {
         faq: normalizeFaqData(data.faq),
         services: normalizeServicesData(data.services), // ✅ normalize services here
       });
-    } catch (err: any) {
-      console.error('Fetch error:', err.message);
-      setError(err.message || 'Failed to load customization data.');
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+    console.error("Fetch error:", err);
+
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("Failed to load customization data.");
     }
+  } finally {
+    setLoading(false);
+  }
+
   };
 
   fetchData();
@@ -79,24 +85,32 @@ export default function CustomizationTabs() {
 
 
   /** Update nested state safely **/
-  const handleUpdate = (section: keyof WebsiteData, path: string[], value: any) => {
-    setWebsiteData(prev => {
-      if (!prev) return prev;
+  const handleUpdate = (
+  section: keyof WebsiteData,
+  path: string[],
+  value: unknown
+) => {
+  setWebsiteData(prev => {
+    if (!prev) return prev;
 
-      const updatedSection = { ...prev[section] };
-      let temp: any = updatedSection;
+    // Make a shallow copy of the section
+    const updatedSection = { ...prev[section] };
+    let temp: Record<string, unknown> = updatedSection;
 
-      for (let i = 0; i < path.length - 1; i++) {
-        const key = path[i];
-        temp[key] = { ...temp[key] };
-        temp = temp[key];
-      }
+    // Traverse to the nested property
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      temp[key] = { ...(temp[key] as Record<string, unknown>) };
+      temp = temp[key] as Record<string, unknown>;
+    }
 
-      temp[path[path.length - 1]] = value;
+    // Set the new value
+    temp[path[path.length - 1]] = value;
 
-      return { ...prev, [section]: updatedSection };
-    });
-  };
+    return { ...prev, [section]: updatedSection };
+  });
+};
+
 
   /** Render tab content **/
   const renderTabContent = () => {
@@ -176,12 +190,18 @@ export default function CustomizationTabs() {
       if (!res.ok) throw new Error('Failed to save customization');
 
       alert('Customization saved successfully!');
-    } catch (err: any) {
+      } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Failed to save data.');
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to save data.");
+      }
     } finally {
       setLoading(false);
     }
+
   };
 
   if (loading && !websiteData) return <p>Loading...</p>;

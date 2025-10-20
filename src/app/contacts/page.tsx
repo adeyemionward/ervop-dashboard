@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MoreVertical, RefreshCw, XCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 
 interface Contact {
   id: number;
@@ -228,7 +229,7 @@ const fetchContacts = async () => {
                         <td className="p-4">
                         <div className="flex items-center space-x-3">
                             {contact.photo ? (
-                            <img
+                            <Image
                                 className="w-10 h-10 rounded-full object-cover"
                                 src={contact.photo}
                                 alt={`${contact.firstname} ${contact.lastname}`}

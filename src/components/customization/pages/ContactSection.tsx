@@ -6,7 +6,7 @@ import { WebsiteData } from '@/types/WebsiteTypes';
 
 type Props = {
   data: WebsiteData['contact'];
-  onUpdate: (section: keyof WebsiteData, path: string[], value: any) => void;
+  onUpdate: (section: keyof WebsiteData, path: string[], value: unknown) => void;
 };
 
 const ContactSection: React.FC<Props> = ({ data, onUpdate }) => {

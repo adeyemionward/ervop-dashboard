@@ -8,7 +8,7 @@ type Props = {
   initialTheme?: WebsiteData['theme'];
   initialSeo?: WebsiteData['seo'];
   initialBranding?: WebsiteData['branding'];
-  onUpdate?: (section: keyof WebsiteData, path: string[], value: any) => void;
+  onUpdate?: (section: keyof WebsiteData, path: string[], value: unknown) => void;
 };
 
 const BrandingSection: React.FC<Props> = ({
@@ -29,11 +29,17 @@ const BrandingSection: React.FC<Props> = ({
     initialSeo ?? { metaTitle: '', metaDescription: '', metaKeywords: '' }
   );
 
-  const handleBrandingUpdate = (field: keyof WebsiteData['branding'], value: any) => {
+  const handleBrandingUpdate = <K extends keyof WebsiteData['branding']>(
+  field: K,
+  value: WebsiteData['branding'][K]
+  ) => {
     const updated = { ...brandingData, [field]: value };
     setBrandingData(updated);
     onUpdate?.('branding', [field], value);
   };
+
+
+  
 
   const handleThemeUpdate = (field: keyof WebsiteData['theme'], value: string) => {
     const updated = { ...themeData, [field]: value };

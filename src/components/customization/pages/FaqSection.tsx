@@ -7,7 +7,7 @@ import { WebsiteData, FaqItem } from '@/types/WebsiteTypes';
 
 type Props = {
   data: WebsiteData['faq'];
-  onUpdate: (field: string, value: any) => void;
+  onUpdate: (field: string, value: unknown) => void;
 };
 
 const FaqSection: React.FC<Props> = ({ data, onUpdate }) => {

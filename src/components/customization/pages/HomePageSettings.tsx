@@ -15,6 +15,8 @@ export default function HomePageSettings({ data, onUpdate }: HomePageSettingsPro
     onUpdate(section, field, value);
   };
 
+  
+
   const handleHeroUpload = (files: FileList | null) => {
     if (!files) return;
     const currentImages = data.hero?.images || [];

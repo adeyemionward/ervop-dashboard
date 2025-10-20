@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { PlusCircle, Trash2, Save } from "lucide-react";
@@ -225,7 +225,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
       
 
       const res = await fetch(
-        "http://127.0.0.1:8000/api/v1/professionals/transactions/create/",
+        `${BASE_URL}/professionals/transactions/create/`,
         {
           method: "POST",
           headers: {
@@ -262,7 +262,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
 const createCategoryMutation = useMutation({
   mutationFn: async (title: string) => {
     const payload = { type: "expense", title };
-    const res = await fetch("http://127.0.0.1:8000/api/v1/professionals/transactions/createCategory/", {
+    const res = await fetch(`${BASE_URL}/professionals/transactions/createCategory/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

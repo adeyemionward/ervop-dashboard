@@ -1,14 +1,9 @@
 'use client';
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { Icons } from "@/components/icons";
-import Link from "next/link";
 import { useState } from "react";
-
-import { useRouter } from 'next/navigation';
-import { 
-    ArrowLeft, Mail, Phone, MapPin, Plus, ShoppingCart, 
-    CheckCircle2, FileCheck2, CalendarCheck, Users, FolderKanban, FileText, LayoutDashboard 
+import {  Mail, Phone, MapPin, ShoppingCart, 
+    CheckCircle2, FileCheck2, CalendarCheck
 } from 'lucide-react';
 
 import clsx from "clsx";

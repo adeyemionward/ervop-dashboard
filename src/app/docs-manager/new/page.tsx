@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
 import { useClientData } from "@/hooks/useClientData";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import ClientSelector from "@/components/ClientSelector";
@@ -12,7 +12,7 @@ import ClientSelector from "@/components/ClientSelector";
 export default function CreateAppointment() {
   const handleGoBack = useGoBack();
 
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -22,7 +22,7 @@ export default function CreateAppointment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch clients, projects, appointments using custom hook
-  const { contacts, clientProjects, clientAppointments, projectsLoading, appointmentsLoading } = useClientData(selectedClient);
+  const { contacts } = useClientData(selectedClient);
 
   const [showClientDocuments, setShowClientDocuments] = useState(true);
 
@@ -31,32 +31,12 @@ export default function CreateAppointment() {
 
   // Handle multiple file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
-    }
+    const newFiles = e.target.files ? Array.from(e.target.files) : [];
+    setFiles((prev) => [...prev, ...newFiles]);
   };
 
-  // Fetch contacts on mount
-  useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(
-          "http://127.0.0.1:8000/api/v1/professionals/contacts/list/",
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-        );
-        const result = await res.json();
-        if (result.status) {
-          // already handled in useClientData, could also integrate
-        }
-      } catch (error) {
-        console.error("Failed to fetch contacts:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchContacts();
-  }, []);
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+ 
 
   // Submit document
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +56,7 @@ export default function CreateAppointment() {
       if (!userToken) throw new Error("User not authenticated");
 
       const res = await fetch(
-        "http://127.0.0.1:8000/api/v1/professionals/documents/create/",
+        `${BASE_URL}/professionals/documents/create/`,
         { method: "POST", headers: { Authorization: `Bearer ${userToken}` }, body: formData }
       );
       const result = await res.json();
@@ -94,12 +74,19 @@ export default function CreateAppointment() {
       setSelectedClient("");
       setSelectedProject("");
       setSelectedAppointment("");
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong");
-      console.error(error);
+    } 
+    catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Something went wrong");
+        console.error(error);
+      } else {
+        toast.error("Something went wrong");
+        console.error(error);
+      }
     } finally {
       setIsSubmitting(false);
     }
+
   };
 
   return (
@@ -112,12 +99,7 @@ export default function CreateAppointment() {
         />
 
         <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
-          {loading ? (
-            <div className="w-full max-w-4xl mx-auto p-8 text-center text-gray-500 text-lg">
-              Loading data, please wait...
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-8">
+           <form onSubmit={handleSubmit} className="space-y-8">
               {/* Upload Section */}
               <div>
                 <label htmlFor="file-upload" className="block text-xl font-medium text-gray-700 mb-2">
@@ -228,7 +210,6 @@ export default function CreateAppointment() {
                 </button>
               </div>
             </form>
-          )}
         </div>
       </div>
     </DashboardLayout>
