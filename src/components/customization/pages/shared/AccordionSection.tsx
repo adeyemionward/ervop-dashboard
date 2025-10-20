@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, ReactNode } from 'react';
-import { Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import ToggleSwitch from '@/components/customization/pages/shared/ToggleSwitch';
 

@@ -4,14 +4,15 @@ import React from 'react';
 import { AccordionSection, InputField } from '@/components/customization/pages/shared';
 import { WebsiteData } from '@/types/WebsiteTypes';
 import { Trash2, Plus, Upload } from 'lucide-react';
+import Image from 'next/image';
 
 type HomePageSettingsProps = {
   data: WebsiteData['home'];
-  onUpdate: (section: keyof WebsiteData['home'], field: string, value: any) => void;
+  onUpdate: (section: keyof WebsiteData['home'], field: string, value: unknown) => void;
 };
 
 export default function HomePageSettings({ data, onUpdate }: HomePageSettingsProps) {
-  const updateField = (section: keyof WebsiteData['home'], field: string, value: any) => {
+  const updateField = (section: keyof WebsiteData['home'], field: string, value: unknown) => {
     onUpdate(section, field, value);
   };
 
@@ -78,7 +79,7 @@ export default function HomePageSettings({ data, onUpdate }: HomePageSettingsPro
             {(data.hero?.images ?? []).map((img, index) => (
               <div key={index} className="relative group">
                 <div className="w-full h-40 rounded-xl overflow-hidden border border-gray-200">
-                  <img src={img} alt={`Hero ${index + 1}`} className="object-cover w-full h-full" />
+                  <Image src={img} alt={`Hero ${index + 1}`} className="object-cover w-full h-full" />
                 </div>
                 <button
                   type="button"

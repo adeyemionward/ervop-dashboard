@@ -7,7 +7,7 @@ import { WebsiteData, ReviewItem } from '@/types/WebsiteTypes';
 
 type Props = {
   data: WebsiteData['reviews'];
-  onUpdate: (section: keyof WebsiteData, path: string[], value: any) => void;
+  onUpdate: (section: keyof WebsiteData, path: string[], value: unknown) => void;
 };
 
 const ReviewsSection: React.FC<Props> = ({ data, onUpdate }) => {
@@ -37,11 +37,18 @@ const ReviewsSection: React.FC<Props> = ({ data, onUpdate }) => {
   };
 
   /** Update review field */
-  const updateReview = (index: number, field: keyof ReviewItem, value: string | number) => {
-    const updated = [...reviews];
-    (updated[index] as any)[field] = value;
+  const updateReview = <K extends keyof ReviewItem>(
+  index: number,
+  field: K,
+  value: ReviewItem[K]
+) => {
+  const updated = [...reviews];
+  if (updated[index]) {
+    updated[index][field] = value;
     onUpdate('reviews', ['items'], updated);
-  };
+  }
+};
+
 
   return (
     <AccordionSection

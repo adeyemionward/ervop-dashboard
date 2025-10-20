@@ -15,8 +15,7 @@ type Props = {
 
 const HeaderSection: React.FC<Props> = ({
   initialHeader,
-  initialTheme,
-  initialSeo,
+  
 }) => {
   // State for header, theme, and SEO
   const [headerData, setHeaderData] = useState<WebsiteData['header']>(
@@ -24,7 +23,7 @@ const HeaderSection: React.FC<Props> = ({
   );
 
  
-  const handleHeaderUpdate = (field: keyof WebsiteData['header'], value: any) => {
+  const handleHeaderUpdate = (field: keyof WebsiteData['header'], value: unknown) => {
     setHeaderData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -55,13 +54,17 @@ const HeaderSection: React.FC<Props> = ({
 
         {/* Menu Links */}
         <MenuLinksEditor
-          menuItems={headerData.menuItems}
-          onToggle={(menuKey) => {
-            const updatedMenu = { ...headerData.menuItems };
-            updatedMenu[menuKey].visible = !updatedMenu[menuKey].visible;
-            handleHeaderUpdate('menuItems', updatedMenu);
-          }}
-        />
+  menuItems={headerData.menuItems}
+  onToggle={(menuKey) => {
+    const updatedMenu = { ...headerData.menuItems };
+
+    if (updatedMenu[menuKey]) {
+      updatedMenu[menuKey].visible = !updatedMenu[menuKey]!.visible;
+      handleHeaderUpdate('menuItems', updatedMenu);
+    }
+  }}
+/>
+
       </div>
     </AccordionSection>
   );

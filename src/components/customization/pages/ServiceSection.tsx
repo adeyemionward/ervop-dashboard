@@ -7,7 +7,7 @@ import { WebsiteData, ServiceItem } from '@/types/WebsiteTypes';
 
 type Props = {
   data: WebsiteData['services'];
-  onUpdate: (section: keyof WebsiteData, path: string[], value: any) => void;
+  onUpdate: (section: keyof WebsiteData, path: string[], value: unknown) => void;
 };
 
 const ServicesSection: React.FC<Props> = ({ data, onUpdate }) => {
@@ -30,37 +30,42 @@ const ServicesSection: React.FC<Props> = ({ data, onUpdate }) => {
 
   const deleteService = (i: number) => onUpdate('services', ['items'], items.filter((_, idx) => idx !== i));
 
-  const updateService = (i: number, field: keyof ServiceItem, value: any) => {
-    const updated: ServiceItem[] = [...(items ?? [])];
-    if (updated[i]) {
-       updated[i][field] = value;
-      onUpdate('services', ['items'], updated);
-    }
-  };
+  const updateService = <K extends keyof ServiceItem>(
+  i: number,
+  field: K,
+  value: ServiceItem[K]
+) => {
+  const updated: ServiceItem[] = [...(items ?? [])];
+  if (updated[i]) {
+    updated[i][field] = value;
+    onUpdate('services', ['items'], updated);
+  }
+};
+
 
   
 
-  const updateWhatsIncluded = (i: number, idx: number, value: string) => {
-    const updated: ServiceItem[] = [...items];
-    if (!updated[i].whatsIncluded) updated[i].whatsIncluded = [];
-    updated[i].whatsIncluded[idx] = value;
-    onUpdate('services', ['items'], updated);
-  };
+  // const updateWhatsIncluded = (i: number, idx: number, value: string) => {
+  //   const updated: ServiceItem[] = [...items];
+  //   if (!updated[i].whatsIncluded) updated[i].whatsIncluded = [];
+  //   updated[i].whatsIncluded[idx] = value;
+  //   onUpdate('services', ['items'], updated);
+  // };
 
-  const addWhatsIncluded = (i: number) => {
-    const updated: ServiceItem[] = [...items];
-    if (!updated[i].whatsIncluded) updated[i].whatsIncluded = [];
-    updated[i].whatsIncluded.push('');
-    onUpdate('services', ['items'], updated);
-  };
+  // const addWhatsIncluded = (i: number) => {
+  //   const updated: ServiceItem[] = [...items];
+  //   if (!updated[i].whatsIncluded) updated[i].whatsIncluded = [];
+  //   updated[i].whatsIncluded.push('');
+  //   onUpdate('services', ['items'], updated);
+  // };
 
-  const deleteWhatsIncluded = (i: number, idx: number) => {
-    const updated: ServiceItem[] = [...items];
-    if (updated[i].whatsIncluded) {
-      updated[i].whatsIncluded.splice(idx, 1);
-      onUpdate('services', ['items'], updated);
-    }
-  };
+  // const deleteWhatsIncluded = (i: number, idx: number) => {
+  //   const updated: ServiceItem[] = [...items];
+  //   if (updated[i].whatsIncluded) {
+  //     updated[i].whatsIncluded.splice(idx, 1);
+  //     onUpdate('services', ['items'], updated);
+  //   }
+  // };
 
   return (
     <AccordionSection
