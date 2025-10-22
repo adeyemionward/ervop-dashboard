@@ -53,7 +53,7 @@ export default function ClientSelector({
           <select
             value={selectedClient}
             onChange={(e) => setSelectedClient(e.target.value)}
-            className="border w-full border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
           >
             <option value="" disabled>Select Client</option>
             {contacts.map((c) => (
@@ -74,7 +74,7 @@ export default function ClientSelector({
           <select
             value={purpose}
             onChange={(e) => setPurpose(e.target.value as "project" | "appointment")}
-            className="border w-full border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
           >
             <option value="" disabled>Select purpose</option>
             <option value="project">Project</option>
@@ -92,7 +92,7 @@ export default function ClientSelector({
           <select
             value={selectedAppointment}
             onChange={(e) => setSelectedAppointment(e.target.value)}
-            className="border w-full border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
           >
             <option value="">
               {appointmentsLoading
@@ -133,7 +133,7 @@ export default function ClientSelector({
           <select
             value={selectedProject}
             onChange={(e) => setSelectedProject(e.target.value)}
-            className="border w-full border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
           >
             <option value="">
               {projectsLoading ? "Loading projects..." : "Select Project"}

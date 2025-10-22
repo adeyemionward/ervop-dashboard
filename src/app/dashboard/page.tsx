@@ -65,14 +65,14 @@ export default function DashboardPage() {
     },
   ];
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // const user = JSON.parse(localStorage.getItem('user') || '{}');
   return (
     <DashboardLayout>
         <header className="mb-8">
   <div className="flex flex-col md:flex-row md:items-center md:justify-between">
     <div>
       <h1 className="text-3xl font-bold text-gray-900">
-        Welcome Back, {user.firstname}
+        Welcome Back
       </h1>
       <p className="mt-1 text-gray-500">
         Here’s a snapshot of your workspace today.

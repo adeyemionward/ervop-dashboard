@@ -10,13 +10,29 @@ export const fileNameFromPath = (url: string): string => {
 };
 
 // Programmatic download function
-export const downloadFile = (url: string) => {
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.download = fileNameFromPath(url);
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+export const downloadFile = (filePath: string) => {
+  try {
+    // Create a temporary <a> element
+    const link = document.createElement("a");
+
+    // Use the path directly (already absolute, e.g. http://localhost:8000/business_docs/...)
+    link.href = filePath;
+
+    // Extract filename from path
+    const fileName = filePath.split("/").pop() || "document";
+    link.download = fileName;
+
+    // Force browser to treat as a download
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    // Append to DOM, click, then remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Download error:", error);
+    alert("Failed to download file. Please try again.");
+  }
 };
+

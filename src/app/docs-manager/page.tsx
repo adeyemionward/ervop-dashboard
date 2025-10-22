@@ -10,11 +10,14 @@ import {
   FileImage,
   Download,
   Trash2,
+  Eye, MoreVertical,
 } from "lucide-react";
 import { downloadFile } from "@/app/utils/downloadFile";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import { formatDate } from "@/app/utils/formatDate";
 import toast from "react-hot-toast";
+import DocumentSidePanel from "@/components/DocumentSidePanel";
+
 
 // ---------- Types ----------
 type DocumentFile = {
@@ -25,6 +28,8 @@ type DocumentFile = {
   file_path: string;
   file_type: string;
   document_title: string;
+  document_type: string;
+  document_status: string;
   created_at: string;
   updated_at: string;
 };
@@ -69,7 +74,14 @@ export default function DocsManagerPage() {
   // modal state
   const [fileToDelete, setFileToDelete] = useState<DocumentFile | null>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
- 
+   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+const [viewingFile, setViewingFile] = useState<DocumentFile | null>(null);
+
+  const toggleMenu = (fileId:number) => {
+    setOpenMenuId(openMenuId === fileId ? null : fileId);
+  };
+
+
   // Helpers
   const fileNameFromPath = (p: string) =>
     p ? p.split("/").pop() || p : "file";
@@ -338,75 +350,133 @@ export default function DocsManagerPage() {
 
         {/* right: files */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200">
-          <h3 className="text-xl font-bold mb-6">{panelTitle}</h3>
+            <h3 className="text-xl font-bold mb-6">{panelTitle}</h3>
 
-          {loadingFiles ? (
-            <p className="text-gray-500 text-sm">Loading files...</p>
-          ) : files.length > 0 ? (
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+            {loadingFiles ? (
+              <p className="text-gray-500 text-sm">Loading files...</p>
+            ) : files.length > 0 ? (
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-start">
+                      {/* File Icon */}
+                      <div className="bg-gray-200 p-3 rounded-full mr-4">
+                        {isImage(file.file_type) ? (
+                          <FileImage className="w-6 h-6 text-gray-600" />
+                        ) : (
+                          <FileText className="w-6 h-6 text-gray-600" />
+                        )}
+                      </div>
+
+                      {/* File Info */}
+                      <div>
+                        <a
+                          href={file.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-blue-600 hover:underline"
+                        >
+                          {fileNameFromPath(file.file_path)}
+                        </a>
+
+                        {file.document_title && (
+                          <p className="text-md text-gray-600">{file.document_title}</p>
+                        )}
+
+                        {/* New: Type and Status */}
+                        <div className="flex flex-wrap items-center gap-3 mt-1">
+                            {/* Document Type Badge */}
+                            <span
+                              className={`inline-block text-xs px-2 py-1 rounded-full font-medium
+                                ${
+                                  file.document_type === "NDA"
+                                    ?"bg-amber-100 text-amber-700"
+                                    : file.document_type === "Proposal"
+                                    ? "bg-orange-100 text-orange-700"
+                                    : file.document_type === "Contract"
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-gray-100 text-gray-700" // General or default
+                                }`}
+                            >
+                              {file.document_type || "General"}
+                            </span>
+
+                            {/* Document Status Badge */}
+                            <span
+                              className={`inline-block text-xs px-2 py-1 rounded-full font-medium
+                                ${
+                                  file.document_status === "Sent"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : file.document_status === "Viewed"
+                                    ? "bg-indigo-100 text-indigo-700"
+                                    : file.document_status === "Accepted"
+                                    ? "bg-green-100 text-green-700"
+                                    : file.document_status === "Needs Revision"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : file.document_status === "Decline"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                            >
+                              {file.document_status || "Pending"}
+                            </span>
+                        </div>
+
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          Uploaded: {formatDate(file.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="relative">
+                <button
+                  onClick={() => toggleMenu(file.id)}
+                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
                 >
-                  <div className="flex items-center">
-                    <div className="bg-gray-200 p-3 rounded-full mr-4">
-                      {isImage(file.file_type) ? (
-                        <FileImage className="w-6 h-6 text-gray-600" />
-                      ) : (
-                        <FileText className="w-6 h-6 text-gray-600" />
-                      )}
-                    </div>
-                    <div>
-                      <a
-                        href={file.file_path}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-blue-600 hover:underline"
-                      >
-                        {fileNameFromPath(file.file_path)}
-                      </a>
+                  <MoreVertical className="w-5 h-5" />
+                </button>
 
-                      {file.document_title && (
-                        <p className="text-xs text-gray-400">{file.document_title}</p>
-                      )}
+                {openMenuId === file.id && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white shadow-lg border rounded-md z-50">
+                    <button
+  onClick={() => {
+    setViewingFile(file);
+    setOpenMenuId(null);
+  }}
+  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+>
+  <Eye className="w-4 h-4 mr-2 text-blue-500" /> View
+</button>
 
-                      <p className="text-sm text-gray-500">
-                        Uploaded: {formatDate(file.created_at)} • {file.file_type.toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    {/* download */}
                     <button
                       onClick={() => downloadFile(file.file_path)}
-                      className="p-2 rounded-md text-gray-600 hover:bg-gray-100 cursor-pointer"
-                      aria-label={`Download ${fileNameFromPath(file.file_path)}`}
-                      title="Download"
+                      className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      <Download className="w-5 h-5" />
+                      <Download className="w-4 h-4 mr-2 text-gray-600" /> Download
                     </button>
-
-                    {/* delete */}
                     <button
                       onClick={() => setFileToDelete(file)}
                       disabled={deletingId === file.id}
-                      className={`p-2 rounded-md text-red-600 hover:bg-red-50 cursor-pointer ${
-                        deletingId === file.id ? "opacity-60 cursor-not-allowed" : ""
-                      }`}
-                      title="Delete"
+                      className="flex items-center w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">No files found.</p>
-          )}
+                )}
+              </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No files found.</p>
+            )}
         </div>
+
       </div>
 
       {/* delete modal */}
@@ -422,6 +492,34 @@ export default function DocsManagerPage() {
         }
         deleting={deletingId === fileToDelete?.id}
       />
+
+      <DocumentSidePanel
+  isOpen={!!viewingFile}
+  onClose={() => setViewingFile(null)}
+  file={viewingFile}
+  onStatusUpdate={async (id, newStatus) => {
+    const token = localStorage.getItem("token");
+    await fetch(`${BASE_URL}/professionals/documents/updateStatus/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    fetchFiles(selected?.idParam || 0);
+  }}
+  onSendReminder={async (id) => {
+    const token = localStorage.getItem("token");
+    await fetch(`${BASE_URL}/professionals/documents/remindClient/${id}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }}
+/>
+
     </DashboardLayout>
   );
 }

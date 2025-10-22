@@ -9,6 +9,8 @@ import { X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import ClientSelector from "@/components/ClientSelector";
 
+
+
 export default function CreateAppointment() {
   const handleGoBack = useGoBack();
 
@@ -23,11 +25,21 @@ export default function CreateAppointment() {
 
   // Fetch clients, projects, appointments using custom hook
   const { contacts } = useClientData(selectedClient);
+ const [selectedType, setSelectedType] = useState("");
 
   const [showClientDocuments, setShowClientDocuments] = useState(true);
 
 
-  const canSubmit = files.length > 0 && documentTitle.trim() !== "";
+  const canSubmit = files.length > 0 && selectedType && documentTitle.trim() !== "";
+
+ 
+  //DOCUMENT TYPES
+  const types = [
+    "Proposal",
+    "Contract",
+    "NDA",
+    "General",
+  ];
 
   // Handle multiple file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +57,7 @@ export default function CreateAppointment() {
 
     const formData = new FormData();
     formData.append("project_id", selectedProject || "");
+    formData.append("type", selectedType || "");
     formData.append("contact_id", selectedClient || "");
     formData.append("appointment_id", selectedAppointment || "");
     formData.append("title", documentTitle);
@@ -103,7 +116,7 @@ export default function CreateAppointment() {
               {/* Upload Section */}
               <div>
                 <label htmlFor="file-upload" className="block text-xl font-medium text-gray-700 mb-2">
-                  Upload Photos
+                  Upload Documents
                 </label>
                 <div className="mt-1 flex flex-col items-center justify-center px-6 pt-10 pb-10 border-2 border-gray-300 border-dashed rounded-lg transition-colors cursor-pointer hover:bg-gray-100 hover:border-purple-500">
                   <input id="file-upload" type="file" multiple onChange={handleFileChange} className="sr-only" />
@@ -135,7 +148,16 @@ export default function CreateAppointment() {
                             <X className="h-4 w-4 text-red-500" />
                           </button>
 
-                          {isImage ? <img src={fileURL} alt={file.name} className="max-h-full max-w-full object-cover rounded" /> : <span className="truncate">{file.name}</span>}
+                          {isImage ? (
+                            <img
+                              src={fileURL}
+                              alt={file.name}
+                              className="max-h-full max-w-full object-cover rounded"
+                            />
+                          ) : (
+                            <span className="truncate">{file.name}</span>
+                          )}
+
                         </div>
                       );
                     })}
@@ -143,64 +165,113 @@ export default function CreateAppointment() {
                 )}
               </div>
 
-              {/* Document Type Selection */}
-              <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-1">Select Document Destination</label>
-            <div className="flex gap-6 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-              <label className="flex items-center gap-2">
+                <div>
+                  <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-1">
+                    Document Name
+                  </label>
                   <input
-                  type="radio"
-                  name="documentType"
-                  checked={showClientDocuments}
-                  onChange={() => setShowClientDocuments(true)}
-                  className="h-4 w-4"
+                    type="text"
+                    id="title"
+                    onChange={(e) => setDocumentTitle(e.target.value)}
+                    value={documentTitle}
+                    placeholder="e.g., Standard Service Agreement.pdf"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
-                  Client Document
-              </label>
-              <label className="flex items-center gap-2">
-                  <input
-                  type="radio"
-                  name="documentType"
-                  checked={!showClientDocuments}
-                  onChange={() => setShowClientDocuments(false)}
-                  className="h-4 w-4"
-                  />
-                  My Business Document
-              </label>
-            </div>
+                </div>
+                {/* flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 */}
+
+                <div>
+                  <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-1">
+                     Document Type
+                  </label>
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="border w-full border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="" disabled>
+                      Select Type
+                    </option>
+                    {types.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Document Type Selection */}
+              {selectedType === "General" && (
+              <div>
+                <label
+                  htmlFor="title"
+                  className="block text-md font-medium text-gray-700 mb-1"
+                >
+                  Select Document Destination
+                </label>
+
+                <div className="flex gap-6 mb-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="documentType"
+                      checked={showClientDocuments}
+                      onChange={() => setShowClientDocuments(true)}
+                      className="px-4 py-3"
+                    />
+                    Client Document
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="documentType"
+                      checked={!showClientDocuments}
+                      onChange={() => setShowClientDocuments(false)}
+                      className="h-4 w-4"
+                    />
+                    My Business Document
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Show ClientSelector only if Client Document is selected */}
             {showClientDocuments && (
-            <ClientSelector
-                selectedClient={selectedClient}
-                setSelectedClient={setSelectedClient}
-                selectedProject={selectedProject}
-                setSelectedProject={setSelectedProject}
-                selectedAppointment={selectedAppointment}
-                setSelectedAppointment={setSelectedAppointment}
-                contacts={contacts}
-            />
+              <div className="mt-4">
+                <ClientSelector
+                  selectedClient={selectedClient}
+                  setSelectedClient={setSelectedClient}
+                  selectedProject={selectedProject}
+                  setSelectedProject={setSelectedProject}
+                  selectedAppointment={selectedAppointment}
+                  setSelectedAppointment={setSelectedAppointment}
+                  contacts={contacts}
+                />
+
+                {/* Validation message if client not selected */}
+                {!selectedClient && (
+                  <p className="text-red-500 text-sm mt-2">
+                    Please select a client before proceeding.
+                  </p>
+                )}
+              </div>
             )}
+
 
             {/* Optional: Show placeholder if My Business Document selected */}
             {!showClientDocuments && (
-            <p className="text-gray-500 mb-4">Files will be uploaded to My Business Document</p>
+            <p className="text-gray-600 mb-4">NOTE: Files will be uploaded to My Business Document</p>
             )}
 
              
 
               {/* Document Name */}
-              <div>
-                <label htmlFor="title" className="block text-xl font-medium text-gray-700 mb-1">Document Name</label>
-                <input
-                  type="text"
-                  id="title"
-                  onChange={(e) => setDocumentTitle(e.target.value)}
-                  value={documentTitle}
-                  placeholder="e.g., Standard Service Agreement.pdf"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
+              
 
               {/* Actions */}
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

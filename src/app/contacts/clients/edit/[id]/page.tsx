@@ -122,11 +122,16 @@ export default function EditContact() {
 
       toast.success(result.message || "Contact updated successfully!");
       router.push("/contacts");
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong.");
-    } finally {
-      setIsSubmitting(false);
+    } catch (error: unknown) {
+    if (error instanceof Error) {
+      toast.error(error.message);
+    } else {
+      toast.error("Something went wrong.");
     }
+  } finally {
+    setIsSubmitting(false);
+  }
+
   };
 
 //   if (loading) return <div className="p-8 text-center">Loading contact...</div>;
