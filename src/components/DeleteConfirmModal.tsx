@@ -20,7 +20,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+    <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
         <h2 className="text-lg font-semibold mb-4">{title}</h2>
         <p className="text-gray-600 mb-6">

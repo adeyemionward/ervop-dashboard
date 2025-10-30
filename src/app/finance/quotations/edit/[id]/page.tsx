@@ -8,7 +8,7 @@ import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useClientData } from "@/hooks/useClientData";
 import ClientSelector from "@/components/ClientSelector1";
 import { toast } from "react-hot-toast";
-import { Info, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 type LineItem = {
   description: string;

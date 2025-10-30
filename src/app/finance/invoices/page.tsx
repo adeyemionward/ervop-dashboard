@@ -11,6 +11,7 @@ import DataTable from "@/components/DataTable";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal"; // ✅ import modal
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 
 type Customer = {
   id: number;
@@ -201,21 +202,7 @@ export default function InvoicesPage() {
             {
               label: "Status",
               render: (row) => (
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    row.status === "Paid"
-                      ? "bg-green-100 text-green-800"
-                      : row.status === "Unpaid"
-                      ? "bg-red-100 text-red-800"
-                      : row.status === "Partially Paid"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : row.status === "Overdue"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-black text-white"
-                  }`}
-                >
-                  {row.status}
-                </span>
+                <InvoiceStatusBadge status={row.status} />
               ),
             },
           ]}
