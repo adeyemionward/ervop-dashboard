@@ -40,17 +40,26 @@ const UseFormModal: React.FC<UseFormModalProps> = ({
 }) => {
   const router = useRouter();
 
-  const [modalClient, setModalClient] = useState(selectedClient);
-  const [modalProject, setModalProject] = useState(selectedProject);
-  const [modalAppointment, setModalAppointment] = useState(selectedAppointment);
+  const [modalClient, setModalClient] = useState<string>(selectedClient || '');
+  const [modalProject, setModalProject] = useState<string>(selectedProject || '');
+  const [modalAppointment, setModalAppointment] = useState<string>(selectedAppointment || '');
 
   useEffect(() => {
     if (isOpen) {
-      setModalClient(selectedClient);
-      setModalProject(selectedProject);
-      setModalAppointment(selectedAppointment);
+      setModalClient(selectedClient || '');
+      setModalProject(selectedProject || '');
+      setModalAppointment(selectedAppointment || '');
     }
   }, [isOpen, selectedClient, selectedProject, selectedAppointment]);
+
+  // Debugging: remove or keep for dev
+  useEffect(() => {
+    console.log('[UseFormModal] modalClient:', modalClient);
+    console.log('[UseFormModal] modalProject:', modalProject);
+    console.log('[UseFormModal] modalAppointment:', modalAppointment);
+  }, [modalClient, modalProject, modalAppointment]);
+
+
 
   const handleProceed = () => {
     setSelectedClient(modalClient);
@@ -94,29 +103,39 @@ const UseFormModal: React.FC<UseFormModalProps> = ({
           </button>
         </div>
 
-        <ClientSelector
-          selectedClient={modalClient}
-          setSelectedClient={setModalClient}
-          selectedProject={modalProject}
-          setSelectedProject={setModalProject}
-          selectedAppointment={modalAppointment}
-          setSelectedAppointment={setModalAppointment}
-          contacts={contacts}
-          showInvoices={false}
-        />
+        <div className="p-4">
+          <ClientSelector
+            selectedClient={modalClient}
+            setSelectedClient={setModalClient}
+            selectedProject={modalProject}
+            setSelectedProject={setModalProject}
+            selectedAppointment={modalAppointment}
+            setSelectedAppointment={setModalAppointment}
+            contacts={contacts}
+            showInvoices={false}
+          />
+        </div>
 
         <div className="p-6 bg-gray-50 border-t border-gray-200 rounded-b-xl grid grid-cols-2 gap-4">
           <button
             onClick={handleProceed}
-            className="w-full p-3 bg-white border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!modalProject}
+            className="w-full p-3 bg-white border border-gray-300 rounded-lg cursor-pointer font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={
+              !modalClient &&
+              !modalProject &&
+              !modalAppointment
+            }
           >
             Fill on Behalf of Client
           </button>
 
           <button
-            className="w-full p-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!modalProject}
+            className="w-full p-3 bg-purple-600 text-white rounded-lg cursor-pointer font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={
+              !modalClient &&
+              !modalProject &&
+              !modalAppointment
+            }
           >
             Send to Client
           </button>

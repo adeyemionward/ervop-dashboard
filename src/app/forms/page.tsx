@@ -156,181 +156,7 @@ export default function FormTemplatesPage() {
         setTimeout(() => setTemplateToView(null), 300);
     };
 
-    // All Modals and Sidebars remain unchanged
-    // const ViewFormModal = () => {
-    //      const renderFieldPreview = (field: FormField) => {
-    //         switch (field.type) {
-    //             case 'textarea':
-    //                 return <textarea placeholder={field.placeholder} className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" rows={3} disabled />;
-    //             case 'dropdown':
-    //                 return <select className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled>{field.options?.map((opt, i) => <option key={i}>{opt}</option>)}</select>;
-    //             case 'checkbox':
-    //                 return <div className="flex items-center gap-2 mt-2"><input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-purple-600 cursor-not-allowed" disabled /><span>{field.label}</span></div>;
-    //             case 'radio':
-    //                 return <div className="space-y-2 mt-2">{field.options?.map((opt, i) => (<div key={i} className="flex items-center gap-2"><input type="radio" name={String(field.id)} className="h-4 w-4 border-gray-300 text-purple-600 cursor-not-allowed" disabled /><label className="text-gray-700">{opt}</label></div>))}</div>;
-    //             case 'date': return <input type="date" className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled />;
-    //             case 'time': return <input type="time" className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled />;
-    //             default:
-    //                 return <input type={field.type} placeholder={field.placeholder} className="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" disabled />;
-    //         }
-    //     };
-
-    //     return (
-    //         <div className={`fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isViewFormModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-    //             <div className={`bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 ${isViewFormModalOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-    //                 {isViewingFormLoading ? (
-    //                     <div className="p-8 text-center">Loading form...</div>
-    //                 ) : templateToView && (
-    //                     <>
-    //                         <div className="p-6 border-b border-gray-200">
-    //                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-    //                                 <div>
-    //                                     <h2 className="text-xl font-bold text-gray-900">{templateToView.title}</h2>
-    //                                     <p className="text-sm text-gray-500 mt-1">Form Preview</p>
-    //                                 </div>
-    //                                 <button onClick={closeViewFormModal} className="absolute top-6 right-6 p-2 -m-2 rounded-full hover:bg-gray-100 sm:static sm:m-0"><X /></button>
-    //                             </div>
-    //                              <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
-                                   
-    //                                 <button 
-                                    
-    //                                     onClick={() =>  router.push(
-    //                                     `/forms/submissions?templateId=${templateToView.id}`
-    //                                     )} 
-    //                                     className="flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium p-2 rounded-md hover:bg-gray-100">
-    //                                     <Eye className="w-4 h-4"/> <span>View Submissions ({templateToView.submissions_count})</span>
-    //                                 </button>
-
-                                  
-
-    //                                 <button
-    //                                 onClick={() => router.push(`/forms/edit/${templateToView.id}`)}
-    //                                 className="flex items-center gap-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium p-2 rounded-md"
-    //                                 >
-    //                                 <Edit />
-    //                                 <span>Edit Form</span>
-    //                                 </button>
-    //                             </div>
-    //                         </div>
-    //                         <div className="p-8 bg-gray-50 max-h-[60vh] overflow-y-auto">
-    //                             <div className="space-y-6">
-    //                                 {templateToView.fields.map((field) => (
-    //                                     <div key={field.id}>
-    //                                         <label className="font-semibold text-gray-700">
-    //                                             {field.type !== 'checkbox' && field.label}
-    //                                             {field.required && <span className="text-red-500 ml-1">*</span>}
-    //                                         </label>
-    //                                         <div className="mt-2">
-    //                                             {renderFieldPreview(field)}
-    //                                         </div>
-    //                                     </div>
-    //                                 ))}
-    //                             </div>
-    //                         </div>
-    //                     </>
-    //                 )}
-    //             </div>
-    //         </div>
-    //     );
-    // };
    
-// const UseFormModal = () => {
-//   // Local state for modal selections (isolated from page state until confirmed)
-//   const [modalClient, setModalClient] = useState(selectedClient);
-//   const [modalProject, setModalProject] = useState(selectedProject);
-//   const [modalAppointment, setModalAppointment] = useState(selectedAppointment);
-
-//   // Sync modal state when modal opens
-//   useEffect(() => {
-//     if (isUseModalOpen) {
-//       setModalClient(selectedClient);
-//       setModalProject(selectedProject);
-//       setModalAppointment(selectedAppointment);
-//     }
-//   }, [isUseModalOpen]);
-
-//   const handleProceed = () => {
-//     // Update page-level state when proceeding
-//     setSelectedClient(modalClient);
-//     setSelectedProject(modalProject);
-//     setSelectedAppointment(modalAppointment);
-
-//     const token = localStorage.getItem("token");
-//     router.push(
-//       `/forms/fill-form?clientId=${modalClient}&projectId=${modalProject}&templateId=${templateToUse?.id}&token=${token}`
-//     );
-//   };
-
-//   const closeModal = () => {
-//     setUseModalOpen(false);
-//     setTimeout(() => setTemplateToUse(null), 300);
-//   };
-
-//   return (
-//     <div
-//       className={`fixed inset-0 bg-black/40 bg-opacity-60 z-50 flex items-center justify-center transition-opacity duration-300 ${
-//         isUseModalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-//       }`}
-//     >
-//     <div
-//         className={`bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 ${
-//           isUseModalOpen ? "scale-100 opacity-100" : "scale-95 opacity-0"
-//         }`}
-//       >
-//         {templateToUse && (
-//           <>
-//             <div className="p-6 border-b border-gray-200 flex justify-between items-start">
-//               <div>
-//                 <h2 className="text-xl font-bold text-gray-900">
-//                   {`Use "${templateToUse.title}"`}
-//                 </h2>
-//                 <p className="text-sm text-gray-500 mt-1">
-//                   Select a client and project to proceed.
-//                 </p>
-//               </div>
-//               <button
-//                 onClick={closeModal}
-//                 className="p-2 -m-2 rounded-full hover:bg-gray-100"
-//               >
-//                 <X />
-//               </button>
-//             </div>
-
-//             {/* ClientSelector - uses modal-local state */}
-//             <ClientSelector
-//               selectedClient={modalClient}
-//               setSelectedClient={setModalClient}
-//               selectedProject={modalProject}
-//               setSelectedProject={setModalProject}
-//               selectedAppointment={modalAppointment}
-//               setSelectedAppointment={setModalAppointment}
-//               contacts={contacts || []}
-//               showInvoices={false}
-//             />
-
-//             <div className="p-6 bg-gray-50 border-t border-gray-200 rounded-b-xl grid grid-cols-2 gap-4">
-//               <button
-//                 onClick={handleProceed}
-//                 className="w-full p-3 bg-white border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-//                 disabled={!modalProject}
-//               >
-//                 Fill on Behalf of Client
-//               </button>
-
-//               <button
-//                 className="w-full p-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-//                 disabled={!modalProject}
-//               >
-//                 Send to Client
-//               </button>
-//             </div>
-//           </>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
     return (
         <DashboardLayout>
             <HeaderTitleCard onGoBack={handleGoBack} title="Forms" description="Create a custom form for your needs">
@@ -389,7 +215,7 @@ export default function FormTemplatesPage() {
                             onClick={() => handleUseClick(template)}
                             className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 font-semibold cursor-pointer rounded-lg hover:bg-purple-100 transition-colors"
                         >
-                            <Send /> <span>Use</span>
+                            <Send /> <span>Use Form</span>
                         </button>
                         </div>
                     </div>
@@ -421,18 +247,18 @@ export default function FormTemplatesPage() {
                 setSelectedAppointment={setSelectedAppointment}
             />
 
-             <DeleteConfirmModal
-  isOpen={!!templateToDelete}
-  onCancel={() => setTemplateToDelete(null)}
-  title="Delete Form"
-  message={
-    templateToDelete
-      ? `Are you sure you want to delete the form "${templateToDelete.title}"?`
-      : ""
-  }
-  onConfirm={() => templateToDelete && deleteForm(templateToDelete.id)}
-  deleting={deletingFormId === templateToDelete?.id}
-/>
+            <DeleteConfirmModal
+                isOpen={!!templateToDelete}
+                onCancel={() => setTemplateToDelete(null)}
+                title="Delete Form"
+                message={
+                    templateToDelete
+                    ? `Are you sure you want to delete the form "${templateToDelete.title}"?`
+                    : ""
+                }
+                onConfirm={() => templateToDelete && deleteForm(templateToDelete.id)}
+                deleting={deletingFormId === templateToDelete?.id}
+            />
 
 
             {/* <SubmissionsSidebar /> */}
