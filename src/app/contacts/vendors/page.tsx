@@ -8,25 +8,25 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import Image from "next/image";
 import DataTable from "@/components/DataTable";
 
-interface Contact {
+interface Vendor {
   id: number;
   firstname: string;
   lastname: string;
   email: string;
   phone: string;
   company: string | null;
-  photo: string | null;
-  tags: string;
+  address: string | null;
+  bank_name: string | null;
+  account_number: string | null;
   created_at: string;
   status?: string; // assuming API may include this
 }
 
-export default function ContactsPage() {
+export default function VendorsPage() {
   const handleGoBack = useGoBack();
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
 
   // NEW states for search + filter
@@ -34,17 +34,17 @@ export default function ContactsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+const [isDeleting, setIsDeleting] = useState(false);
 
-  const [isDeleting, setIsDeleting] = useState(false);
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-  const fetchContacts = async () => {
+  const fetchVendors = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${BASE_URL}/professionals/contacts/list/`,
+          `${BASE_URL}/professionals/vendors/list/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -53,26 +53,26 @@ export default function ContactsPage() {
         );
 
         const result = await response.json();
-        console.log("Fetched contacts:", result);
+        console.log("Fetched vendors:", result);
 
         if (result.status && Array.isArray(result.data)) {
-          setContacts(result.data);
+          setVendors(result.data);
         }
       } catch (error) {
-        console.error("Failed to fetch contacts:", error);
+        console.error("Failed to fetch vendors:", error);
       } finally {
         setLoading(false);
       }
   };
 
   const handleDelete = async () => {
-    if (!contactToDelete) return;
+    if (!vendorToDelete) return;
     setIsDeleting(true);
 
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${BASE_URL}/professionals/contacts/delete/${contactToDelete.id}`,
+        `${BASE_URL}/professionals/vendors/delete/${vendorToDelete.id}`,
         {
           method: "DELETE",
           headers: {
@@ -84,14 +84,14 @@ export default function ContactsPage() {
       const result = await res.json();
 
       if (result.status) {
-        setContacts((prev) =>
-          prev.filter((c) => c.id !== contactToDelete.id)
+        setVendors((prev) =>
+          prev.filter((c) => c.id !== vendorToDelete.id)
         );
         setShowDeleteModal(false);
-        setContactToDelete(null);
-          toast.success(result.message || "Contact deleted successfully");
+        setVendorToDelete(null);
+          toast.success(result.message || "Vendor  deleted successfully");
       } else {
-        toast.error(result.message || "Failed to delete contact.");
+        toast.error(result.message || "Failed to delete vendor.");
       }
     } catch (error) {
       console.error("Delete failed:", error);
@@ -102,20 +102,22 @@ export default function ContactsPage() {
 
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
+    fetchVendors();
+  },[]);
   // Apply search + filter on contacts
-  const filteredContacts = contacts.filter((contact) => {
+  const filteredVendors = vendors.filter((vendor) => {
     const query = search.toLowerCase();
     const matchesSearch =
-      contact.firstname.toLowerCase().includes(query) ||
-      contact.lastname.toLowerCase().includes(query) ||
-      contact.email?.toLowerCase().includes(query) ||
-      contact.phone?.toLowerCase().includes(query) ||
-      (contact.tags && contact.tags.toLowerCase().includes(query));
+      vendor.firstname.toLowerCase().includes(query) ||
+      vendor.lastname.toLowerCase().includes(query) ||
+      vendor.email?.toLowerCase().includes(query) ||
+      vendor.phone?.toLowerCase().includes(query) ||
+      vendor.address?.toLowerCase().includes(query) ||
+      vendor.bank_name?.toLowerCase().includes(query) ||
+      vendor.account_number?.toLowerCase().includes(query);
 
     const matchesStatus =
-      statusFilter === "all" || contact.status === statusFilter;
+      statusFilter === "all" || vendor.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -129,8 +131,8 @@ export default function ContactsPage() {
       {/* PAGE TITLE */}
       <HeaderTitleCard
         onGoBack={handleGoBack}
-        title="Client Manager"
-        description="Your unified hub for all clients and customers."
+        title="Vendor Manager"
+        description="Your unified hub for all business vendors, suppliers, and billers easily."
       >
         <div className="flex flex-col md:flex-row gap-2">
           <Link
@@ -138,25 +140,25 @@ export default function ContactsPage() {
             className="bg-white border border-purple-300 text-purple-800 px-4 py-2 font-medium rounded-lg hover:bg-purple-50 flex items-center justify-center space-x-2"
           >
             <Icons.export />
-            <span>Export Clients</span>
+            <span>Export Vendor</span>
           </Link>
 
           <Link
-            href="/contacts/clients/new"
+            href="/contacts/vendors/new"
             className="btn-primary flex items-center justify-center"
           >
             <Icons.plus />
-            <span>Add New Client</span>
+            <span>Add New Vendor</span>
           </Link>
         </div>
       </HeaderTitleCard>
 
       {/* SEARCH + FILTER */}
-      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap  gap-4 border border-gray-200 items-center justify-between">
+      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap gap-4 border border-gray-200 items-center justify-between">
         {/* Search input */}
         <input
           type="text"
-          placeholder="Search contacts (name, email, phone, tags...)"
+          placeholder="Search vendors (name, email, phone...)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full md:w-1/2 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500"
@@ -181,45 +183,36 @@ export default function ContactsPage() {
               setSearch("");
               setStatusFilter("all");
             }} className="text-sm text-gray-600 hover:text-purple-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 rounded-md font-medium">Clear Filters</button>
-            <button onClick={fetchContacts} className="p-2 text-gray-500 cursor-pointer hover:text-purple-600 hover:bg-gray-200 bg-gray-100 rounded-full">
+            <button onClick={fetchVendors} className="p-2 text-gray-500 cursor-pointer hover:text-purple-600 hover:bg-gray-200 bg-gray-100 rounded-full">
                 {/* <Icons.refresh className="h-6 w-6" /> */}
                   <RefreshCw size={22} />
             </button> 
         </div>
       </div>
 
-      {/* CONTACTS TABLE */}
+      {/* VENDORS TABLE */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
          <DataTable
             columns={[
               {
                 label: "Name",
                 field: "name",
-                render: (contact) => {
-                  const initials = `${contact.firstname?.[0] || ""}${contact.lastname?.[0] || ""}`.toUpperCase();
-                  //const tags = contact.tags ? contact.tags.split(",").map((t: string) => t.trim()) : [];
-
+                render: (vendor) => {
+                  const initials = `${vendor.firstname?.[0] || ""}${vendor.lastname?.[0] || ""}`.toUpperCase();
+                  
                   return (
                     <div className="flex items-center space-x-3">
-                      {contact.photo ? (
-                        <Image
-                          className="w-10 h-10 rounded-full object-cover"
-                          src={contact.photo}
-                          alt={`${contact.firstname} ${contact.lastname}`}
-                          width={40}
-                          height={40}
-                        />
-                      ) : (
+                      
                         <span className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
                           {initials}
                         </span>
-                      )}
+                      
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {contact.firstname} {contact.lastname}
+                          {vendor.firstname} {vendor.lastname}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {contact.email || contact.phone}
+                          {vendor.email || vendor.phone}
                         </p>
                       </div>
                     </div>
@@ -227,49 +220,31 @@ export default function ContactsPage() {
                 },
               },
               { label: "Company", field: "company" },
-              {
-                label: "Tags",
-                field: "tags",
-                render: (contact) => {
-                  const tags = contact.tags ? contact.tags.split(",").map((t: string) => t.trim()) : [];
-                  return (
-                    <div className="flex space-x-1 flex-wrap">
-                      {tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-1 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                },
-              },
+              
               {
                 label: "Created",
                 field: "created_at",
-                render: (contact) => (
+                render: (vendor) => (
                   <span className="text-sm text-gray-600">
-                    {new Date(contact.created_at).toLocaleDateString()}
+                    {new Date(vendor.created_at).toLocaleDateString()}
                   </span>
                 ),
               },
                 ]}
-                data={filteredContacts}
+                data={filteredVendors}
                 loading={loading}
                 error={null}
                 itemsPerPage={10}
-                actions={(contact) => (
+                actions={(vendor) => (
                 <>
-                  <Link href={`/contacts/clients/view/${contact.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+                  <Link href={`/contacts/vendors//view/${vendor.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
                       <Eye className="w-4 h-4 text-gray-500" /> View
                   </Link>
-                  <Link href={`/contacts/clients/edit/${contact.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+                  <Link href={`/contacts/vendors/edit/${vendor.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
                       <Pencil className="w-4 h-4 text-gray-500" /> Edit
                   </Link>
                   <button onClick={() => {
-                      setContactToDelete(contact);
+                      setVendorToDelete(vendor);
                       setShowDeleteModal(true);
                     }} className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
                       <Trash2 className="w-4 h-4 text-red-500" /> Delete
@@ -280,40 +255,40 @@ export default function ContactsPage() {
 
         </div>
 
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-              <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete{" "}
-                <span className="font-bold">
-                  {contactToDelete?.firstname} {contactToDelete?.lastname}
-                </span>
-                ?
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  disabled={isDeleting}
-                  className={`px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 ${
-                    isDeleting ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className={`px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 ${
-                    isDeleting ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </button>
-              </div>
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-bold">
+                {vendorToDelete?.firstname} {vendorToDelete?.lastname}
+              </span>
+              ?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className={`px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 ${
+                  isDeleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={`px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 ${
+                  isDeleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
 
 

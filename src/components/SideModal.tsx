@@ -35,7 +35,7 @@ export default function SideModal({
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-5 border-b">
+        <div className="flex items-center bg-gray-50 justify-between p-5 border-b  border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
           <button
             onClick={onClose}

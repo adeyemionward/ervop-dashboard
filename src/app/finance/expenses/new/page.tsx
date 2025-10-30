@@ -7,7 +7,7 @@ import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { PlusCircle, Trash2, Save } from "lucide-react";
 import clsx from "clsx";
 import { useClientData } from "@/hooks/useClientData";
-import ClientSelector from "@/components/ClientSelector";
+import ClientSelector from "@/components/ClientSelector1";
 import toast from "react-hot-toast";
 
 // --- TYPE DEFINITIONS ---
@@ -20,11 +20,9 @@ type ExpenseItem = {
 type DisbursementData = {
   amount: string;
   date: string;
-  description: string;
+  title:string;
   categoryId: string;
-  customerId: string;
-  projectId: string;
-  invoiceId: string;
+ 
   paymentMethod: string;
 };
 type ExpenseData = {
@@ -32,10 +30,15 @@ type ExpenseData = {
   date: string;
   category: string;
   items: ExpenseItem[];
-  customerId: string;
-  projectId: string;
+ 
   paymentMethod: string;
 };
+
+  
+  type Category = {
+  title: string;
+};
+
 
 // --- HOOK FOR GO BACK ---
 const useGoBack = () => () => {
@@ -47,56 +50,67 @@ export default function CreateTransactionPage() {
   const handleGoBack = useGoBack();
   const [transactionType, setTransactionType] = useState<TransactionType>("expense");
   const [isSaving, setIsSaving] = useState(false);
-
+    // Initial page load loader
+    const [pageLoading, setPageLoading] = useState(true);
    const [selectedClient, setSelectedClient] = useState("");
     const [selectedProject, setSelectedProject] = useState("");
-    const [selectedAppointment, setSelectedAppointment] = useState("");
-    const { contacts, clientProjects, clientAppointments } = useClientData(selectedClient);
-    const [isLinked, setIsLinked] = useState(false);
+    // Fetch contacts once on page load
+      const { contacts, loadingContacts } = useClientData("");
+     const [selectedAppointment, setSelectedAppointment] = useState("");
+    const [selectedInvoice, setSelectedInvoice] = useState("");
 
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
-  
-  const defaultCategories = [
-    "Logistics",
-    "Materials",
-    "Software",
-    "Equipment",
-    "Other Expense",
-  ];
 
-  const [categories, setCategories] = useState<any[]>(defaultCategories);
+
+const defaultCategories: Category[] = [
+  { title: "Logistics" },
+  { title: "Materials" },
+  { title: "Software" },
+  { title: "Equipment" },
+  { title: "Other Expense" },
+];
+
+const [categories, setCategories] = useState<Category[]>(defaultCategories);
+
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/professionals/transactions/listCategory/`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-            },
-        });
-
-        const data = await res.json();
-
-        if (Array.isArray(data)) {
-          const merged = [
-            
-            ...data.filter(
-              (cat: any) =>
-                !defaultCategories.includes(cat.title ?? cat)
-            ),
-            ...defaultCategories,
-          ];
-          setCategories(merged);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+      if (!loadingContacts) {
+        setPageLoading(false);
       }
-    };
+    }, [loadingContacts]);
 
-    fetchCategories();
-  }, []);
+useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/professionals/transactions/listCategory/`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      const data: Category[] = await res.json(); // assume API returns Category[]
+
+      if (Array.isArray(data)) {
+        const merged: Category[] = [...data, ...defaultCategories];
+
+        // Deduplicate by title
+        const uniqueCategories = merged.filter(
+          (cat, index, self) =>
+            index === self.findIndex(c => c.title === cat.title)
+        );
+
+        setCategories(uniqueCategories);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
+
+  fetchCategories();
+}, []);
+
 
     const token =
         typeof window !== "undefined"
@@ -112,12 +126,10 @@ const [isSubmitting, setIsSubmitting] = useState(false);
   const [disbursementData, setDisbursementData] = useState<DisbursementData>({
     amount: "",
     date: "",
-    description: "",
+    title:"",
     categoryId: "Labour",
     paymentMethod: "Cash",
-    customerId: "",
-    projectId: "",
-    invoiceId: "",
+ 
   });
 
   // State for Expense
@@ -127,8 +139,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
     category: "Logistics",
     paymentMethod: "Cash",
     items: [{ id: Date.now(), description: "", amount: 0 }],
-    customerId: "",
-    projectId: "",
+ 
   });
 
   const handleIncomeChange = (
@@ -189,29 +200,34 @@ const [isSubmitting, setIsSubmitting] = useState(false);
     setIsSaving(true);
 
     try {
-      let payload: any;
+      let payload: unknown;
 
       if (transactionType === "disbursement") {
         payload = {
-          type: "disbursement",
+          type: "expense",
+          sub_type: "disbursement",
           amount: Number(disbursementData.amount),
+          title: disbursementData.title,
           date: disbursementData.date,
           payment_method: disbursementData.paymentMethod,
-          description: disbursementData.description,
           category: disbursementData.categoryId,
-          contact_id: disbursementData.customerId || null,
-          project_id: disbursementData.projectId || null,
-          invoice_id: disbursementData.invoiceId || null,
+          contact_id: selectedClient || null,
+          appointment_id: selectedAppointment || null,
+          project_id: selectedProject || null,
+          invoice_id: selectedInvoice || null,
         };
       } else {
         payload = {
-          type: "bills",
+          type: "expense",
+          sub_type: "bills",
           amount: totalExpense,
           title: expenseData.title,
           date: expenseData.date,
           payment_method: expenseData.paymentMethod,
-          contact_id: expenseData.customerId || null,
-          project_id: expenseData.projectId || null,
+          contact_id: selectedClient || null,
+          appointment_id: selectedAppointment || null,
+          project_id: selectedProject || null,
+          invoice_id: selectedInvoice || null,
           category: expenseData.category,
           items: expenseData.items.map((item) => ({
             description: item.description,
@@ -238,28 +254,25 @@ const [isSubmitting, setIsSubmitting] = useState(false);
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Error Response:", errorData);
-        alert(
-          "Failed to save transaction: " +
-            (errorData.message || "Unknown error")
-        );
+        toast.error("Failed to save transaction: " + (errorData.message || "Unknown error"));
         setIsSaving(false);
         return;
       }
 
       const data = await res.json();
       console.log("Saved successfully:", data);
-      alert("Transaction saved successfully!");
+      toast.success("Transaction saved successfully!");
     } catch (error) {
       console.error("Unexpected error:", error);
-      alert("Something went wrong while saving the transaction.");
+      toast.error("Something went wrong while saving the transaction.");
     } finally {
       setIsSaving(false);
     }
   };
 
 
-const createCategoryMutation = useMutation({
+
+const createCategoryMutation = useMutation<Category, Error, string>({
   mutationFn: async (title: string) => {
     const payload = { type: "expense", title };
     const res = await fetch(`${BASE_URL}/professionals/transactions/createCategory/`, {
@@ -271,25 +284,25 @@ const createCategoryMutation = useMutation({
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to create category");
-    return res.json();
+    const json = await res.json();
+    return json.data as Category;
   },
   onMutate: () => {
-    setIsSubmitting(true); // start
+    setIsSubmitting(true);
   },
-  onSuccess: (data) => {
-    setCategories((prev: any) => [...prev, data.data]);
-    setExpenseData((prev: any) => ({ ...prev, category: data.data.title }));
+  onSuccess: (category) => {
+    setCategories((prev: Category[]) => [...prev, category]);
+    setExpenseData((prev) => ({ ...prev, category: category.title }));
     setNewCategory("");
     setIsCategoryModalOpen(false);
     toast.success("Category recorded successfully!");
   },
-  onError: (err: any) => {
+  onError: (err: Error) => {
     console.error(err);
-    alert("Could not create category. Please try again.");
-    toast.success("Could not create category. Please try again.");
+    toast.error("Could not create category. Please try again.");
   },
   onSettled: () => {
-    setIsSubmitting(false); // reset
+    setIsSubmitting(false);
   },
 });
 
@@ -307,11 +320,24 @@ const createCategoryMutation = useMutation({
       <div className="w-full max-w-4xl mx-auto">
         <HeaderTitleCard
           onGoBack={handleGoBack}
-          title="Add Transaction"
+          title="Add an Expense"
           description="Manually record bills or disbursement for your business."
         />
 
         <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
+          <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
+          {pageLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-6">
+              {/* Loader */}
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full bg-white/30 blur-xl animate-ping"></div>
+              </div>
+              <p className="text-gray-700 font-semibold text-lg animate-pulse">
+                Preparing your form...
+              </p>
+            </div>
+          ) : (
           <form onSubmit={handleSave} className="space-y-8">
             {/* --- Transaction Type Toggle --- */}
             <div>
@@ -472,104 +498,103 @@ const createCategoryMutation = useMutation({
                   </div>
                 </div>
 
-                {/* Checkbox: Linked to contact/project/appointment */}
-                  <div className="flex items-center mb-4">
-                    <input
-                        type="checkbox"
-                        id="isLinked"
-                        checked={isLinked}
-                        onChange={(e) => {
-                        setIsLinked(e.target.checked);
-                        if (!e.target.checked) {
-                            setSelectedClient("");
-                            setSelectedProject("");
-                            setSelectedAppointment("");
-                        }
-                        }}
-                        className="h-4 w-4 text-purple-600 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isLinked" className="ml-2 block text-sm text-gray-700">
-                        This payment is linked to a Contact / Project / Appointment
-                    </label>
-                  </div>
-                  {isLinked && (
+                  
+                  {/* Client Selector */}
                     <ClientSelector
-                        selectedClient={selectedClient}
-                        setSelectedClient={setSelectedClient}
-                        selectedProject={selectedProject}
-                        setSelectedProject={setSelectedProject}
-                        selectedAppointment={selectedAppointment}
-                        setSelectedAppointment={setSelectedAppointment}
-                        contacts={contacts}
+                      selectedClient={selectedClient}
+                      setSelectedClient={setSelectedClient}
+                      selectedProject={selectedProject}
+                      setSelectedProject={setSelectedProject}
+                      selectedAppointment={selectedAppointment}
+                      setSelectedAppointment={setSelectedAppointment}
+                      selectedInvoice={selectedInvoice}
+                      setSelectedInvoice={setSelectedInvoice}
+                      contacts={contacts || []} // initial contacts loaded
                     />
-                  )}
 
-                {/* payment method */}
-                <div>
-                  <label
-                    htmlFor="paymentMethod"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Payment Method
-                  </label>
-                  <select
-                    id="paymentMethod"
-                    name="paymentMethod"
-                    value={expenseData.paymentMethod}
-                    onChange={handleExpenseChange}
-                    className="mt-1 block w-full pl-3 pr-10 py-3 text-base border border-gray-300 rounded-lg"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="POS">POS</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Payment Method */}
+                  <div>
+                    <label
+                      htmlFor="paymentMethod"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Payment Method
+                    </label>
+                    <select
+                      id="paymentMethod"
+                      name="paymentMethod"
+                      value={expenseData.paymentMethod}
+                      onChange={handleExpenseChange}
+                      className="mt-1 block w-full pl-3 pr-10 py-3 text-base border border-gray-300 rounded-lg"
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="POS">POS</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
 
-                {/* category */}
-                <div>
-                  <label
-                    htmlFor="category"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Category
-                  </label>
-                  <select
+                  {/* Category */}
+                  <div>
+                    <label
+                      htmlFor="category"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Category
+                    </label>
+                    <select
                       id="category"
                       name="category"
                       value={expenseData.category}
                       onChange={(e) =>
-                        setExpenseData((prev: any) => ({
+                        setExpenseData((prev) => ({
                           ...prev,
                           category: e.target.value,
                         }))
                       }
                       className="mt-1 block w-full pl-3 pr-10 py-3 text-base border border-gray-300 rounded-lg"
                     >
-                      {categories.map((cat: any) => (
-                        <option key={cat.id ?? cat} value={cat.title ?? cat}>
-                          {cat.title ?? cat}
+                      {categories.map((cat: Category) => (
+                        <option key={cat.title} value={cat.title}>
+                          {cat.title}
                         </option>
                       ))}
-                  </select>
+                    </select>
 
-                  {/* ✅ New link/button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoryModalOpen(true)}
-                    className="mt-2 text-sm text-purple-600 hover:underline"
-                  >
-                    + Create Expense Category
-                  </button>
+                    {/* New link/button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      className="mt-2 text-sm text-purple-600 hover:underline"
+                    >
+                      + Create Expense Category
+                    </button>
+                  </div>
                 </div>
-
               </div>
 
-
-           
             ) : (
                      // --- INCOME FORM ---
               <div className="space-y-6 animate-fade-in">
+                {/* description */}
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Expense Title
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    id="title"
+                    value={disbursementData.title}
+                    onChange={handleIncomeChange}
+                    placeholder="e.g., Payment for Invoice #INV-002"
+                    className="mt-1 block w-full border border-gray-300 rounded-lg py-3 px-4"
+                  />
+                </div>
                 {/* amount + date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -613,37 +638,19 @@ const createCategoryMutation = useMutation({
                     />
                   </div>
                 </div>
-                {/* Checkbox: Linked to contact/project/appointment */}
-                <div className="flex items-center mb-4">
-                    <input
-                        type="checkbox"
-                        id="isLinked"
-                        checked={isLinked}
-                        onChange={(e) => {
-                        setIsLinked(e.target.checked);
-                        if (!e.target.checked) {
-                            setSelectedClient("");
-                            setSelectedProject("");
-                            setSelectedAppointment("");
-                        }
-                        }}
-                        className="h-4 w-4 text-purple-600 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isLinked" className="ml-2 block text-sm text-gray-700">
-                        This payment is linked to a Contact / Project / Appointment
-                    </label>
-                </div>
-                 {isLinked && (
+                
+                 {/* Client Selector */}
                     <ClientSelector
-                        selectedClient={selectedClient}
-                        setSelectedClient={setSelectedClient}
-                        selectedProject={selectedProject}
-                        setSelectedProject={setSelectedProject}
-                        selectedAppointment={selectedAppointment}
-                        setSelectedAppointment={setSelectedAppointment}
-                        contacts={contacts}
+                      selectedClient={selectedClient}
+                      setSelectedClient={setSelectedClient}
+                      selectedProject={selectedProject}
+                      setSelectedProject={setSelectedProject}
+                      selectedAppointment={selectedAppointment}
+                      setSelectedAppointment={setSelectedAppointment}
+                      selectedInvoice={selectedInvoice}
+                      setSelectedInvoice={setSelectedInvoice}
+                      contacts={contacts || []} // initial contacts loaded
                     />
-                )}
 
                 {/* payment method */}
                 <div>
@@ -665,25 +672,6 @@ const createCategoryMutation = useMutation({
                     <option value="POS">POS</option>
                     <option value="Cheque">Cheque</option>
                   </select>
-                </div>
-
-                {/* description */}
-                <div>
-                  <label
-                    htmlFor="description"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Description / Note
-                  </label>
-                  <input
-                    type="text"
-                    name="description"
-                    id="description"
-                    value={disbursementData.description}
-                    onChange={handleIncomeChange}
-                    placeholder="e.g., Payment for Invoice #INV-002"
-                    className="mt-1 block w-full border border-gray-300 rounded-lg py-3 px-4"
-                  />
                 </div>
               </div>
             )}
@@ -712,6 +700,7 @@ const createCategoryMutation = useMutation({
               </button>
             </div>
           </form>
+           )}
         </div>
       </div>
 
@@ -750,7 +739,7 @@ const createCategoryMutation = useMutation({
             </div>
         </div>
         )}
-
+  </div>
     </DashboardLayout>
   );
 }

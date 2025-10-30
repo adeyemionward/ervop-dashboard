@@ -7,78 +7,68 @@ import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 
-export default function EditContact() {
+export default function EditContractor() {
   const handleGoBack = useGoBack();
   const router = useRouter();
   const params = useParams();
-  const contactId = params?.id;
+  const contractorId = params?.id;
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
   // Form states
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstname, setFirstname] = useState("");
+  const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [address, setAddress] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [status, setStatus] = useState("active");
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
 
-  // Fetch existing contact
+  // Fetch contractor details
   useEffect(() => {
-    const fetchContact = async () => {
+    const fetchContractor = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE_URL}/professionals/contacts/show/${contactId}`, {
+        const res = await fetch(`${BASE_URL}/professionals/contractors/show/${contractorId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         const result = await res.json();
 
-        if (result.status && result.client) {
-          setFirstName(result.client.firstname || "");
-          setLastName(result.client.lastname || "");
-          setEmail(result.client.email || "");
-          setPhone(result.client.phone || "");
-          setCompany(result.client.company || "");
-          setTags(result.client.tags ? result.client.tags.split(",").map((t: string) => t.trim()) : []);
+        if (result.status && result.contractor) {
+          const c = result.contractor;
+          setFirstname(c.firstname || "");
+          setLastname(c.lastname || "");
+          setEmail(c.email || "");
+          setPhone(c.phone || "");
+          setCompany(c.company || "");
+          setAddress(c.address || "");
+          setBankName(c.bank_name || "");
+          setAccountNumber(c.account_number || "");
+          setStatus(c.status || "active");
         } else {
-          toast.error("Failed to load contact");
+          toast.error(result.message || "Failed to load contractor details");
         }
       } catch (err) {
-        console.error("Failed to fetch contact:", err);
-        toast.error("Error loading contact details");
+        console.error("Failed to fetch contractor:", err);
+        toast.error("Error fetching contractor details");
       } finally {
         setLoading(false);
       }
     };
 
-    if (contactId) fetchContact();
-  }, [contactId]);
+    if (contractorId) fetchContractor();
+  }, [BASE_URL, contractorId]);
 
-  // Tag handling
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      const newTag = tagInput.trim();
-      if (newTag && !tags.includes(newTag)) {
-        setTags((prev) => [...prev, newTag]);
-      }
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setTags((prev) => prev.filter((t) => t !== tag));
-  };
-
-  // Submit
+  // Submit update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -89,15 +79,18 @@ export default function EditContact() {
       if (!token) throw new Error("No authentication token found.");
 
       const payload = {
-        firstname: firstName,
-        lastname: lastName,
+        firstname,
+        lastname,
         email,
         phone,
         company,
-        tags: tags.join(", "),
+        address,
+        bank_name: bankName,
+        account_number: accountNumber,
+        status,
       };
 
-      const res = await fetch(`${BASE_URL}/professionals/contacts/update/${contactId}`, {
+      const res = await fetch(`${BASE_URL}/professionals/contractors/update/${contractorId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -118,11 +111,11 @@ export default function EditContact() {
           }
           setFieldErrors(extractedErrors);
         }
-        throw new Error(result.message || "Failed to update contact.");
+        throw new Error(result.message || "Failed to update contractor.");
       }
 
-      toast.success(result.message || "Contact updated successfully!");
-      router.push("/contacts/clients");
+      toast.success(result.message || "Contractor updated successfully!");
+      router.push("/contacts/contractors");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -139,13 +132,13 @@ export default function EditContact() {
       <div className="w-full max-w-4xl mx-auto">
         <HeaderTitleCard
           onGoBack={handleGoBack}
-          title="Edit Contact"
-          description="Update client or customer details."
+          title="Edit Contractor"
+          description="Update contractor details and account information."
         />
 
         <div className="bg-white p-8 rounded-xl shadow-sm">
           {loading ? (
-            <p className="text-gray-500 text-lg">Loading contact...</p>
+            <p className="text-gray-500 text-lg">Loading contractor details...</p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Name */}
@@ -154,8 +147,8 @@ export default function EditContact() {
                   <label className="block text-xl font-medium mb-1">First Name</label>
                   <input
                     type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    value={firstname}
+                    onChange={(e) => setFirstname(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   {fieldErrors.firstname && <p className="text-red-500 text-sm">{fieldErrors.firstname}</p>}
@@ -164,8 +157,8 @@ export default function EditContact() {
                   <label className="block text-xl font-medium mb-1">Last Name</label>
                   <input
                     type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    value={lastname}
+                    onChange={(e) => setLastname(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   {fieldErrors.lastname && <p className="text-red-500 text-sm">{fieldErrors.lastname}</p>}
@@ -196,38 +189,61 @@ export default function EditContact() {
                 </div>
               </div>
 
-              {/* Company */}
-              <div>
-                <label className="block text-xl font-medium mb-1">Company</label>
-                <input
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-xl font-medium mb-1">Tags</label>
-                <div className="flex flex-wrap items-center gap-2 border rounded-lg px-3 py-2">
-                  {tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="flex items-center bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="ml-2">✕</button>
-                    </span>
-                  ))}
+              {/* Company + Address */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xl font-medium mb-1">Company</label>
                   <input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    placeholder="Type and press Enter..."
-                    className="flex-1 border-none outline-none px-2 py-1 text-sm"
+                    type="text"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
+                <div>
+                  <label className="block text-xl font-medium mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Bank Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xl font-medium mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xl font-medium mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-xl font-medium mb-1">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
 
               {/* Submit */}

@@ -5,14 +5,19 @@ import { useState } from "react";
 import { useGoBack } from "@/hooks/useGoBack";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useClientData } from "@/hooks/useClientData";
-import ClientSelector from "@/components/ClientSelector";
+import ClientSelector from "@/components/ClientSelector1";
+import { RecurringInvoiceSetup } from "@/components/RecurringInvoiceSetup";
 import { toast } from "react-hot-toast";
+import { Info, Trash2} from "lucide-react";
 
 type LineItem = {
   description: string;
   qty: number;
   rate: number;
 };
+
+
+
 
 export default function CreateInvoice() {
   const handleGoBack = useGoBack();
@@ -26,21 +31,34 @@ export default function CreateInvoice() {
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedAppointment, setSelectedAppointment] = useState("");
+  // const [selectedInvoice, setSelectedInvoice] = useState("");
 
   const [loading, setLoading] = useState(false);
 
   //vaidation
-    const [invoiceNo, setInvoiceNo] = useState("#INV-003");
-    const [issueDate, setIssueDate] = useState("");
-    const [dueDate, setDueDate] = useState("");
-    const [invalidItems, setInvalidItems] = useState<number[]>([]);
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  // const [invalidItems, setInvalidItems] = useState<number[]>([]);
 
-
-  const { contacts, clientProjects, clientAppointments } = useClientData(selectedClient);
+  const { contacts} = useClientData(selectedClient);
 
   const subtotal = items.reduce((sum, item) => sum + item.qty * item.rate, 0);
   const discountedTotal = subtotal - subtotal * (discount / 100);
   const total = discountedTotal + discountedTotal * (tax / 100);
+
+
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [startDate, setStartDate] = useState("2024-01-01"); // Added default dates for demonstration
+  const [endDate, setEndDate] = useState("2024-12-31");
+
+   // Default to the first combined option
+  const [repeats, setRepeats] = useState("Weekly (Every Monday)");
+
+  const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+  
 
   const addItem = () => {
     setItems([...items, { description: "", qty: 1, rate: 0 }]);
@@ -83,14 +101,14 @@ export default function CreateInvoice() {
     .filter((idx) => idx !== -1);
 
   if (invalidIndices.length > 0) {
-    setInvalidItems(invalidIndices);
-    alert("Please fill out all item fields correctly.");
+    // setInvalidItems(invalidIndices);
+    toast.error("Please fill out all item fields correctly.");
     return;
   }
 
   // Check overall form validity
   if (!isFormValid()) {
-    alert("Please fill all required fields.");
+    toast.error("Please fill out all required fields.");
     return;
   }
 
@@ -106,47 +124,47 @@ export default function CreateInvoice() {
       due_date: dueDate,
       tax_percentage: tax,
       discount_percentage: discount,
-      notes: "Invoice generated from dashboard",
+      notes: notes,
       item: items.map((item) => ({
         description: item.description,
         quantity: item.qty,
         rate: item.rate,
       })),
+      // --- RECURRING INVOICE DATA ---
+      is_recurring: isRecurring, // MANDATORY: True/False based on toggle
+      
+      // Conditionally add recurrence details only if it is recurring
+      ...(isRecurring && {
+        repeats: repeats, // e.g., "Weekly (Every Monday)"
+        occuring_start_date: startDate,
+        occuring_end_date: endDate || null, // Use null if user leaves it blank
+      }),
     };
-
-    const token = localStorage.getItem("token");
+    
     const res = await fetch(
-      "http://127.0.0.1:8000/api/v1/professionals/invoices/create/",
+      `${BASE_URL}/professionals/invoices/create/`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userToken}`,
         },
         body: JSON.stringify(payload),
       }
     );
 
-    // if (!res.ok) {
-    //   const errorData = await res.json();
-    //   console.error("Invoice creation failed:", errorData);
-    //   alert("Failed to create invoice");
-    //   return;
-    // }
+    
     const result = await res.json();
     if (!res.ok || result.status === false) {
         throw new Error(result.message || "Failed to create invoice");
       }
 
-     toast.success(result.message || "Invoice created successfully!");
-
-
-     
+      toast.success(result.message || "Invoice created successfully!");
 
     console.log(result);
   } catch (error) {
-    // console.error("Error creating invoice:", error);
-    toast.error(error.message || "Something went wrong");
+    console.error("Error creating invoice:", error);
+    // toast.error(error.message || "Something went wrong");
   } finally {
     setLoading(false);
   }
@@ -169,12 +187,30 @@ export default function CreateInvoice() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-6">
               {/* Invoice Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+              
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  <div className="flex items-center">
+                    Invoice Number (optional)
+                    {/* Tooltip icon */}
+                    <span className="ml-2 relative group">
+                      <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      {/* Tooltip content */}
+                      <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 rounded-md bg-gray-900 text-white text-xs text-center px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        If left empty, the invoice number will be generated automatically
+                      </span>
+                    </span>
+                  </div>
+                </label>
+
                 <input
                     type="text"
                     value={invoiceNo}
                     onChange={(e) => setInvoiceNo(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50"
+                    placeholder="Invoice Number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
                     />
               </div>
               {/* Issue Date */}
@@ -206,8 +242,24 @@ export default function CreateInvoice() {
               setSelectedProject={setSelectedProject}
               selectedAppointment={selectedAppointment}
               setSelectedAppointment={setSelectedAppointment}
-              contacts={contacts}
+            
+              contacts={contacts || []} // initial contacts loaded
+                showInvoices={false}
             />
+
+            {/* --- RECURRING INVOICE SETUP (NEW SECTION) --- */}
+            <RecurringInvoiceSetup
+              isRecurring={isRecurring}
+              setIsRecurring={setIsRecurring}
+              repeats={repeats}
+              setRepeats={setRepeats}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+            />
+
+            {/* --- END RECURRING INVOICE SETUP --- */}
 
             {/* Items Table */}
             <div>
@@ -239,7 +291,14 @@ export default function CreateInvoice() {
                           ₦{(item.qty * item.rate).toFixed(2)}
                         </td>
                         <td className="py-2 pl-2 text-right">
-                          <button type="button" onClick={() => removeItem(index)} className="p-1 text-gray-400 hover:text-red-600">✕</button>
+                          <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              className="text-red-500 hover:text-red-700 p-2"
+                            >
+                              <Trash2 className="w-4 h-4"/>
+                          </button>
+                        
                         </td>
                       </tr>
                     ))}
@@ -249,8 +308,23 @@ export default function CreateInvoice() {
               <button type="button" onClick={addItem} className="mt-4 text-sm font-medium text-purple-600 hover:text-purple-800">+ Add Line Item</button>
             </div>
 
+            {/* Notes Section */}
+            <div className="border-t pt-6">
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Notes
+              </label>
+              <textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Add any special instructions or remarks here..."
+                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              />
+            </div>
+
             {/* Summary */}
-            <div className="border-t pt-6 space-y-6">
+            <div className="border-t border-gray-100 pt-6 space-y-6">
               <div className="flex justify-end">
                 <div className="w-full max-w-sm space-y-3">
                   <div className="flex justify-between">
@@ -273,6 +347,9 @@ export default function CreateInvoice() {
                 </div>
               </div>
             </div>
+
+            
+
 
             {/* Actions */}
             <div className="flex justify-end gap-4 border-t pt-6">

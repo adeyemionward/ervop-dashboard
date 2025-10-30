@@ -42,12 +42,7 @@ export function useClientData(selectedClient?: string) {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
-        // 🔐 Handle token expiry (unauthorized)
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "/auth";
-          return;
-        }
+     
 
         const result = await res.json();
         if (result.status) {
@@ -77,11 +72,6 @@ export function useClientData(selectedClient?: string) {
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
 
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "/auth";
-          return;
-        }
 
         const result = await res.json();
         setClientProjects(result.status ? result.data : []);
@@ -101,11 +91,6 @@ export function useClientData(selectedClient?: string) {
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
 
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "/auth";
-          return;
-        }
 
         const result = await res.json();
         setClientAppointments(result.status ? result.data : []);

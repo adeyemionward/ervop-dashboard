@@ -41,7 +41,7 @@ function DataTable<T extends { id?: string | number }>({
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-500">
+        <table className="w-full text-sm text-left text-gray-600">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                 {columns.map((col, index) => (
@@ -58,18 +58,18 @@ function DataTable<T extends { id?: string | number }>({
                 {loading ? (
                 <tr>
                     <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8 text-gray-500">
-                    Loading...
+                      Loading...
                     </td>
                 </tr>
                 ) : error ? (
                 <tr>
                     <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8 text-red-600">
-                    Error: {error}
+                      Error: {error}
                     </td>
                 </tr>
                 ) : paginatedData.length > 0 ? (
                 paginatedData.map((row, rowIndex) => (
-                    <tr key={row.id ?? rowIndex} className="bg-white hover:bg-gray-50 relative">
+                    <tr key={row.id ?? rowIndex} className="bg-white hover:bg-gray-50 relative ">
                         {columns.map((col, colIndex) => (
                             <td key={colIndex} className={`px-6 py-4 ${col.alignRight ? "text-right" : ""}`}>
                                 {col.render
@@ -84,7 +84,7 @@ function DataTable<T extends { id?: string | number }>({
                                 onClick={() =>
                                     setOpenDropdownId(openDropdownId === row.id ? null : row.id ?? null)
                                 }
-                                className="inline-flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-100 focus:outline-none transition"
+                                className="inline-flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-100 cursor-pointer focus:outline-none transition"
                                 >
                                 <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
                                 </button>

@@ -444,14 +444,14 @@ const [viewingFile, setViewingFile] = useState<DocumentFile | null>(null);
                 {openMenuId === file.id && (
                   <div className="absolute right-0 mt-2 w-36 bg-white shadow-lg border rounded-md z-50">
                     <button
-  onClick={() => {
-    setViewingFile(file);
-    setOpenMenuId(null);
-  }}
-  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
->
-  <Eye className="w-4 h-4 mr-2 text-blue-500" /> View
-</button>
+                      onClick={() => {
+                        setViewingFile(file);
+                        setOpenMenuId(null);
+                      }}
+                      className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                    <Eye className="w-4 h-4 mr-2 text-blue-500" /> View
+                    </button>
 
                     <button
                       onClick={() => downloadFile(file.file_path)}
@@ -494,31 +494,31 @@ const [viewingFile, setViewingFile] = useState<DocumentFile | null>(null);
       />
 
       <DocumentSidePanel
-  isOpen={!!viewingFile}
-  onClose={() => setViewingFile(null)}
-  file={viewingFile}
-  onStatusUpdate={async (id, newStatus) => {
-    const token = localStorage.getItem("token");
-    await fetch(`${BASE_URL}/professionals/documents/updateStatus/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    fetchFiles(selected?.idParam || 0);
-  }}
-  onSendReminder={async (id) => {
-    const token = localStorage.getItem("token");
-    await fetch(`${BASE_URL}/professionals/documents/remindClient/${id}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }}
-/>
+          isOpen={!!viewingFile}
+          onClose={() => setViewingFile(null)}
+          file={viewingFile}
+          onStatusUpdate={async (id, newStatus) => {
+            const token = localStorage.getItem("token");
+            await fetch(`${BASE_URL}/professionals/documents/updateStatus/${id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ status: newStatus }),
+            });
+            fetchFiles(selected?.idParam || 0);
+          }}
+          onSendReminder={async (id) => {
+            const token = localStorage.getItem("token");
+            await fetch(`${BASE_URL}/professionals/documents/remindClient/${id}`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+          }}
+      />
 
     </DashboardLayout>
   );

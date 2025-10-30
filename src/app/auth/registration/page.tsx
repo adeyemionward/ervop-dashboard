@@ -676,7 +676,7 @@ export default function RegistrationPage() {
                                     {/* Conditionally render Business Description */}
                                     {needWebsite === 'yes' && (
                                     <div className="col-span-2 mt-4 relative">
-                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1 items-center">
                                         Briefly Describe Your Business
                                         {/* Tooltip icon */}
                                         <span className="ml-2 relative group">

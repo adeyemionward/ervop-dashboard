@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icons } from './icons';
 import clsx from 'clsx';
-import { DollarSign, LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, LogOut, Calendar, Users, FileText, CreditCard, Wallet, Palette, Settings } from 'lucide-react';
+import { DollarSign, LayoutDashboard, Briefcase, FolderKanban, KanbanSquare, LogOut, Calendar, Users, FileText, Wallet, Palette, Settings } from 'lucide-react';
 
 const sidebarNavItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -35,10 +35,9 @@ const sidebarNavItems = [
     title: 'Financial Manager',
     icon: Wallet,
     items: [
-      { title: 'Invoices', href: '/financial/invoices', icon: FileText },
-      { title: 'Income', href: '/financial/income', icon: Wallet },
-      { title: 'Expenses', href: '/financial/expenses', icon: CreditCard },
-      { title: 'Receipts', href: '/financial/receipts', icon: FileText },
+      { title: 'Quotations', href: '/finance/quotations', icon: FileText },
+      { title: 'Invoices', href: '/finance/invoices', icon: FileText },
+      { title: 'Transactions', href: '/finance/transactions', icon: Wallet },
     ]
   },
 

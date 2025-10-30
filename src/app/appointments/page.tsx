@@ -3,6 +3,7 @@
 import React, { useState, useMemo, FC, useEffect } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
+import StatCard from "@/components/StatCard";
 import { AppointmentStatusBadge } from "@/app/appointments/components/AppointmentStatusBadge";
 
 import Link from "next/link";
@@ -49,21 +50,6 @@ interface ApiAppointment {
     customer_phone: string;
     created_at: string;
 }
-
-
-// --- REUSABLE COMPONENTS ---
-const StatCard: FC<{ title: string; value: string; icon: React.ElementType; mainBg: string; iconBg: string; mainText: string; iconText: string; }> = ({ title, value, icon: Icon, mainBg, iconBg, mainText, iconText }) => (
-    <div className={`${mainBg} p-6 rounded-lg shadow-sm flex items-center space-x-4`}>
-        <div className={`${iconBg} p-3 rounded-full`}>
-            <Icon className={`h-6 w-6 ${iconText}`} />
-        </div>
-        <div>
-            <p className={`text-sm font-medium ${mainText} opacity-80`}>{title}</p>
-            <p className={`text-2xl font-bold ${mainText}`}>{value}</p>
-        </div>
-    </div>
-);
-
 
 // --- CALENDAR COMPONENTS ---
 const CalendarView: FC<{ appointments: Appointment[] }> = ({ appointments }) => {

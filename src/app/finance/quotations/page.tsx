@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
@@ -8,8 +8,8 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import StatCard from "@/components/StatCard";
 import DataTable from "@/components/DataTable";
-import DeleteConfirmModal from "@/components/DeleteConfirmModal"; // ✅ import modal
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import { FileText, CheckCircle2, Clock, XCircle, Pencil, Trash2, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Customer = {
@@ -20,103 +20,96 @@ type Customer = {
   phone: string;
 };
 
-type Invoice = {
+type Quotation = {
   id: number;
-  invoice_no: string;
+  quotation_no: string;
   issue_date: string;
-  due_date: string;
+  expiry_date: string;
   total: number;
-  paid_amount: number;
-  remaining_balance: number;
-  status: "Paid" | "Unpaid" | "Overdue" | "Partially Paid" | string;
+  status: "Pending" | "Accepted" | "Rejected" | string;
   customer: Customer;
 };
 
 type Overview = {
-  total_billed: number;
-  total_paid: number;
-  total_unpaid: number;
-  total_overdue: number;
-  total_partially_paid: number;
+  total_quoted: number;
+  accepted: number;
+  pending: number;
+  rejected: number;
 };
 
-export default function InvoicesPage() {
+export default function QuotationsPage() {
   const handleGoBack = useGoBack();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // ✅ Delete states
-  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000/api/v1";
   const userToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
-    const fetchInvoices = async () => {
+    const fetchQuotations = async () => {
       setError(null);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE_URL}/professionals/invoices/list/`, {
+        const res = await fetch(`${BASE_URL}/professionals/finances/quotations/list/`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
         if (data.status) {
-          setInvoices(data.data);
+          setQuotations(data.data);
           setOverview(data.overview);
         }
       } catch (error) {
-        console.error("Failed to fetch invoices:", error);
+        console.error("Failed to fetch quotations:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchInvoices();
+    fetchQuotations();
   }, [BASE_URL]);
 
-  // ✅ Delete invoice function
-  const deleteInvoice = async (id: number) => {
+  const deleteQuotation = async (id: number) => {
     try {
       setDeletingId(id);
-      const response = await fetch(`${BASE_URL}/professionals/invoices/delete/${id}`, {
+      const response = await fetch(`${BASE_URL}/professionals/finances/quotations/delete/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
       });
 
-      if (!response.ok) throw new Error("Failed to delete invoice");
+      if (!response.ok) throw new Error("Failed to delete quotation");
 
-      // ✅ Remove from state
-      setInvoices((prev) => prev.filter((inv) => inv.id !== id));
-      setInvoiceToDelete(null);
-      toast.success("Invoice deleted successfully!");
+      setQuotations((prev) => prev.filter((q) => q.id !== id));
+      setQuotationToDelete(null);
+      toast.success("Quotation deleted successfully!");
     } catch (err) {
       console.error("Delete failed:", err);
-      toast.error("Failed to delete invoice. Please try again.");
+      toast.error("Failed to delete quotation. Please try again.");
     } finally {
       setDeletingId(null);
     }
   };
 
-  // ✅ Filter/Search logic
-  const filteredInvoices = useMemo(() => {
-    return (invoices || []).filter((inv) => {
+  const filteredQuotations = useMemo(() => {
+    return (quotations || []).filter((q) => {
       const matchesSearch =
-        inv.invoice_no.toLowerCase().includes(search.toLowerCase()) ||
-        `${inv.customer?.firstname} ${inv.customer?.lastname}`
+        q.quotation_no.toLowerCase().includes(search.toLowerCase()) ||
+        `${q.customer?.firstname} ${q.customer?.lastname}`
           .toLowerCase()
           .includes(search.toLowerCase());
 
-      const matchesStatus = statusFilter === "All" ? true : inv.status === statusFilter;
+      const matchesStatus = statusFilter === "All" ? true : q.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [invoices, search, statusFilter]);
+  }, [quotations, search, statusFilter]);
 
   const clearFilters = () => {
     setSearch("");
@@ -128,24 +121,23 @@ export default function InvoicesPage() {
       {/* PAGE TITLE */}
       <HeaderTitleCard
         onGoBack={handleGoBack}
-        title="Invoices"
-        description="Track and manage all your invoices in one place."
+        title="Quotations"
+        description="View and manage all quotations created for your clients."
       >
         <div className="flex flex-col md:flex-row gap-2">
-          <Link href="invoices/new" className="btn-primary flex items-center justify-center">
+          <Link href="quotations/new" className="btn-primary flex items-center justify-center">
             <Icons.plus />
-            <span>Generate Invoice</span>
+            <span>Generate Quotation</span>
           </Link>
         </div>
       </HeaderTitleCard>
 
       {/* OVERVIEW CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <StatCard title="Total Billed" value={overview ? `₦${overview.total_billed.toLocaleString()}` : "₦0"} icon={Icons.arrowUp} mainBg="bg-white" iconBg="bg-purple-100" mainText="text-gray-900" iconText="text-purple-800" valueTextSize="text-md"/>
-        <StatCard title="Paid" value={overview ? `₦${overview.total_paid.toLocaleString()}` : "₦0"} icon={Icons.cash} mainBg="bg-white" iconBg="bg-green-100" mainText="text-gray-900" iconText="text-green-800" valueTextSize="text-md"/>
-        <StatCard title="Unpaid" value={overview ? `₦${overview.total_unpaid.toLocaleString()}` : "₦0"} icon={Icons.cashPending} mainBg="bg-white" iconBg="bg-yellow-100" mainText="text-gray-900" iconText="text-yellow-800" valueTextSize="text-md"/>
-        <StatCard title="Overdue" value={overview ? `₦${overview.total_overdue.toLocaleString()}` : "₦0"} icon={Icons.arrowDown} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" valueTextSize="text-md"/>
-        <StatCard title="Partially Paid" value={overview ? `₦${overview.total_partially_paid.toLocaleString()}` : "₦0"} icon={Icons.refresh} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" valueTextSize="text-md"/>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard title="Total Quotations" value={overview ? `${overview.total_quoted}` : "0"} icon={FileText} mainBg="bg-white" iconBg="bg-blue-100" mainText="text-gray-900" iconText="text-blue-800" valueTextSize="text-md" />
+        <StatCard title="Accepted" value={overview ? `${overview.accepted}` : "0"} icon={CheckCircle2} mainBg="bg-white" iconBg="bg-green-100" mainText="text-gray-900" iconText="text-green-800" valueTextSize="text-md" />
+        <StatCard title="Pending" value={overview ? `${overview.pending}` : "0"} icon={Clock} mainBg="bg-white" iconBg="bg-yellow-100" mainText="text-gray-900" iconText="text-yellow-800" valueTextSize="text-md" />
+        <StatCard title="Rejected" value={overview ? `${overview.rejected}` : "0"} icon={XCircle} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" valueTextSize="text-md" />
       </div>
 
       {/* FILTER BAR */}
@@ -153,7 +145,7 @@ export default function InvoicesPage() {
         <div className="relative w-full md:w-64">
           <input
             type="text"
-            placeholder="Search invoice or customer..."
+            placeholder="Search quotation or customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -169,16 +161,18 @@ export default function InvoicesPage() {
           className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 w-full md:w-40"
         >
           <option value="All">All Statuses</option>
-          <option value="Paid">Paid</option>
-          <option value="Unpaid">Unpaid</option>
-          <option value="Overdue">Overdue</option>
-          <option value="Partially Paid">Partially Paid</option>
+          <option value="Pending">Pending</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
         </select>
 
         <div className="hidden md:block md:flex-grow"></div>
 
         <div className="flex items-center justify-end space-x-2 w-full md:w-auto">
-          <button onClick={clearFilters} className="text-sm text-gray-600 hover:text-primary-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 font-medium rounded-lg">
+          <button
+            onClick={clearFilters}
+            className="text-sm text-gray-600 hover:text-primary-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 font-medium rounded-lg"
+          >
             Clear Filters
           </button>
           <button className="p-2 text-gray-500 cursor-pointer hover:text-primary-600 hover:bg-gray-200 bg-gray-100 rounded-full">
@@ -191,27 +185,23 @@ export default function InvoicesPage() {
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <DataTable
           columns={[
-            { label: "Invoice #", field: "invoice_no" },
+            { label: "Quotation #", field: "quotation_no" },
             { label: "Customer", render: (row) => `${row.customer.firstname} ${row.customer.lastname}` },
             { label: "Issue Date", field: "issue_date" },
-            { label: "Due Date", field: "due_date" },
+            { label: "Expiry Date", field: "valid_until" },
             { label: "Total", render: (row) => `₦${row.total.toLocaleString()}`, alignRight: true },
-            { label: "Amount Paid", render: (row) => `₦${row.paid_amount.toLocaleString()}`, alignRight: true },
-            { label: "Balance", render: (row) => `₦${Number(row.remaining_balance).toLocaleString()}`, alignRight: true },
             {
               label: "Status",
               render: (row) => (
                 <span
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    row.status === "Paid"
+                    row.status === "Accepted"
                       ? "bg-green-100 text-green-800"
-                      : row.status === "Unpaid"
-                      ? "bg-red-100 text-red-800"
-                      : row.status === "Partially Paid"
+                      : row.status === "Pending"
                       ? "bg-yellow-100 text-yellow-800"
-                      : row.status === "Overdue"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-black text-white"
+                      : row.status === "Rejected"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
                   }`}
                 >
                   {row.status}
@@ -219,20 +209,26 @@ export default function InvoicesPage() {
               ),
             },
           ]}
-          data={filteredInvoices}
+          data={filteredQuotations}
           loading={loading}
           error={error}
           itemsPerPage={10}
           actions={(row) => (
             <>
-              <Link href={`/finance/invoices/view/${row.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+              <Link
+                href={`/finance/quotations/view/${row.id}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+              >
                 <Eye className="w-4 h-4 text-gray-500" /> View
               </Link>
-              <Link href={`/finance/invoices/edit/${row.id}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+              <Link
+                href={`/finance/quotations/edit/${row.id}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+              >
                 <Pencil className="w-4 h-4 text-gray-500" /> Edit
               </Link>
               <button
-                onClick={() => setInvoiceToDelete(row)}
+                onClick={() => setQuotationToDelete(row)}
                 className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer transition"
               >
                 <Trash2 className="w-4 h-4 text-red-500" /> Delete
@@ -242,18 +238,18 @@ export default function InvoicesPage() {
         />
       </div>
 
-      {/* ✅ Delete Modal */}
+      {/* DELETE MODAL */}
       <DeleteConfirmModal
-        isOpen={!!invoiceToDelete}
-        onCancel={() => setInvoiceToDelete(null)}
-        onConfirm={() => invoiceToDelete && deleteInvoice(invoiceToDelete.id)}
-        title="Delete Invoice"
+        isOpen={!!quotationToDelete}
+        onCancel={() => setQuotationToDelete(null)}
+        onConfirm={() => quotationToDelete && deleteQuotation(quotationToDelete.id)}
+        title="Delete Quotation"
         message={
-          invoiceToDelete
-            ? `Are you sure you want to delete invoice #${invoiceToDelete.invoice_no} for ${invoiceToDelete.customer.firstname} ${invoiceToDelete.customer.lastname}?`
+          quotationToDelete
+            ? `Are you sure you want to delete quotation #${quotationToDelete.quotation_no} for ${quotationToDelete.customer.firstname} ${quotationToDelete.customer.lastname}?`
             : ""
         }
-        deleting={deletingId === invoiceToDelete?.id}
+        deleting={deletingId === quotationToDelete?.id}
       />
     </DashboardLayout>
   );
