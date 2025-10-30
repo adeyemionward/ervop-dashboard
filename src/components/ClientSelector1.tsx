@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Select from "react-select";
 import { useClientData } from "@/hooks/useClientData";
 
@@ -28,7 +28,7 @@ interface ClientSelectorProps {
   selectedInvoice?: string;
   setSelectedInvoice?: (id: string) => void;
   contacts: Contact[];
-  showInvoices?: boolean; // ✅ New optional prop
+  showInvoices?: boolean;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
@@ -43,7 +43,7 @@ export default function ClientSelector({
   selectedInvoice,
   setSelectedInvoice,
   contacts,
-  showInvoices = true, // ✅ destructure here + set default value
+  showInvoices = true,
 }: ClientSelectorProps) {
   const {
     loadingContacts,
@@ -57,9 +57,7 @@ export default function ClientSelector({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
 
-  
-
-  // When client changes, reset dependent fields
+  // Reset invoices when client changes
   useEffect(() => {
     if (selectedClient) {
       setSelectedInvoice?.("");
@@ -67,55 +65,40 @@ export default function ClientSelector({
     }
   }, [selectedClient, setSelectedInvoice]);
 
-  // Auto-stamp project when clientProjects are loaded
+  // Clear invalid project if it no longer exists
   useEffect(() => {
-    if (selectedProject && clientProjects.length > 0) {
-      const projectExists = clientProjects.find(
-        (p) => p.id.toString() === selectedProject
-      );
-      if (projectExists) {
-        setSelectedProject(projectExists.id.toString());
-      }
-    }
-  }, [clientProjects, selectedProject, setSelectedProject]);
+    if (!selectedProject) return;
+    const exists = clientProjects.some((p) => p.id.toString() === selectedProject);
+    if (!exists) setSelectedProject("");
+  }, [clientProjects]);
 
-  // Auto-stamp appointment when clientAppointments are loaded
+  // Clear invalid appointment if it no longer exists
   useEffect(() => {
-    if (selectedAppointment && clientAppointments.length > 0) {
-      const apptExists = clientAppointments.find(
-        (a) => a.id.toString() === selectedAppointment
-      );
-      if (apptExists) {
-        setSelectedAppointment(apptExists.id.toString());
-      }
-    }
-  }, [clientAppointments, selectedAppointment, setSelectedAppointment]);
+    if (!selectedAppointment) return;
+    const exists = clientAppointments.some(
+      (a) => a.id.toString() === selectedAppointment
+    );
+    if (!exists) setSelectedAppointment("");
+  }, [clientAppointments]);
 
-  // Auto-select purpose based on preloaded project_id / appointment_id
+  // Auto-set purpose if preloaded
   useEffect(() => {
-  // ✅ Only auto-set the purpose if the user hasn't already selected one manually
-  // or if both project and appointment are empty
-  if (!selectedProject && !selectedAppointment) return;
+    if (!selectedProject && !selectedAppointment) return;
+    setPurpose((prev) => {
+      if (prev === "appointment" && selectedAppointment) return prev;
+      if (prev === "project" && selectedProject) return prev;
+      if (selectedProject) return "project";
+      if (selectedAppointment) return "appointment";
+      return prev;
+    });
+  }, [selectedProject, selectedAppointment]);
 
-  setPurpose((prev) => {
-    // Don't override if the user manually selected a purpose
-    if (prev === "appointment" && selectedAppointment) return prev;
-    if (prev === "project" && selectedProject) return prev;
-
-    if (selectedProject) return "project";
-    if (selectedAppointment) return "appointment";
-    return prev;
-  });
-}, [selectedProject, selectedAppointment]);
-
-  // ✅ SINGLE SOURCE OF TRUTH: Reset and fetch invoices when purpose/project/appointment changes
+  // Fetch invoices when project/appointment/purpose changes
   useEffect(() => {
-    if (!showInvoices) return; // ✅ Skip invoice logic entirely
-    // Reset invoice first
+    if (!showInvoices) return;
     setSelectedInvoice?.("");
     setInvoices([]);
 
-    // Don't fetch if nothing is selected
     if (!selectedProject && !selectedAppointment) return;
 
     const fetchInvoices = async () => {
@@ -131,22 +114,9 @@ export default function ClientSelector({
         const res = await fetch(endpoint, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-      
         const result = await res.json();
-        
-        // ✅ FIX: Safe access to prevent "length" error
         const fetchedInvoices = result.status && Array.isArray(result.data) ? result.data : [];
         setInvoices(fetchedInvoices);
-
-        // ✅ Auto-select invoice after invoices are loaded
-        if (selectedInvoice && fetchedInvoices.length > 0) {
-          const existingInvoice = fetchedInvoices.find(
-            (inv: Invoice) => inv.id.toString() === selectedInvoice.toString()
-          );
-          if (existingInvoice) {
-            setSelectedInvoice?.(existingInvoice.id.toString());
-          }
-        }
       } catch (err) {
         console.error("Error fetching invoices:", err);
         setInvoices([]);
@@ -156,26 +126,50 @@ export default function ClientSelector({
     };
 
     fetchInvoices();
-  }, [selectedProject, selectedAppointment, purpose,  showInvoices]);
+  }, [selectedProject, selectedAppointment, purpose, showInvoices, setSelectedInvoice]);
 
-  // ✅ Additional safety: Auto-select invoice after invoices are loaded
-  useEffect(() => {
-    if (selectedInvoice && invoices.length > 0) {
-      const inv = invoices.find(i => i.id.toString() === selectedInvoice.toString());
-      if (inv && selectedInvoice !== inv.id.toString()) {
-        setSelectedInvoice?.(inv.id.toString());
-      }
-    }
-  }, [invoices, selectedInvoice, setSelectedInvoice]);
+  // Memoized value objects to prevent dropdown flicker
+  const projectValue = useMemo(() => {
+    const p = clientProjects.find((p) => p.id.toString() === selectedProject);
+    return p ? { value: p.id.toString(), label: p.title } : null;
+  }, [clientProjects, selectedProject]);
+
+  const appointmentValue = useMemo(() => {
+    const a = clientAppointments.find((a) => a.id.toString() === selectedAppointment);
+    if (!a) return null;
+    const dateObj = new Date(`${a.date}T${a.time}`);
+    return {
+      value: a.id.toString(),
+      label: `${dateObj.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}, ${dateObj.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })} (${a.appointment_status})`,
+    };
+  }, [clientAppointments, selectedAppointment]);
+
+  const invoiceValue = useMemo(() => {
+    const inv = invoices.find((i) => i.id.toString() === selectedInvoice);
+    if (!inv) return null;
+    return {
+      value: inv.id.toString(),
+      label: `${inv.invoice_no} — ₦${Number(inv.amount).toLocaleString()} (${Number(
+        inv.outstanding_balance
+      ).toLocaleString()} outstanding)`,
+    };
+  }, [invoices, selectedInvoice]);
 
   return (
     <div className="space-y-6">
-      {/* Client selector */}
+      {/* Client Selector */}
       <div>
-        <label className="block text-lg font-medium text-gray-700 mb-1">
-          Choose Client
-        </label>
-        <Select inputId="client-select"
+        <label className="block text-lg font-medium text-gray-700 mb-1">Choose Client</label>
+        <Select
+          inputId="client-select"
           isLoading={loadingContacts}
           options={contacts.map((c) => ({
             value: c.id.toString(),
@@ -183,15 +177,9 @@ export default function ClientSelector({
           }))}
           value={
             selectedClient
-              ? {
-                  value: selectedClient,
-                  label:
-                    contacts.find((c) => c.id.toString() === selectedClient)
-                      ? `${contacts.find((c) => c.id.toString() === selectedClient)?.firstname} ${
-                          contacts.find((c) => c.id.toString() === selectedClient)?.lastname
-                        } (${contacts.find((c) => c.id.toString() === selectedClient)?.phone})`
-                      : "",
-                }
+              ? contacts.find((c) => c.id.toString() === selectedClient)
+                ? { value: selectedClient, label: `${contacts.find(c => c.id.toString() === selectedClient)?.firstname} ${contacts.find(c => c.id.toString() === selectedClient)?.lastname} (${contacts.find(c => c.id.toString() === selectedClient)?.phone})` }
+                : null
               : null
           }
           onChange={(option) => setSelectedClient(option?.value || "")}
@@ -201,12 +189,10 @@ export default function ClientSelector({
         />
       </div>
 
-      {/* Purpose radio buttons */}
+      {/* Purpose */}
       {selectedClient && (
         <div>
-          <label className="block text-lg font-medium text-gray-700 mb-2">
-            What is this meant for?
-          </label>
+          <label className="block text-lg font-medium text-gray-700 mb-2">What is this meant for?</label>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -219,7 +205,6 @@ export default function ClientSelector({
               />
               <span className="text-gray-700">Project</span>
             </label>
-
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
@@ -235,38 +220,27 @@ export default function ClientSelector({
         </div>
       )}
 
-      {/* Project dropdown */}
+      {/* Project Dropdown */}
       {selectedClient && purpose === "project" && (
         <div>
-          <label className="block text-lg font-medium text-gray-700 mb-1">
-            Project
-          </label>
-          <Select inputId="project-select"
+          <label className="block text-lg font-medium text-gray-700 mb-1">Project</label>
+          <Select
+            inputId="project-select"
             isLoading={projectsLoading}
-            options={clientProjects.map((p) => ({
-              value: p.id.toString(),
-              label: p.title,
-            }))}
-            value={
-              selectedProject
-                ? clientProjects
-                    .filter((p) => p.id.toString() === selectedProject)
-                    .map((p) => ({ value: p.id.toString(), label: p.title }))[0] || null
-                : null
-            }
+            options={clientProjects.map((p) => ({ value: p.id.toString(), label: p.title }))}
+            value={projectValue}
             onChange={(option) => setSelectedProject(option?.value || "")}
             placeholder={projectsLoading ? "Loading projects..." : "Select Project"}
           />
         </div>
       )}
 
-      {/* Appointment dropdown */}
+      {/* Appointment Dropdown */}
       {selectedClient && purpose === "appointment" && (
         <div>
-          <label className="block text-lg font-medium text-gray-700 mb-1">
-            Appointment
-          </label>
-          <Select inputId="appointment-select"
+          <label className="block text-lg font-medium text-gray-700 mb-1">Appointment</label>
+          <Select
+            inputId="appointment-select"
             isLoading={appointmentsLoading}
             options={clientAppointments.map((a) => {
               const dateObj = new Date(`${a.date}T${a.time}`);
@@ -283,70 +257,31 @@ export default function ClientSelector({
                 })} (${a.appointment_status})`,
               };
             })}
-            value={
-              selectedAppointment
-                ? clientAppointments
-                    .filter(a => a.id.toString() === selectedAppointment) // ✅ FIXED: Changed from Number() to toString()
-                    .map(a => {
-                      const dateObj = new Date(`${a.date}T${a.time}`);
-                      return {
-                        value: a.id.toString(),
-                        label: `${dateObj.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}, ${dateObj.toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })} (${a.appointment_status})`,
-                      };
-                    })[0] || null
-                : null
-            }
+            value={appointmentValue}
             onChange={(option) => setSelectedAppointment(option?.value || "")}
             placeholder={appointmentsLoading ? "Loading appointments..." : "Select Appointment"}
           />
         </div>
       )}
 
-      {/* Invoice dropdown */}
+      {/* Invoice Dropdown */}
       {showInvoices && selectedClient && (selectedProject || selectedAppointment) && (
         <div>
-          <label className="block text-lg font-medium text-gray-700 mb-1">
-            Invoice
-          </label>
-          <Select inputId="invoice-select"
+          <label className="block text-lg font-medium text-gray-700 mb-1">Invoice</label>
+          <Select
+            inputId="invoice-select"
             key={`${selectedProject || selectedAppointment}-${invoices.length}`}
             isLoading={loadingInvoices}
-            options={(invoices || []).map((inv) => ({
+            options={invoices.map((inv) => ({
               value: inv.id.toString(),
               label: `${inv.invoice_no} — ₦${Number(inv.amount).toLocaleString()} (${Number(
                 inv.outstanding_balance
               ).toLocaleString()} outstanding)`,
             }))}
-            value={
-              selectedInvoice
-                ? (() => {
-                    const inv = (invoices || []).find(
-                      (i) => i.id.toString() === selectedInvoice.toString() // ✅ FIXED: Consistent string comparison
-                    );
-                    return inv
-                      ? {
-                          value: inv.id.toString(),
-                          label: `${inv.invoice_no} — ₦${Number(inv.amount).toLocaleString()} (${Number(
-                            inv.outstanding_balance
-                          ).toLocaleString()} outstanding)`,
-                        }
-                      : null;
-                  })()
-                : null
-            }
+            value={invoiceValue}
             onChange={(option) => setSelectedInvoice?.(option?.value || "")}
             placeholder={loadingInvoices ? "Loading invoices..." : "Select Invoice"}
-            noOptionsMessage={() =>
-              loadingInvoices ? "Loading invoices..." : "No outstanding invoices"
-            }
+            noOptionsMessage={() => (loadingInvoices ? "Loading invoices..." : "No outstanding invoices")}
           />
         </div>
       )}

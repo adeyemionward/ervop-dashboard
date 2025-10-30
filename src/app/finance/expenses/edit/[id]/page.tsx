@@ -10,6 +10,7 @@ import { useClientData } from "@/hooks/useClientData";
 import ClientSelector from "@/components/ClientSelector1";
 import toast from "react-hot-toast";
 import { useGoBack } from "@/hooks/useGoBack";
+import { useMutation } from "@tanstack/react-query";
 
 type ExpenseItem = {
   id: number;
@@ -48,13 +49,89 @@ export default function EditExpensePage() {
 
   const { contacts } = useClientData("");
 
-  const [categories, setCategories] = useState<Category[]>([
-    { title: "Logistics" },
-    { title: "Materials" },
-    { title: "Software" },
-    { title: "Equipment" },
-    { title: "Other Expense" },
-  ]);
+ const defaultCategories: Category[] = [
+  { title: "Logistics" },
+  { title: "Materials" },
+  { title: "Software" },
+  { title: "Equipment" },
+  { title: "Other Expense" },
+];
+const [categories, setCategories] = useState<Category[]>(defaultCategories);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/professionals/transactions/listCategory/`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+  
+        const data: Category[] = await res.json(); // assume API returns Category[]
+  
+        if (Array.isArray(data)) {
+          const merged: Category[] = [...data, ...defaultCategories];
+  
+          // Deduplicate by title
+          const uniqueCategories = merged.filter(
+            (cat, index, self) =>
+              index === self.findIndex(c => c.title === cat.title)
+          );
+  
+          setCategories(uniqueCategories);
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+  
+    fetchCategories();
+  }, []);
+
+  const createCategoryMutation = useMutation<Category, Error, string>({
+    mutationFn: async (title: string) => {
+      const payload = { type: "expense", title };
+      const res = await fetch(`${BASE_URL}/professionals/transactions/createCategory/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to create category");
+      const json = await res.json();
+      return json.data as Category;
+    },
+    onMutate: () => {
+      setIsSubmitting(true);
+    },
+    onSuccess: (category) => {
+      setCategories((prev: Category[]) => [...prev, category]);
+      setExpenseData((prev) => ({ ...prev, category: category.title }));
+      setNewCategory("");
+      setIsCategoryModalOpen(false);
+      toast.success("Category recorded successfully!");
+    },
+    onError: (err: Error) => {
+      console.error(err);
+      toast.error("Could not create category. Please try again.");
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    },
+  });
+  
+  
+  
+  
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCategory.trim()) return;
+      createCategoryMutation.mutate(newCategory);
+    };
 
   const [expenseData, setExpenseData] = useState<ExpenseData>({
     title: "",
@@ -63,6 +140,11 @@ export default function EditExpensePage() {
     paymentMethod: "Cash",
     items: [{ id: Date.now(), description: "Default item", amount: 0 }],
   });
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch Transaction Details
   useEffect(() => {
@@ -91,10 +173,10 @@ export default function EditExpensePage() {
           paymentMethod: data.payment_method || "Cash",
           items:
             data.items && data.items.length > 0
-              ? data.items.map((it: any) => ({
+              ? data.items.map((it: ExpenseItem) => ({
                   id: it.id || Date.now(),
                   description: it.description || "",
-                  amount: parseFloat(it.amount) || 0,
+                  amount: it.amount || 0,
                 }))
               : [{ id: Date.now(), description: "Default item", amount: 0 }],
         });
@@ -403,6 +485,14 @@ export default function EditExpensePage() {
                   </option>
                 ))}
               </select>
+               {/* New link/button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      className="mt-2 text-sm text-purple-600 hover:underline"
+                    >
+                      + Create Expense Category
+                    </button>
             </div>
             </div>
 
@@ -432,6 +522,41 @@ export default function EditExpensePage() {
           </form>
         </div>
       </div>
+        {/* modal for add category */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-10 z-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+                <h2 className="text-lg font-semibold mb-4">Create Expense Category</h2>
+                <form onSubmit={handleSubmit}>
+                  <input
+                    type="text"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    placeholder="Enter category title"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(false)}
+                      className="px-4 py-2 text-sm bg-gray-200 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </form>
+
+            </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -738,7 +738,7 @@ const createCategoryMutation = useMutation<Category, Error, string>({
 
             </div>
         </div>
-        )}
+      )}
   </div>
     </DashboardLayout>
   );
