@@ -52,16 +52,19 @@ export default function LoginPage() {
   
                   throw new Error(result.message || 'Login failed. Please fix the errors.');
               }else{
-                toast.success(result.message || 'Login successful!');
-                //store user info in localStorage if needed
-               
-                localStorage.setItem('user', JSON.stringify(result.user));
-                localStorage.setItem('token', result.token);
-                //redirect to the dashboard or home page
-                router.push('/dashboard');
-                
+                toast.success(result.message || "Login successful!");
+
+                localStorage.setItem("user", JSON.stringify(result.user));
+                localStorage.setItem("token", result.token);
+
+                const redirectTo = localStorage.getItem("redirectAfterLogin") || "/dashboard";
+                localStorage.removeItem("redirectAfterLogin");
+
+                router.push(redirectTo);
+
                 setIsSubmitting(false);
                 setIsLoading(false);
+
               }
   
           } catch (error: unknown) {
@@ -115,7 +118,7 @@ export default function LoginPage() {
                 <div className="text-left mb-8">
                     <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Login your account</h2>
                     <p className="mt-2 text-gray-500">
-                       {`Don't have an account?`}
+                       {`Don't have an account? `}
                         <Link href="/auth/registration" className="font-semibold text-purple-600 hover:underline">
                         Create a New Account
                         </Link>

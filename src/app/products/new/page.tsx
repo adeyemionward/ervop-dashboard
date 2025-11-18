@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
 import Link from "next/link";
 import { useState, ChangeEvent, useRef } from "react";
-import Image from "next/image";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 

@@ -11,6 +11,7 @@
 
     // Redirect to login page
     if (router) {
+      // localStorage.setItem("redirectAfterLogin", window.location.pathname);
       router.push('/auth/login');
     } else {
       window.location.href = '/auth/login';

@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import DashboardLayout from "@/components/DashboardLayout";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
-interface Contact {
+export interface Contact {
   id: number;
   firstname: string;
   lastname: string;
   phone: string;
 }
 
-interface Service {
+export interface Service {
   id: number;
   name: string;
+  description: string;
+  service_type: string;
+  status: string;
+  price: string;
 }
 
 interface Task {
@@ -20,86 +26,110 @@ interface Task {
   description: string;
 }
 
-interface CreateProjectModalProps {
-  onClose: () => void;
-  onCreated?: () => void; // ✅ callback to refresh parent list
-}
-
-export default function CreateProjectModal({ onClose, onCreated }: CreateProjectModalProps) {
+export default function CreateProject() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+
+  const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
-  const [selectedClientId, setSelectedClientId] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [projectTitle, setProjectTitle] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+
+  const [projectTitle, setProjectTitle] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
+  // Fetch contacts
   useEffect(() => {
-    if (!open) return;
-
-    const token = localStorage.getItem('token');
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    const fetchData = async () => {
+    setLoadingContacts(true);
+    const fetchContacts = async () => {
       try {
-        const [contactsRes, servicesRes] = await Promise.all([
-          fetch(`${BASE_URL}/professionals/contacts/list/`, { headers }),
-          fetch(`${BASE_URL}/professionals/services/list`, { headers }),
-        ]);
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
 
-        const contactsData = await contactsRes.json();
-        const servicesData = await servicesRes.json();
-
-        setContacts(Array.isArray(contactsData.data) ? contactsData.data : []);
-        setServices(Array.isArray(servicesData.services) ? servicesData.services : []);
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to load data.');
+        const res = await fetch("http://127.0.0.1:8000/api/v1/professionals/contacts/list/", { headers });
+        const result = await res.json();
+        setContacts(Array.isArray(result.data) ? result.data : []);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load clients.");
+        setContacts([]);
       } finally {
         setLoadingContacts(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  // Fetch services
+  useEffect(() => {
+    setLoadingServices(true);
+    const fetchServices = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        const res = await fetch("http://127.0.0.1:8000/api/v1/professionals/services/list", { headers });
+        const result = await res.json();
+        setServices(Array.isArray(result.services) ? result.services : []);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load services.");
+        setServices([]);
+      } finally {
         setLoadingServices(false);
       }
     };
+    fetchServices();
+  }, []);
 
-    fetchData();
-  }, [open]);
-
-  const addTask = () => setTasks([...tasks, { id: Date.now(), description: '' }]);
+  // Task handlers
+  const addTask = () => setTasks([...tasks, { id: Date.now(), description: "" }]);
   const removeTask = (id: number) => setTasks(tasks.filter((t) => t.id !== id));
-  const updateTask = (id: number, val: string) =>
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, description: val } : t)));
+  const updateTask = (id: number, value: string) =>
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, description: value } : t)));
 
   const generateAITasks = async () => {
-    if (!projectTitle) return toast.error('Enter a project title first!');
+    if (!projectTitle) {
+      toast.error("Please enter a project title first!");
+      return;
+    }
     setLoadingAI(true);
-    setTimeout(() => {
+    try {
+      // Fake AI response, replace with your OpenAI API call
       const aiTasks = [
-        `Research requirements for ${projectTitle}`,
-        `Draft design for ${projectTitle}`,
-        `Develop prototype for ${projectTitle}`,
+        `Analyze requirements for ${projectTitle}`,
+        `Design a solution for ${projectTitle}`,
+        `Develop initial prototype for ${projectTitle}`,
       ];
-      setTasks(aiTasks.map((desc, i) => ({ id: Date.now() + i, description: desc })));
-      toast.success('AI tasks generated!');
+      setTasks(aiTasks.map((desc, idx) => ({ id: Date.now() + idx, description: desc })));
+      toast.success("AI generated tasks!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate AI tasks.");
+    } finally {
       setLoadingAI(false);
-    }, 1000);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClientId || !selectedServiceId || !projectTitle)
-      return toast.error('Please fill all required fields.');
-
+    if (!selectedClientId || !selectedServiceId || !projectTitle) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
@@ -107,35 +137,51 @@ export default function CreateProjectModal({ onClose, onCreated }: CreateProject
         contact_id: selectedClientId,
         service_id: selectedServiceId,
         title: projectTitle,
+        start_date: (document.getElementById("startDate") as HTMLInputElement)?.value,
+        end_date: (document.getElementById("dueDate") as HTMLInputElement)?.value,
+        status: "On-Hold",
+        description: (document.getElementById("description") as HTMLTextAreaElement)?.value,
+        cost: (document.getElementById("projectValue") as HTMLInputElement)?.value,
         tasks: tasks.map((t) => t.description),
       };
 
-      const res = await fetch(`${BASE_URL}/professionals/projects/create/`, {
-        method: 'POST',
+      const res = await fetch("http://127.0.0.1:8000/api/v1/professionals/projects/create/", {
+        method: "POST",
         headers,
         body: JSON.stringify(payload),
       });
       const result = await res.json();
 
       if (result.status) {
-        toast.success('Project created!');
-        onClose();
-        if (onCreated) onCreated();
+        toast.success("Project created successfully!");
+        // Optionally redirect or clear form
       } else {
-        toast.error(result.message || 'Failed to create project.');
+        toast.error(result.message || "Failed to create project.");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Error creating project.');
+    } catch (err) {
+      console.error(err);
+      toast.error("Error submitting project.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!open) return null;
-
   return (
-    
+    <DashboardLayout>
+      <div className="w-full max-w-4xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <Link href="/projects" className="flex items-center text-sm text-gray-500 hover:text-purple-600 mb-2 w-fit">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Projects
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
+        </div>
+
+        {/* Form */}
+        <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
           <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Project Title */}
             <div>
@@ -237,6 +283,8 @@ export default function CreateProjectModal({ onClose, onCreated }: CreateProject
                 </button>
             </div>
           </form>
-       
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }

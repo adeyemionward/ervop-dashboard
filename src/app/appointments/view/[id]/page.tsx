@@ -82,8 +82,8 @@ export default function AppointmentDetailsPage() {
     isFileModalOpen, setIsFileModalOpen
   } = useAppointmentState();
   
-    const { appointment: fetchedAppointment, fetchAppointment, isLoading, error } = AppointmentApi(appointmentIdFromUrl);
-
+    const { appointment: fetchedAppointment, invoices:fetchedInvoices,  fetchAppointment, isLoading, error } = AppointmentApi(appointmentIdFromUrl);
+    
 
 
      const [isOpen, setIsOpen] = useState(false);
@@ -441,14 +441,14 @@ export default function AppointmentDetailsPage() {
                         </button>
 
                         {/* Navigation Link */}
-                        <Link
-                            href="/appointments/availability"
-                            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                            onClick={() => setIsOpen(false)}
+                        <button
+                           
+                            className="flex w-full items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsRescheduleModalOpen(true)}
                         >
                             <Clock className="w-4 h-4 text-purple-600" />
                             <span>Reschedule</span>
-                        </Link>
+                        </button>
 
                         <Link
                             href="/booking-link"
@@ -517,21 +517,14 @@ export default function AppointmentDetailsPage() {
                             }
                             >
                             <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-                                {invoices && invoices.length > 0 ? (
-                                invoices.map((invoice) => {
+                                {fetchedInvoices && fetchedInvoices.length > 0 ? (
+                                fetchedInvoices.map((invoice) => {
                                     const subtotal = invoice.items?.reduce((acc, item) => {
                                     const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
                                     return acc + base;
                                     }, 0) ?? 0;
 
-                                    // const discountPercentage = invoice.discountAmount ?? 0;
-                                    // const taxPercentage = invoice.taxAmount ?? 0;
-
-                                    // const discount = (subtotal * discountPercentage) / 100;
-                                    // const tax = (subtotal * taxPercentage) / 100;
-
-                                    // const total = subtotal - discount + tax;
-
+                                  
                                     const finalTotal =
                                     subtotal +
                                     (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
@@ -679,10 +672,7 @@ export default function AppointmentDetailsPage() {
                             </div>
                         </InfoCard>
                     )}
-            
-
                 </div>
-            
 
                 <div className="lg:col-span-1 space-y-8">
                     <div className="lg:col-span-1 space-y-8">
@@ -1017,39 +1007,40 @@ export default function AppointmentDetailsPage() {
             )}
 
             {isNoteModalOpen && (
-            <NoteModal
-                isOpen={isNoteModalOpen}
-                onClose={() => {
-                setIsNoteModalOpen(false);
-                setNoteToEdit(null);
-                }}
-                noteToEdit={noteToEdit}
-                appointmentId={appointmentIdFromUrl} // string
-                onNoteSaved={(savedNote, isUpdate) => {
-                setAppointment((prev: AppointmentDisplayData | null) => {
-            if (!prev) return prev;
+                <NoteModal
+                    isOpen={isNoteModalOpen}
+                    onClose={() => {
+                    setIsNoteModalOpen(false);
+                    setNoteToEdit(null);
+                    }}
+                    noteToEdit={noteToEdit}
+                    entityId={appointmentIdFromUrl} // string
+                    type="appointment"
+                    onNoteSaved={(savedNote, isUpdate) => {
+                        setAppointment((prev: AppointmentDisplayData | null) => {
+                            if (!prev) return prev;
 
-            const noteWithCreatedAt: NoteItem = {
-                ...savedNote,
-                created_at: savedNote.created_at ?? new Date().toISOString(),
-            };
+                            const noteWithCreatedAt: NoteItem = {
+                                ...savedNote,
+                                created_at: savedNote.created_at ?? new Date().toISOString(),
+                            };
 
-            return {
-                ...prev,
-                notesHistory: isUpdate
-                ? prev.notesHistory.map((n) =>
-                    n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
-                    )
-                : [noteWithCreatedAt, ...prev.notesHistory],
-            };
-            });
+                            return {
+                                ...prev,
+                                notesHistory: isUpdate
+                                ? prev.notesHistory.map((n) =>
+                                    n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
+                                    )
+                                : [noteWithCreatedAt, ...prev.notesHistory],
+                            };
+                        });
 
 
 
-            setIsNoteModalOpen(false);
-            setNoteToEdit(null);
-            }}
-        />
+                        setIsNoteModalOpen(false);
+                        setNoteToEdit(null);
+                    }}
+                />
             )}
 
             {isInvoiceModalOpen && (

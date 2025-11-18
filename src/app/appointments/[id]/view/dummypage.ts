@@ -6,24 +6,23 @@ import Link from "next/link";
 import clsx from "clsx";
 import DashboardLayout from "@/components/DashboardLayout";
 import InvoiceModal from "@/components/InvoiceModal"; 
+import AppointmentStatusModal from "@/components/AppointmentStatusModal";
 import NoteModal from "@/components/NoteModal";
 import RecordPaymentModal from "@/components/RecordPaymentModal";
-import {Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle,  FileText, Download, FileImage } from 'lucide-react';
+import {  Clock, Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle,  FileText, Download, FileImage } from 'lucide-react';
 import { formatDate } from "@/app/utils/formatDate";
 import {Invoice } from "@/types/invoice";
 import { downloadFile } from "@/app/utils/downloadFile";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import FileUploadModal from "@/components/FileUploadModal";
-import { PaymentHistoryItem, NoteItem, ProjectDisplayData  } from "@/types/ProjectTypes";
-import { useProjectState } from "@/hooks/useProjectState";
-import { ProjectApi } from "@/app/actions/ProjectApi"; // NEW
+import { PaymentHistoryItem, NoteItem, AppointmentDisplayData  } from "@/types/AppointmentTypes";
+import { useAppointmentState } from "@/hooks/useAppointmentState";
+import { AppointmentApi } from "@/app/actions/AppointmentApi"; // NEW
 
 import Image from "next/image";
 import toast from "react-hot-toast";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
-import QuotationModal from "@/components/QuotationModal";
-import { Quotation } from "@/types/quotation";
 
 // -------------------- HOOKS --------------------
 const useParams = () => {
@@ -47,46 +46,43 @@ const InfoCard: FC<{ title: string; children: React.ReactNode; className?: strin
 
 // -------------------- MAIN COMPONENT --------------------
 
-export default function ProjectDetailsPage() {
+export default function AppointmentDetailsPage() {
   const params = useParams();
-  const projectIdFromUrl = params.id as string;
+  const appointmentIdFromUrl = params.id as string;
   const queryClient = useQueryClient();
-  const [quotations, setQuotations] = useState<Quotation[]>([]);
+
   // 1. STATE & DATA
 
-    // call the project state
+    // call the appointment state
   const {
-    project, setProject,
+    appointment, setAppointment,
     invoices, setInvoices,
     expandedInvoice, setExpandedInvoice,
-    quotationToEdit, setQuotationToEdit,
-    isQuotationModalOpen, setIsQuotationModalOpen,
-
     invoiceToEdit, setInvoiceToEdit,
     isInvoiceModalOpen, setIsInvoiceModalOpen,
-
+    isAppointmentStatusModalOpen, setIsAppointmentStatusModalOpen,
     isNoteModalOpen, setIsNoteModalOpen,
     noteToEdit, setNoteToEdit,
    
     isPaymentModalOpen, setIsPaymentModalOpen,
     selectedInvoiceId, setSelectedInvoiceId,
+    isRescheduleModalOpen, setIsRescheduleModalOpen,
+    newDate, setNewDate,
+    newTime, setNewTime,
+    availableSlots, setAvailableSlots,
+    isLoadingSlots, setIsLoadingSlots,
     paymentToDelete, setPaymentToDelete,
     deletingId, setDeletingId,
-     quotationToDelete, setQuotationToDelete,
-    deletingQuotationId, setDeletingQuotationId,
-
     invoiceToDelete, setInvoiceToDelete,
     deletingInvoiceId, setDeletingInvoiceId,
-
     noteToDelete, setNoteToDelete,
     deletingNoteId, setDeletingNoteId,
     deletingFileId, setDeletingFileId,
     fileToDelete, setFileToDelete,
     isFileModalOpen, setIsFileModalOpen
-  } = useProjectState();
+  } = useAppointmentState();
   
-    const { project: fetchedProject, invoices: fetchedInvoices, quotations:fetchedQuotations, fetchProject, isLoading, error } = ProjectApi(projectIdFromUrl);
-
+    const { appointment: fetchedAppointment, fetchAppointment, isLoading, error } = AppointmentApi(appointmentIdFromUrl);
 
 
 
@@ -97,6 +93,11 @@ export default function ProjectDetailsPage() {
     const fileNameFromPath = (p: string) =>
         p ? p.split("/").pop() || p : "file";
     const isImage = (t: string) => t?.toLowerCase().startsWith("image/");
+    // const isPdf = (t: string) => t?.toLowerCase().includes("pdf");
+
+    // const [isLoading, setIsLoading] = useState(true);
+    // const [error, setError] = useState<string | null>(null);
+    const [token, setToken] = useState<string | null>(null);
 
     //   TABS
     const [activeTab, setActiveTab] = useState("summary");
@@ -115,20 +116,20 @@ export default function ProjectDetailsPage() {
 
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        if (token) setToken(token);
+        }
+    }, []);
     
     // Load on mount
 
     useEffect(() => {
-        if (fetchedProject) {
-            setProject(fetchedProject);
+        if (fetchedAppointment) {
+            setAppointment(fetchedAppointment);
         }
-    }, [fetchedProject, setProject]);
-
-    useEffect(() => {
-    if (fetchedQuotations) {
-        setQuotations(fetchedQuotations);
-    }
-}, [fetchedQuotations]);
+    }, [fetchedAppointment, setAppointment]);
   
     const handleEditInvoiceClick = (invoice: Invoice) => {
         setInvoiceToEdit(invoice);
@@ -142,13 +143,13 @@ export default function ProjectDetailsPage() {
     };
 
     const handleNewPayment = (payment: PaymentHistoryItem) => {
-        setProject(prev => prev ? { ...prev, paymentHistory: [...prev.paymentHistory, payment], paymentStatus: "Paid" } : prev);
+        setAppointment(prev => prev ? { ...prev, paymentHistory: [...prev.paymentHistory, payment], paymentStatus: "Paid" } : prev);
     };
 
     const [searchInvoice, setSearchInvoice] = useState("");
 
-    // only run filter when project is loaded
-    const filteredHistory = project?.paymentHistory?.filter((p) =>
+    // only run filter when appointment is loaded
+    const filteredHistory = appointment?.paymentHistory?.filter((p) =>
         p.invoice_no?.toLowerCase().includes(searchInvoice.toLowerCase())
     ) ?? [];
 
@@ -156,11 +157,6 @@ export default function ProjectDetailsPage() {
             setInvoiceToEdit(null);
             
             setIsInvoiceModalOpen(true);
-        };
-
-        const openCreateQuotationModal = () => {
-            setQuotationToEdit(null); // reset any previous quotation
-            setIsQuotationModalOpen(true);
         };
     
     const deleteInvoiceMutation = useMutation({
@@ -200,53 +196,6 @@ export default function ProjectDetailsPage() {
         }
     });
 
-
-    const deleteQuotationMutation = useMutation({
-    mutationFn: async (id: number) => {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(`${BASE_URL}/professionals/finances/quotations/delete/${id}`, {
-        method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to delete quotation");
-        return data;
-    },
-
-  onMutate: async (id: number) => {
-    // Save previous state before modifying
-    const previousQuotations = quotations;
-
-    // Optimistic update: remove the quotation instantly from UI
-    setQuotations(prev =>
-        prev ? prev.filter(q => q.id !== id) : []
-    );
-
-    setDeletingQuotationId(id);
-
-    return { previousQuotations };
-},
-
-
-  onError: (err, id, context) => {
-    if (context?.previousQuotations) setQuotations(context.previousQuotations);
-    toast.error(err.message || "Failed to delete quotation");
-    setDeletingQuotationId(null);
-  },
-
-  onSuccess: () => {
-    toast.success("Quotation deleted successfully!");
-    setQuotationToDelete(null);
-    setDeletingQuotationId(null);
-  },
-});
-
-
-
     const deletePaymentMutation = useMutation({
         mutationFn: (id: number) => {
             const token = localStorage.getItem("token") || "";
@@ -261,8 +210,8 @@ export default function ProjectDetailsPage() {
         },
         onMutate: async (id: number) => {
             // Optimistic update: Temporarily remove the payment from the UI
-            const previousPayments = project?.paymentHistory;
-            setProject(prev => prev ? {
+            const previousPayments = appointment?.paymentHistory;
+            setAppointment(prev => prev ? {
                 ...prev,
                 paymentHistory: prev.paymentHistory.filter(p => p.id !== id),
             } : null);
@@ -270,15 +219,15 @@ export default function ProjectDetailsPage() {
             return { previousPayments };
         },
         onSuccess: () => {
-            fetchProject(); // 🔥 re-populate both project + invoices states
-            queryClient.invalidateQueries({ queryKey: ["project", projectIdFromUrl] });
+            fetchAppointment(); // 🔥 re-populate both appointment + invoices states
+            queryClient.invalidateQueries({ queryKey: ["appointment", appointmentIdFromUrl] });
             toast.success("Payment deleted successfully!");
             setPaymentToDelete(null);
         },
         onError: (error, variables, context) => {
         // Revert the optimistic update on error
         if (context?.previousPayments) {
-            setProject(prev => {
+            setAppointment(prev => {
                 // If prev is null, return null and don't proceed.
                 if (!prev) {
                     return null;
@@ -308,7 +257,7 @@ export default function ProjectDetailsPage() {
         ({
             mutationFn: async (id: number) => {
                 const token = localStorage.getItem("token") || "";
-                const res = await fetch(`${BASE_URL}/professionals/projects/notes/delete/${id}`, {
+                const res = await fetch(`${BASE_URL}/professionals/appointments/notes/delete/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -322,9 +271,9 @@ export default function ProjectDetailsPage() {
             },
 
             onMutate: (id: number) => {
-                const previousNotes = project?.notesHistory || [];
+                const previousNotes = appointment?.notesHistory || [];
 
-                setProject(prev =>
+                setAppointment(prev =>
                 prev
                     ? {
                         ...prev,
@@ -339,7 +288,7 @@ export default function ProjectDetailsPage() {
 
             onError: (error, id, context) => {
                 if (context?.previousNotes) {
-                setProject(prev =>
+                setAppointment(prev =>
                     prev
                     ? { ...prev, notesHistory: context.previousNotes }
                     : null
@@ -381,7 +330,7 @@ export default function ProjectDetailsPage() {
         }
 
         // ✅ Safely handle possible null
-        setProject((prev) => {
+        setAppointment((prev) => {
         if (!prev) return prev; // keep null if it was null
 
         const updatedDocuments = prev.documents.map((doc) => ({
@@ -404,16 +353,65 @@ export default function ProjectDetailsPage() {
     }
     };
 
+    const handleFetchAvailableSlots = async (date: string) => {
+        console.log("handleFetchAvailableSlots called with date:", date);
+
+        // Only check the date for now
+        if (!date) return;
+
+        setNewTime('');
+        setIsLoadingSlots(true);
+        setAvailableSlots([]);
+
+        try {
+            const response = await fetch(`${BASE_URL}/professionals/appointments/getAvailableSlots?date=${date}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            console.log("Raw response:", response);
+
+            if (!response.ok) throw new Error("Failed to fetch slots");
+
+            const data = await response.json();
+            console.log("Fetched slots:", data);
+
+            setAvailableSlots(data.available_slots || []);
+        } catch (error) {
+            console.error("Fetch error:", error);
+        } finally {
+            setIsLoadingSlots(false);
+        }
+    };
+
+    const handleConfirmReschedule = async () => {
+        if (!newDate || !newTime || !appointment) return;
+        try {
+            const response = await fetch(`${BASE_URL}/professionals/appointments/reschedule/${appointment.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({ date: newDate, time: newTime })
+            });
+            if (!response.ok) throw new Error("Failed to reschedule");
+            setAppointment(prev => prev ? { ...prev, appointmentStatus: 'Rescheduled', date: new Date(newDate + 'T00:00:00').toLocaleDateString('en-US'), time: new Date(`1970-01-01T${newTime}`).toLocaleTimeString('en-US') } : null);
+            setIsRescheduleModalOpen(false);
+        } catch (error) {
+            console.error("Reschedule failed:", error);
+        }
+    };
+
+
+    const formatSlotTime = (time: string) => new Date(`1970-01-01T${time}`).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
+
     if (isLoading) return <DashboardLayout><div className="text-center p-12">Loading...</div></DashboardLayout>;
     if (error) return <DashboardLayout><div className="text-center p-12 text-red-600">{error}</div></DashboardLayout>;
-    if (!project) return <DashboardLayout><div className="text-center p-12">No project data found.</div></DashboardLayout>;
+    if (!appointment) return <DashboardLayout><div className="text-center p-12">No appointment data found.</div></DashboardLayout>;
 
     // -------------------- JSX --------------------
     return (
         <DashboardLayout>
             <HeaderTitleCard
                 onGoBack={handleGoBack}
-                title="Project Details"
+                title="Appointments"
                 description="Manage your schedule, availability, and client bookings."
                 >
                 <div className="relative">
@@ -429,6 +427,29 @@ export default function ProjectDetailsPage() {
 
                     {isOpen && (
                         <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        
+                        {/* Button to open modal */}
+                        <button
+                            onClick={() => {
+                            setIsAppointmentStatusModalOpen(true);
+                            setIsOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                            <Clock className="w-4 h-4 text-purple-600" />
+                            <span>Update Status</span>
+                        </button>
+
+                        {/* Navigation Link */}
+                        <button
+                           
+                            className="flex w-full items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsRescheduleModalOpen(true)}
+                        >
+                            <Clock className="w-4 h-4 text-purple-600" />
+                            <span>Reschedule</span>
+                        </button>
+
                         <Link
                             href="/booking-link"
                             className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -464,14 +485,14 @@ export default function ProjectDetailsPage() {
                 <div className="lg:col-span-2 space-y-8">
                     {/* SUMMARY TAB */}
                     {activeTab === "summary" && (
-                        <InfoCard title="Projects Details">
+                        <InfoCard title="Appointment Details">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                                <div><p className="text-gray-500">Service</p><p className="font-medium text-gray-800 mt-1">{project.serviceName}</p></div>
-                                <div><p className="text-gray-500">Date</p><p className="font-medium text-gray-800 mt-1">{project.date}</p></div>
-                                <div><p className="text-gray-500">Time</p><p className="font-medium text-gray-800 mt-1">{project.time}</p></div>
-                                <div><p className="text-gray-500">Status</p><p className="font-medium text-gray-800 mt-1"><span className={clsx("px-2 py-1 text-xs font-medium rounded-full", {'bg-green-100 text-green-800': ['Completed', 'Converted'].includes(project.projectStatus),'bg-yellow-100 text-yellow-800': project.projectStatus === 'Inprogress','bg-blue-100 text-blue-800': project.projectStatus === 'Upcoming','bg-red-100 text-red-800': project.projectStatus === 'Cancelled','bg-orange-100 text-orange-800': project.projectStatus === 'Rescheduled',})}>{project.projectStatus}</span></p></div>
+                                <div><p className="text-gray-500">Service</p><p className="font-medium text-gray-800 mt-1">{appointment.serviceName}</p></div>
+                                <div><p className="text-gray-500">Date</p><p className="font-medium text-gray-800 mt-1">{appointment.date}</p></div>
+                                <div><p className="text-gray-500">Time</p><p className="font-medium text-gray-800 mt-1">{appointment.time}</p></div>
+                                <div><p className="text-gray-500">Status</p><p className="font-medium text-gray-800 mt-1"><span className={clsx("px-2 py-1 text-xs font-medium rounded-full", {'bg-green-100 text-green-800': ['Completed', 'Converted'].includes(appointment.appointmentStatus),'bg-yellow-100 text-yellow-800': appointment.appointmentStatus === 'Inprogress','bg-blue-100 text-blue-800': appointment.appointmentStatus === 'Upcoming','bg-red-100 text-red-800': appointment.appointmentStatus === 'Cancelled','bg-orange-100 text-orange-800': appointment.appointmentStatus === 'Rescheduled',})}>{appointment.appointmentStatus}</span></p></div>
                             </div>
-                            <div className="w-full mt-5"><p className="font-bold text-gray-800">Description</p><p className="text-gray-600 whitespace-pre-wrap">{project.notes || 'No notes provided.'}</p></div>
+                            <div className="w-full mt-5"><p className="font-bold text-gray-800">Description</p><p className="text-gray-600 whitespace-pre-wrap">{appointment.notes || 'No notes provided.'}</p></div>
                         </InfoCard>
                     )}
                     
@@ -480,130 +501,6 @@ export default function ProjectDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {activeTab === "financials" && (
-                        
-                        <InfoCard
-                            title="Quotations"
-                            action={
-                                <button
-                                   
-                                    onClick={openCreateQuotationModal} 
-                                    className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                                    >
-                                    + Create Quotation
-                                </button>
-                            }
-                            >
-                            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-                               
-                                {quotations && quotations.length > 0 ? (
-                                    quotations.map((q) => {
-                                        const subtotal = q.items?.reduce((acc, item) => {
-                                        const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                                        return acc + base;
-                                        }, 0) ?? 0;
-
-                                        const finalTotal =
-                                        subtotal +
-                                        (subtotal * (q.taxPercentage ?? 0)) / 100 -
-                                        (subtotal * (q.discountPercentage ?? 0)) / 100;
-
-                                        return (
-                                        <div key={q.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md">
-
-                                            {/* HEADER */}
-                                            <div
-                                            className="flex justify-between items-center p-4 cursor-pointer"
-                                            onClick={() =>
-                                                setExpandedInvoice(expandedInvoice === q.id ? null : q.id)
-                                            }
-                                            >
-                                            <div>
-                                                <p className="font-semibold">{q.quotationNumber}</p>
-                                                <p className="text-xs text-gray-500">Issued: {q.issueDate}</p>
-                                                <p className="text-xs text-gray-500">Due: {q.dueDate}</p>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                <p className="font-semibold">₦{finalTotal.toLocaleString()}</p>
-
-                                                <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setQuotationToEdit(q);
-                                                    setIsQuotationModalOpen(true);
-                                                }}
-                                                className="p-2 hover:bg-gray-200 rounded-full"
-                                                >
-                                                <Edit className="h-5 w-5" />
-                                                </button>
-
-                                                <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setQuotationToDelete(q);
-                                                }}
-                                                className="p-2 hover:bg-gray-200 text-red-600 rounded-full"
-                                                >
-                                                <Trash2 className="h-5 w-5" />
-                                                </button>
-
-                                                {expandedInvoice === q.id ? (
-                                                <ChevronUp className="h-5 w-5" />
-                                                ) : (
-                                                <ChevronDown className="h-5 w-5" />
-                                                )}
-                                            </div>
-                                            </div>
-
-                                            {/* EXPANDED */}
-                                            {expandedInvoice === q.id && (
-                                            <div className="px-4 pb-4">
-                                                <table className="w-full text-sm text-left mt-2 border-t">
-                                                <thead>
-                                                    <tr>
-                                                    <th>Description</th>
-                                                    <th className="text-right">Qty</th>
-                                                    <th className="text-right">Rate</th>
-                                                    <th className="text-right">Amount</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {q.items.map((item) => (
-                                                    <tr key={item.id} className="border-t">
-                                                        <td className="py-2">{item.description}</td>
-                                                        <td className="py-2 text-right">{item.quantity}</td>
-                                                        <td className="py-2 text-right">₦{item.rate}</td>
-                                                        <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                                                    </tr>
-                                                    ))}
-                                                </tbody>
-                                                </table>
-
-                                                <div className="flex flex-col items-end mt-3">
-                                                <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                                                <p>Tax: {q.taxPercentage}%</p>
-                                                <p>Discount: {q.discountPercentage}%</p>
-                                                <p className="text-lg font-semibold">
-                                                    Total: ₦{finalTotal.toLocaleString()}
-                                                </p>
-                                                </div>
-                                            </div>
-                                            )}
-                                        </div>
-                                        );
-                                    })
-                                    ) : (
-                                    <p className="text-gray-400 text-center py-4">No quotation available</p>
-                                )}
-
-                            </div>
-                        </InfoCard>
-                    )}
-                </div>
-
                 <div className="lg:col-span-2 space-y-8">
                     
                     {activeTab === "financials" && (
@@ -620,12 +517,20 @@ export default function ProjectDetailsPage() {
                             }
                             >
                             <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-                                {fetchedInvoices && fetchedInvoices.length > 0 ? (
-                                fetchedInvoices.map((invoice) => {
+                                {invoices && invoices.length > 0 ? (
+                                invoices.map((invoice) => {
                                     const subtotal = invoice.items?.reduce((acc, item) => {
                                     const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
                                     return acc + base;
                                     }, 0) ?? 0;
+
+                                    // const discountPercentage = invoice.discountAmount ?? 0;
+                                    // const taxPercentage = invoice.taxAmount ?? 0;
+
+                                    // const discount = (subtotal * discountPercentage) / 100;
+                                    // const tax = (subtotal * taxPercentage) / 100;
+
+                                    // const total = subtotal - discount + tax;
 
                                     const finalTotal =
                                     subtotal +
@@ -774,7 +679,10 @@ export default function ProjectDetailsPage() {
                             </div>
                         </InfoCard>
                     )}
+            
+
                 </div>
+            
 
                 <div className="lg:col-span-1 space-y-8">
                     <div className="lg:col-span-1 space-y-8">
@@ -789,16 +697,16 @@ export default function ProjectDetailsPage() {
                                         "px-3 py-1 text-xs font-medium rounded-full",
                                         {
                                         "bg-yellow-100 text-yellow-800":
-                                            totals.totalPaid > 0 && totals.totalPaid < project.projectAmount,
+                                            totals.totalPaid > 0 && totals.totalPaid < appointment.appointmentAmount,
                                         "bg-green-100 text-green-800":
-                                            totals.totalPaid >= project.projectAmount,
+                                            totals.totalPaid >= appointment.appointmentAmount,
                                         "bg-red-100 text-red-800": totals.totalPaid === 0,
                                         }
                                     )}
                                     >
                                     {totals.totalPaid === 0
                                         ? "Unpaid"
-                                        : totals.totalPaid < project.projectAmount
+                                        : totals.totalPaid < appointment.appointmentAmount
                                         ? "Partially Paid"
                                         : "Paid"}
                                     </span>
@@ -809,7 +717,7 @@ export default function ProjectDetailsPage() {
                                     <div>
                                         <p className="text-xs text-gray-500">Total Budget</p>
                                         <p className="font-semibold text-gray-800">
-                                            ₦{Number(project.projectAmount).toLocaleString("en-NG", {
+                                            ₦{Number(appointment.appointmentAmount).toLocaleString("en-NG", {
                                                 minimumFractionDigits: 0,
                                                 maximumFractionDigits: 0,
                                             })}
@@ -896,6 +804,34 @@ export default function ProjectDetailsPage() {
                                             </button>
                                             </div>
                                         </div>
+
+                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                                            <div>
+                                            <p className="text-gray-800 font-medium">Material Purchase</p>
+                                            <p className="text-gray-500 text-xs">2025-10-03</p>
+                                            <p className="text-gray-400 text-xs">Supplies</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800">₦20,000</p>
+                                            <button className="text-red-500 hover:text-red-700">
+                                                🗑
+                                            </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                                            <div>
+                                            <p className="text-gray-800 font-medium">Transport Cost</p>
+                                            <p className="text-gray-500 text-xs">2025-10-05</p>
+                                            <p className="text-gray-400 text-xs">Logistics</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800">₦10,000</p>
+                                            <button className="text-red-500 hover:text-red-700">
+                                                🗑
+                                            </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Add expense button */}
@@ -917,7 +853,7 @@ export default function ProjectDetailsPage() {
                 <div className="lg:col-span-2 space-y-8">
                     {activeTab === "notes" && (
                         <InfoCard
-                            title="Project Notes"
+                            title="Appointment Notes"
                             action={
                                 <button
                                 onClick={() => {
@@ -931,8 +867,8 @@ export default function ProjectDetailsPage() {
                             }
                             >
                             <div className="max-h-64 overflow-y-auto pr-2 space-y-4">
-                                {project.notesHistory && project.notesHistory.length > 0 ? (
-                                project.notesHistory.map(note => (
+                                {appointment.notesHistory && appointment.notesHistory.length > 0 ? (
+                                appointment.notesHistory.map(note => (
                                     <div
                                     key={note.id}
                                     className="flex items-start space-x-3 pt-4 first:pt-0 first:border-none border-t group relative"
@@ -992,8 +928,8 @@ export default function ProjectDetailsPage() {
                             }
                             >
                             <div className="max-width pr-2 space-y-3">
-                                {project.documents && project.documents.length > 0 ? (
-                                project.documents.map((doc) =>
+                                {appointment.documents && appointment.documents.length > 0 ? (
+                                appointment.documents.map((doc) =>
                                     doc.files.map((file) => (
                                     <div
                                         key={file.id}
@@ -1074,7 +1010,7 @@ export default function ProjectDetailsPage() {
                             created_at: new Date().toISOString(),
                         };
                         handleNewPayment(fullPayment);
-                        fetchProject(); // refresh
+                        fetchAppointment(); // refresh
                     }}
 
                 />
@@ -1088,62 +1024,33 @@ export default function ProjectDetailsPage() {
                 setNoteToEdit(null);
                 }}
                 noteToEdit={noteToEdit}
-                entityId={projectIdFromUrl}  // ✅ correct prop name
-                type="project"
+                appointmentId={appointmentIdFromUrl} // string
                 onNoteSaved={(savedNote, isUpdate) => {
-                setProject((prev: ProjectDisplayData | null) => {
-                    if (!prev) return prev;
+                setAppointment((prev: AppointmentDisplayData | null) => {
+            if (!prev) return prev;
 
-                    const noteWithCreatedAt: NoteItem = {
-                    ...savedNote,
-                    created_at: savedNote.created_at ?? new Date().toISOString(),
-                    };
+            const noteWithCreatedAt: NoteItem = {
+                ...savedNote,
+                created_at: savedNote.created_at ?? new Date().toISOString(),
+            };
 
-                    return {
-                    ...prev,
-                    notesHistory: isUpdate
-                        ? prev.notesHistory.map((n) =>
-                            n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
-                        )
-                        : [noteWithCreatedAt, ...prev.notesHistory],
-                    };
-                });
+            return {
+                ...prev,
+                notesHistory: isUpdate
+                ? prev.notesHistory.map((n) =>
+                    n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
+                    )
+                : [noteWithCreatedAt, ...prev.notesHistory],
+            };
+            });
 
-                setIsNoteModalOpen(false);
-                setNoteToEdit(null);
-                }}
-            />
+
+
+            setIsNoteModalOpen(false);
+            setNoteToEdit(null);
+            }}
+        />
             )}
-
-
-            {isQuotationModalOpen && (
-                <QuotationModal
-                isOpen={isQuotationModalOpen}
-                onClose={() => {
-                    setIsQuotationModalOpen(false);
-                    setQuotationToEdit(null);
-                }}
-                onCreated={(newQuotation) => {
-                    setQuotations((prev) =>
-                    quotationToEdit
-                        ? prev.map((q) => (q.id === newQuotation.id ? newQuotation : q))
-                        : [newQuotation, ...prev]
-                    );
-                    setIsQuotationModalOpen(false);
-                    setQuotationToEdit(null);
-                }}
-                sourceType="project"
-                sourceId={project.id}
-                contactId={project.customer.customer_id}
-                   
-                mode={quotationToEdit ? "edit" : "create"}
-                existingQuotation={quotationToEdit || undefined}
-                />
-
-            )}
-
-
-
 
             {isInvoiceModalOpen && (
                 <InvoiceModal
@@ -1161,9 +1068,9 @@ export default function ProjectDetailsPage() {
                         setIsInvoiceModalOpen(false);
                         setInvoiceToEdit(null);
                     }}
-                    sourceType="project"
-                    sourceId={project.id}
-                    contactId={project.customer.customer_id}
+                    sourceType="appointment"
+                    sourceId={appointment.id}
+                    contactId={appointment.customer.customer_id}
                     mode={invoiceToEdit ? "edit" : "create"}
                     existingInvoice={invoiceToEdit}
                 />
@@ -1173,10 +1080,62 @@ export default function ProjectDetailsPage() {
                 isOpen={isFileModalOpen}
                 onClose={() => setIsFileModalOpen(false)}
                 onFileUploaded={() => {
-                        fetchProject(); 
+                        fetchAppointment(); 
                 }}
             />
-        
+
+            {/* Status Modal */}
+            {isAppointmentStatusModalOpen && (
+                <AppointmentStatusModal
+                isOpen={isAppointmentStatusModalOpen}
+                currentStatus={appointment.appointmentStatus}
+                appointmentId={Number(appointment.id)}
+                onClose={() => setIsAppointmentStatusModalOpen(false)}
+                onStatusUpdated={(newStatus) => {
+                    setAppointment((prev) =>
+                    prev ? { ...prev, appointmentStatus: newStatus } : prev
+                    );
+                }}
+                />
+            )}
+
+
+            {isRescheduleModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+                    <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-6">Reschedule Appointment</h3>
+                        <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Select a new date</label>
+                            <input
+                                type="date"
+                                value={newDate}
+                                onChange={(e) => {
+                                    const selectedDate = e.target.value;
+                                    setNewDate(selectedDate);  // ✅ update state
+                                    handleFetchAvailableSlots(selectedDate); // ✅ fetch slots for that date
+                                }}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3"
+                                />
+                        </div>
+                        {newDate && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Select an available time</label>
+                                {isLoadingSlots ? (<div className="text-center py-4 text-gray-500">Loading slots...</div>) : availableSlots.length > 0 ? (<div className="grid grid-cols-3 sm:grid-cols-4 gap-3">{availableSlots.map(slot => (<button key={slot} type="button" onClick={() => setNewTime(slot)} className={clsx("w-full text-center font-semibold rounded-lg py-2 transition-colors", newTime === slot ? 'bg-purple-600 text-white' : 'border border-purple-500 text-purple-600 hover:bg-purple-50')}>
+                                    {formatSlotTime(slot)}
+                                </button>))}</div>) : (<div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">No slots available.</div>)}
+                            </div>
+                        )}
+                        </div>
+                        <div className="mt-8 flex justify-end gap-4">
+                            <button onClick={() => setIsRescheduleModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
+                            <button onClick={handleConfirmReschedule} disabled={!newTime} className="px-4 py-2 bg-purple-600 text-white rounded-md disabled:bg-gray-300">Confirm Reschedule</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             <DeleteConfirmModal
                 isOpen={!!paymentToDelete}
                 onCancel={() => setPaymentToDelete(null)}
@@ -1190,6 +1149,7 @@ export default function ProjectDetailsPage() {
                 deleting={deletingId === paymentToDelete?.id} // ✅ only disables for the active payment
             />
 
+
             <DeleteConfirmModal
                 isOpen={!!invoiceToDelete}
                 onCancel={() => setInvoiceToDelete(null)}
@@ -1201,19 +1161,6 @@ export default function ProjectDetailsPage() {
                         : ""
                 }
                 deleting={deletingInvoiceId === invoiceToDelete?.id}
-            />
-
-            <DeleteConfirmModal
-                isOpen={!!quotationToDelete}
-                onCancel={() => setQuotationToDelete(null)}
-                onConfirm={() => quotationToDelete && deleteQuotationMutation.mutate(quotationToDelete.id)}
-                title="Delete quotation"
-                message={
-                    quotationToDelete
-                        ? `Are you sure you want to delete the quotation of ${quotationToDelete.quotationNumber}?`
-                        : ""
-                }
-                deleting={deletingQuotationId === quotationToDelete?.id}
             />
 
             <DeleteConfirmModal

@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import Link from "next/link";
+// import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Folder,
@@ -17,6 +17,8 @@ import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import { formatDate } from "@/app/utils/formatDate";
 import toast from "react-hot-toast";
 import DocumentSidePanel from "@/components/DocumentSidePanel";
+import Modal from "@/components/Modal";
+import CreateDocModal from "./new/page";
 
 
 // ---------- Types ----------
@@ -76,7 +78,7 @@ export default function DocsManagerPage() {
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 const [viewingFile, setViewingFile] = useState<DocumentFile | null>(null);
-
+const [isModalOpen, setIsModalOpen] = useState(false);
   const toggleMenu = (fileId:number) => {
     setOpenMenuId(openMenuId === fileId ? null : fileId);
   };
@@ -241,10 +243,21 @@ const [viewingFile, setViewingFile] = useState<DocumentFile | null>(null);
             Your secure vault for all business and client documents.
           </p>
         </div>
-        <Link href="docs-manager/new" className="btn-primary">
-          <Plus className="h-5 w-5 mr-2" />
-          <span>Upload Document</span>
-        </Link>
+        <button
+        className="btn-primary flex items-center"
+        onClick={() => setIsModalOpen(true)}
+      >
+        <Plus className="h-5 w-5 mr-2" />
+        Upload Document
+      </button>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add New Document"
+      >
+        <CreateDocModal onClose={() => setIsModalOpen(false)} />
+      </Modal>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

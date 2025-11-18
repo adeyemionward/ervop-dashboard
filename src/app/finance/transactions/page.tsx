@@ -9,6 +9,9 @@ import StatCard from "@/components/StatCard";
 import clsx from "clsx";
 import Link from "next/link";
 import TransactionActivityModal from "@/components/TransactionSlideOver";
+import Modal from "@/components/Modal";
+import CreateIncomeModal from "../income/new/page";
+import CreateExpenseModal from "../expenses/new/page";
 
 const useGoBack = () => () => { if (typeof window !== 'undefined') window.history.back(); };
 // --- TYPE DEFINITIONS ---
@@ -106,7 +109,8 @@ export default function TransactionsListPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     // const [error, setError] = useState<string | null>(null);
-
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -329,31 +333,52 @@ const handleClose = () => {
                     </button>
 
                     {isOpen && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                        <Link
-                        href="/finance/income/new"
-                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsOpen(false)}
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-3">
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 cursor-pointer w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
                         >
-                        <Wallet className="w-4 h-4 text-purple-600" />
-                        <span>Add Income</span>
-                        </Link>
+                            <CreditCard className="h-5 w-5 text-purple-600" />
+                            <span>Add Income</span>
+                        </button>
 
-                     
+                        <div className="my-1 border-t border-gray-100"></div>
 
-                        <Link
-                        href="/finance/expenses/new"
-                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsOpen(false)}
+                        <button
+                            onClick={() => setIsExpenseModalOpen(true)}
+                            className="flex items-center gap-2 cursor-pointer  w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
                         >
-                        <CreditCard className="w-4 h-4 text-purple-600" />
-                        <span>Add Expense</span>
-                        </Link>
-
-                        
+                            <Wallet className="h-5 w-5 text-purple-600" />
+                            <span>Add Expense</span>
+                        </button>
                     </div>
+
                     )}
                 </div>
+                
+                {/* Income Modal */}
+                <Modal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title="Add New Income"
+                >
+                    <CreateIncomeModal 
+                    onClose={() => setIsModalOpen(false)} 
+                    onCreated={fetchTransactions}
+                    />
+                </Modal>
+                
+                {/* Expense Modal */}
+                <Modal
+                    isOpen={isExpenseModalOpen}
+                    onClose={() => setIsExpenseModalOpen(false)}
+                    title="Add New Expense"
+                >
+                    <CreateExpenseModal 
+                    onClose={() => setIsExpenseModalOpen(false)} 
+                    onCreated={fetchTransactions}
+                    />
+                </Modal>
             </HeaderTitleCard>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -361,13 +386,6 @@ const handleClose = () => {
                 <StatCard title="Total Expense" value={`₦${totalExpense.toLocaleString()}`} icon={ArrowUpRight} mainBg="bg-white" iconBg="bg-red-100" mainText="text-gray-900" iconText="text-red-800" />
                 <StatCard title="Net Profit" value={`₦${netProfit.toLocaleString()}`} icon={DollarSign} mainBg="bg-white" iconBg="bg-blue-100" mainText="text-gray-900" iconText="text-blue-800" />
             </div>
-
-            {/* Loading & Error */}
-            {/* {isLoading && <div className="p-6 text-center">Loading transactions...</div>}
-            {error && <div className="p-6 text-center text-red-600">{error}</div>} */}
-
-            {/* --- FILTER BAR --- */}
-            
                 <>
                     <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
                         <div className="flex flex-wrap items-center justify-between gap-4">

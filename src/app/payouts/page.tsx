@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
-import Link from "next/link";
 import { 
-    Landmark, Edit, PlusCircle, CheckCircle, Clock, Download, X
+    Landmark, Edit, PlusCircle,  Download, X
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -134,7 +133,7 @@ export default function PayoutsPage() {
                         </div>
                     ) : (
                         <div className="text-center border-2 border-dashed border-gray-300 p-8 rounded-lg">
-                            <p className="text-gray-500 mb-4">You haven't added a bank account for payouts yet.</p>
+                            <p className="text-gray-500 mb-4">You have not added a bank account for payouts yet.</p>
                             <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg flex items-center transition-colors text-sm mx-auto">
                                 <PlusCircle className="w-4 h-4 mr-2"/>
                                 <span>Add Bank Account</span>

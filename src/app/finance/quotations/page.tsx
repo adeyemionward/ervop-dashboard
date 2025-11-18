@@ -9,8 +9,10 @@ import Link from "next/link";
 import StatCard from "@/components/StatCard";
 import DataTable from "@/components/DataTable";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
-import { FileText, CheckCircle2, Clock, XCircle, Pencil, Trash2, Eye } from "lucide-react";
+import { FileText, CheckCircle2, Clock, XCircle, Pencil, Trash2, Eye, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import Modal from "@/components/Modal";
+import QuotationModal from "./new/page";
 
 type Customer = {
   id: number;
@@ -48,29 +50,37 @@ export default function QuotationsPage() {
 
   const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000/api/v1";
   const userToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  useEffect(() => {
-    const fetchQuotations = async () => {
-      setError(null);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE_URL}/professionals/finances/quotations/list/`, {
+  const fetchQuotations = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${BASE_URL}/professionals/finances/quotations/list/`,
+        {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (data.status) {
-          setQuotations(data.data);
-          setOverview(data.overview);
         }
-      } catch (error) {
-        console.error("Failed to fetch quotations:", error);
-      } finally {
-        setLoading(false);
+      );
+
+      const data = await res.json();
+
+      if (data.status) {
+        setQuotations(data.data);
+        setOverview(data.overview);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch quotations:", error);
+      setError("Failed to load quotations");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchQuotations();
   }, [BASE_URL]);
 
@@ -125,11 +135,26 @@ export default function QuotationsPage() {
         description="View and manage all quotations created for your clients."
       >
         <div className="flex flex-col md:flex-row gap-2">
-          <Link href="quotations/new" className="btn-primary flex items-center justify-center">
-            <Icons.plus />
-            <span>Generate Quotation</span>
-          </Link>
-        </div>
+        <button
+                className="btn-primary flex items-center"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Generate Quotation
+              </button>
+      </div>
+         {/* Quotation Modal */}
+        <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Generate New Quotation"
+      >
+        <QuotationModal 
+          onClose={() => setIsModalOpen(false)} 
+          onCreated={fetchQuotations}
+        />
+      </Modal>
+
       </HeaderTitleCard>
 
       {/* OVERVIEW CARDS */}

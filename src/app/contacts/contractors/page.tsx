@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import DataTable from "@/components/DataTable";
+import Modal from "@/components/Modal";
+import CreateContractorModal from "./new/page";
 
 interface Contractor {
   id: number;
@@ -38,7 +40,7 @@ export default function ContractorsPage() {
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const fetchContractors = async () => {
     try {
       setLoading(true);
@@ -139,15 +141,26 @@ export default function ContractorsPage() {
             <span>Export Contractors</span>
           </Link>
 
-          <Link
-            href="/contacts/contractors/new"
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="btn-primary flex items-center justify-center"
-          >
+            >
             <Icons.plus />
             <span>Add New Contractor</span>
-          </Link>
+          </button>
         </div>
       </HeaderTitleCard>
+       <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add New Contractor"
+      >
+        <CreateContractorModal
+          onClose={() => setIsModalOpen(false)}
+           onCreated={fetchContractors} // refresh list
+        />
+      </Modal>
+
 
       {/* SEARCH + FILTER */}
       <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap gap-4 border border-gray-200 items-center justify-between">
@@ -260,39 +273,39 @@ export default function ContractorsPage() {
       </div>
 
       {showDeleteModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-      <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-      <p className="text-gray-600 mb-6">
-        Are you sure you want to delete{" "}
-        <span className="font-bold">
-          {contractorToDelete?.firstname} {contractorToDelete?.lastname}
-        </span>
-        ?
-      </p>
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setShowDeleteModal(false)}
-          disabled={isDeleting}
-          className={`px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 ${
-            isDeleting ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className={`px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 ${
-            isDeleting ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          {isDeleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-bold">
+                {contractorToDelete?.firstname} {contractorToDelete?.lastname}
+              </span>
+              ?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className={`px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 ${
+                  isDeleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={`px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 ${
+                  isDeleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
   );

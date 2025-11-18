@@ -148,7 +148,7 @@ async function recordPayment(
       amount: payment.amount,
       payment_date: payment.date,
       payment_method: payment.method,
-      notes: payment.notes,
+      title: payment.notes,
     }),
   });
   const data = await res.json();

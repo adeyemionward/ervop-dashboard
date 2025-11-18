@@ -12,6 +12,8 @@ import clsx from 'clsx';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import toast from 'react-hot-toast';
 import DataTable from '@/components/DataTable';
+import Modal from '@/components/Modal';
+import CreateAppointmentModal from './new/page';
 
 
 const useGoBack = () => () => window.history.back();
@@ -206,7 +208,7 @@ export default function AppointmentsPage() {
 
     const [isOpen, setIsOpen] = useState(false);
 
-  
+     const [isModalOpen, setIsModalOpen] = useState(false);
     // --- Delete function ---
     const deleteAppointment = async (id: number) => {
         try {
@@ -386,9 +388,9 @@ export default function AppointmentsPage() {
                         </Link>
 
                         <Link
-                        href="/appointments/new"
+                        href="#"
                         className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsOpen(false)}
+                         onClick={() => setIsModalOpen(true)}
                         >
                         <Plus className="w-4 h-4 text-purple-600" />
                         <span>New Appointment</span>
@@ -397,6 +399,17 @@ export default function AppointmentsPage() {
                     )}
                 </div>
             </HeaderTitleCard>
+                      <Modal
+                            isOpen={isModalOpen}
+                            onClose={() => setIsModalOpen(false)}
+                            title="Schedule an Appointment"
+                            >
+                            <CreateAppointmentModal onClose={() => setIsModalOpen(false)} />
+                            </Modal>
+            
+            
+                            {/* ✅ Modal Wrapper */}
+                          
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <StatCard title="Total Appointments" value={appointments.length.toString()} icon={CalendarIcon} mainBg="bg-white" iconBg="bg-purple-100" mainText="text-gray-900" iconText="text-purple-800" />

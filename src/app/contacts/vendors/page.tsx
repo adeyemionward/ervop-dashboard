@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import DataTable from "@/components/DataTable";
+import Modal from "@/components/Modal";
+import CreateVendorModal from "./new/page";
 
 interface Vendor {
   id: number;
@@ -36,7 +38,7 @@ export default function VendorsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
 const [isDeleting, setIsDeleting] = useState(false);
-
+ const [isModalOpen, setIsModalOpen] = useState(false);
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
   const fetchVendors = async () => {
@@ -143,15 +145,23 @@ const [isDeleting, setIsDeleting] = useState(false);
             <span>Export Vendor</span>
           </Link>
 
-          <Link
-            href="/contacts/vendors/new"
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="btn-primary flex items-center justify-center"
-          >
+            >
             <Icons.plus />
             <span>Add New Vendor</span>
-          </Link>
+          </button>
         </div>
       </HeaderTitleCard>
+       {/* ✅ Modal Wrapper */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Add New Vendor"
+          >
+          <CreateVendorModal onClose={() => setIsModalOpen(false)}  onCreated={fetchVendors}/> 
+        </Modal>
 
       {/* SEARCH + FILTER */}
       <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap gap-4 border border-gray-200 items-center justify-between">

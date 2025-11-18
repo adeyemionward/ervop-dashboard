@@ -1,13 +1,17 @@
-// src/hooks/AppointmentApi.ts
+// src/hooks/ProjectApi.ts
 import { useState, useEffect } from "react";
-import { ApiAppointment, AppointmentDisplayData } from "@/types/AppointmentTypes";
+import { ApiProject, ProjectDisplayData } from "@/types/ProjectTypes";
 import { Invoice } from "@/types/invoice";
+import { Quotation } from "@/types/quotation";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
-export const AppointmentApi = (appointmentIdFromUrl?: string) => {
-  const [appointment, setAppointment] = useState<AppointmentDisplayData | null>(null);
+export const ProjectApi = (projectIdFromUrl?: string) => {
+  const [project, setProject] = useState<ProjectDisplayData | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -20,15 +24,15 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
     }
   }, []);
 
-  const fetchAppointment = async () => {
-    if (!appointmentIdFromUrl || !token) return;
+  const fetchProject = async () => {
+    if (!projectIdFromUrl || !token) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetch(
-        `${BASE_URL}/professionals/appointments/show/${appointmentIdFromUrl}`,
+        `${BASE_URL}/professionals/projects/show/${projectIdFromUrl}`,
         {
           headers: {
             Accept: "application/json",
@@ -37,14 +41,19 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch appointment details.");
+      if (!response.ok) throw new Error("Failed to fetch project details.");
 
       const result = await response.json();
-      const apiData: ApiAppointment = result.data;
+       const apiData: ApiProject = result?.data;
+      // const apiData = result?.project;
 
-      const formatted: AppointmentDisplayData = {
+    if (!apiData) {
+      throw new Error("Project data missing in API response.");
+    }
+
+      const formatted: ProjectDisplayData = {
         id: String(apiData.id),
-        appointmentId: apiData.id,
+        projectId: apiData.id,
         createdAt: new Date(apiData.created_at).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -60,8 +69,8 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
           minute: "2-digit",
           hour12: true,
         }),
-        appointmentAmount: apiData.amount || 0,
-        appointmentStatus: apiData.appointment_status || "Upcoming",
+        projectAmount: apiData.amount || 0,
+        projectStatus: apiData.project_status || "Upcoming",
         notes: apiData.notes ?? "",
         serviceName: apiData.service?.name || "",
         customer: {
@@ -90,6 +99,9 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
               created_at: new Date(p.date).toISOString(),
             }))
           ) ?? [],
+
+
+          
         notesHistory:
           apiData.notesHistory?.map((n) => ({
             id: n.id,
@@ -138,7 +150,30 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
         })) ?? []
       );
 
-      setAppointment(formatted);
+      setQuotations(
+        apiData.quotations?.map((inv) => ({
+          id: inv.id,
+          quotationNumber: inv.quotation_no || `#INV-${inv.id}`,
+          issueDate: inv.issue_date || "",  // store raw ISO string
+          dueDate: inv.due_date || "",      // store raw ISO string
+          taxPercentage: inv.tax_percentage ?? 0,
+          discountPercentage: inv.discount_percentage ?? 0,
+          taxAmount: inv.tax_amount ?? 0,
+          discountAmount: inv.discount ?? 0,
+          notes: inv.notes ?? "",
+          status: (inv.status as "Paid" | "Pending") || "Pending",
+          items:
+            inv.items?.map((it) => ({
+              id: it.id,
+              description: it.description,
+              quantity: Number(it.quantity) || 0,
+              rate: Number(it.rate) || 0,
+              amount: (Number(it.quantity) || 0) * (Number(it.rate) || 0),
+            })) ?? [],
+        })) ?? []
+      );
+
+      setProject(formatted);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred.");
     } finally {
@@ -147,8 +182,8 @@ export const AppointmentApi = (appointmentIdFromUrl?: string) => {
   };
 
   useEffect(() => {
-    if (token) fetchAppointment();
-  }, [appointmentIdFromUrl, token]);
+    if (token) fetchProject();
+  }, [projectIdFromUrl, token]);
 
-  return { appointment, invoices, isLoading, error, fetchAppointment };
+  return { project, invoices,  quotations,  isLoading, error, fetchProject };
 };

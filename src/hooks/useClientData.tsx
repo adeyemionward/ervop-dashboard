@@ -72,7 +72,6 @@ export function useClientData(selectedClient?: string) {
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
 
-
         const result = await res.json();
         setClientProjects(result.status ? result.data : []);
       } catch (err) {

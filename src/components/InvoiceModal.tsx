@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { InvoiceItem, Invoice } from "@/types/invoice"; // ✅ import shared types
 import toast from "react-hot-toast";
-
+import { RecurringInvoiceSetup } from "@/components/RecurringInvoiceSetup";
 type EditableInvoiceItemFields = "description" | "quantity" | "rate";
 
 interface InvoiceModalProps {
@@ -14,7 +14,7 @@ interface InvoiceModalProps {
   contactId: number;
   mode?: "create" | "edit";
   existingInvoice?: Invoice | null; // ✅ now strongly typed
-}
+} 
 
 const InvoiceModal: React.FC<InvoiceModalProps> = ({
   isOpen,
@@ -51,6 +51,13 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const taxAmount = (subtotal * Number(invoiceTax)) / 100;
   const discountAmount = (subtotal * Number(invoiceDiscount)) / 100;
   const total = subtotal + taxAmount - discountAmount;
+
+  const [isRecurring, setIsRecurring] = useState(false);
+    const [startDate, setStartDate] = useState("2024-01-01"); // Added default dates for demonstration
+    const [endDate, setEndDate] = useState("2024-12-31");
+  
+     // Default to the first combined option
+    const [repeats, setRepeats] = useState("Weekly (Every Monday)");
 
 
 useEffect(() => {
@@ -115,32 +122,43 @@ useEffect(() => {
   };
 
  const handleSubmit = async () => {
-  // if (!invoiceDueDate || invoiceItems.some(i => !i.description || i.quantity <= 0 || i.rate <= 0)) {
-  //   alert("Please fill out all required invoice fields.");
-  //   return;
-  // }
 
-    const payload: any = {
-        contact_id: contactId,
-        invoice_no: invoiceNumber,
-        issue_date: invoiceIssueDate,
-        due_date: invoiceDueDate,
-        tax_percentage: Number(invoiceTax),
-        discount_percentage: Number(invoiceDiscount),
-        notes: invoiceNotes,
-        item: invoiceItems.map(({ description, quantity, rate }) => ({
-            description, quantity, rate,
-        })),
-    };
 
+    const payload: Record<string, unknown> = {
+  contact_id: contactId,
+  invoice_no: invoiceNumber,
+  issue_date: invoiceIssueDate,
+  due_date: invoiceDueDate,
+  tax_percentage: Number(invoiceTax),
+  discount_percentage: Number(invoiceDiscount),
+  notes: invoiceNotes,
+  item: invoiceItems.map(({ description, quantity, rate }) => ({
+    description,
+    quantity,
+    rate,
+  })),
+
+   // --- RECURRING INVOICE DATA ---
+      is_recurring: isRecurring, // MANDATORY: True/False based on toggle
+      
+      // Conditionally add recurrence details only if it is recurring
+      ...(isRecurring && {
+        repeats: repeats, // e.g., "Weekly (Every Monday)"
+        occuring_start_date: startDate,
+        occuring_end_date: endDate || null, // Use null if user leaves it blank
+      }),
+};
+
+  // Conditionally add source IDs
   if (sourceType === "appointment") payload.appointment_id = sourceId;
   if (sourceType === "project") payload.project_id = sourceId;
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
-  let url = "http://127.0.0.1:8000/api/v1/professionals/invoices/create/";
+  let url = `${BASE_URL}/professionals/invoices/create/`;
   let method: "POST" | "PUT" = "POST";
 
   if (mode === "edit" && existingInvoice) {
-    url = `http://127.0.0.1:8000/api/v1/professionals/invoices/update/${existingInvoice.id}`;
+    url = `${BASE_URL}/professionals/invoices/update/${existingInvoice.id}`;
     method = "PUT";
   } 
 
@@ -177,47 +195,41 @@ useEffect(() => {
   
 
     // ✅ Build the invoice object directly from modal state
-    const localInvoice: Invoice = {
-        id: Number(data.data?.id ?? Date.now()), // ✅ always a number
-        invoiceNumber: payload.invoice_no || existingInvoice?.invoiceNumber || "",
-        taxPercentage: payload.tax_percentage, 
-        discountPercentage: payload.discount_percentage, 
-        taxAmount: payload.tax_amount, 
-        discountAmount:payload.discount,
-        remainingBalance: data.data?.remaining_balance ?? total,
-        notes: payload.notes,
-        issuedDate: new Date(payload.issue_date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }),
-        dueDate: new Date(payload.due_date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }),
-        status: data.data?.status || "Unpaid",
-        items: invoiceItems,
-    };
+   const localInvoice: Invoice = {
+  id: Number(data.data?.id ?? Date.now()),
+  invoiceNumber: (payload.invoice_no as string) || existingInvoice?.invoiceNumber || "",
+  taxPercentage: (payload.tax_percentage as number),
+  discountPercentage: (payload.discount_percentage as number),
+  // Compute amounts based on totals since payload.tax_amount and payload.discount do not exist
+  taxAmount: (total * (payload.tax_percentage as number)) / 100,
+  discountAmount: (total * (payload.discount_percentage as number)) / 100,
+  remainingBalance: data.data?.remaining_balance ?? total,
+  notes: payload.notes as string,
+  issuedDate: new Date(payload.issue_date as string).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }),
+  dueDate: new Date(payload.due_date as string).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }),
+  status: data.data?.status || "Unpaid",
+  items: invoiceItems,
+};
 
     onInvoiceSaved(localInvoice);
 
     // onInvoiceSaved(data.data);
     onClose();
-  } catch (err: any) {
-    console.error("Invoice error:", err.message);
+  } catch (err) {
+    console.error("Invoice error:", err);
   }finally {
     setLoading(false);
   }
 };
 
-
-  //
-  // --- Totals ---
-  //
-
-  //
-  // --- JSX ---
   //
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
@@ -344,6 +356,18 @@ useEffect(() => {
                 <Plus className="w-4 h-4" /> Add Item
               </button>
             </div>
+
+            {/* --- RECURRING INVOICE SETUP (NEW SECTION) --- */}
+            <RecurringInvoiceSetup
+              isRecurring={isRecurring}
+              setIsRecurring={setIsRecurring}
+              repeats={repeats}
+              setRepeats={setRepeats}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+            />
 
             {/* Tax & Discount */}
             <div className="grid grid-cols-2 gap-4 mt-6">

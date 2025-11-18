@@ -6,10 +6,15 @@ import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
 import { Icons } from "@/components/icons";
 import Link from "next/link";
-import { RefreshCw } from "lucide-react";
+import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import CreateProjectModal from "./new/page";
+import Modal from "@/components/Modal";
+
+import DataTable from "@/components/DataTable";
 
 export default function ProjectsPage() {
   const handleGoBack = useGoBack();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,20 +23,18 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5); // 🔑 now dynamic
-
-  // ✅ Get token once on mount
+  // Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+  // Token
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // ✅ Correct fetchProjects definition
   const fetchProjects = useCallback(async () => {
     if (!token) return;
     try {
       setLoading(true);
       const res = await fetch(
-        "http://127.0.0.1:8000/api/v1/professionals/projects/list/",
+        `${BASE_URL}/professionals/projects/list/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -51,12 +54,11 @@ export default function ProjectsPage() {
     }
   }, [token]);
 
-  // ✅ Call it once on mount (or when token changes)
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
-  // Memoized filters
+  // Filters
   const filteredProjects = useMemo(() => {
     let result = [...projects];
 
@@ -117,26 +119,17 @@ export default function ProjectsPage() {
     return result;
   }, [projects, search, statusFilter, timeFilter]);
 
-  // Pagination slice
-  const paginatedProjects = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredProjects.slice(start, start + pageSize);
-  }, [filteredProjects, currentPage, pageSize]);
-
-  const totalPages = Math.ceil(filteredProjects.length / pageSize);
-
   const resetFilters = () => {
     setSearch("");
     setStatusFilter("All");
     setTimeFilter("All");
-    setCurrentPage(1);
   };
 
   return (
     <DashboardLayout>
       <HeaderTitleCard
         onGoBack={handleGoBack}
-        title="Client Work"
+        title="Client Works"
         description="Manage all your client works and track their progress."
       >
         <div className="flex flex-col md:flex-row gap-2">
@@ -147,19 +140,27 @@ export default function ProjectsPage() {
             <Icons.calendar className="h-5 w-5" />
             <span>Create Project from Appointment</span>
           </Link>
-          <Link
-            href="projects/new"
+
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="btn-primary flex items-center justify-center"
           >
             <Icons.plus />
             <span>Create New Project</span>
-          </Link>
+          </button>
         </div>
       </HeaderTitleCard>
 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add New Project"
+      >
+        <CreateProjectModal onClose={() => setIsModalOpen(false)}  onCreated={fetchProjects} />
+      </Modal>
+
       {/* Filters */}
       <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-col md:flex-row md:items-center gap-4">
-        {/* Search Input */}
         <div className="relative w-full md:w-64">
           <input
             type="text"
@@ -173,7 +174,6 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Time Filter */}
         <select
           value={timeFilter}
           onChange={(e) => setTimeFilter(e.target.value)}
@@ -186,7 +186,6 @@ export default function ProjectsPage() {
           <option value="Last Month">Due Last Month</option>
         </select>
 
-        {/* Status Filter */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -201,7 +200,6 @@ export default function ProjectsPage() {
 
         <div className="hidden md:block md:flex-grow"></div>
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-end space-x-2 w-full md:w-auto">
           <button
             onClick={resetFilters}
@@ -218,129 +216,102 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 font-medium">Project Name</th>
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium">Due Date</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Progress</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center">
-                    Loading projects...
-                  </td>
-                </tr>
-              ) : paginatedProjects.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center">
-                    No projects found.
-                  </td>
-                </tr>
-              ) : (
-                paginatedProjects.map((project) => (
-                  <tr key={project.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-semibold text-gray-900">
-                      {project.title}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {project.customer_firstname} {project.customer_lastname}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {new Date(project.end_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full 
-                          ${
-                            project.status === "Completed"
-                              ? "bg-green-100 text-green-800"
-                              : project.status === "On-Hold"
-                              ? "bg-gray-200 text-gray-800"
-                              : project.status === "In-Progress"
-                              ? "bg-blue-100 text-blue-800"
-                              : project.status === "Cancelled"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                      >
-                        {project.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-purple-600 h-2 rounded-full"
-                            style={{ width: `${project.progress_status}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">
-                          {project.progress_status}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link href={`/projects/${project.id}`}>
-                        <button className="text-primary-600 hover:text-primary-800 font-semibold">
-                          View
-                        </button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination */}
-        {filteredProjects.length > 0 && (
-            <div className="flex items-center justify-between p-4 border-t mt-4 bg-white rounded-b-lg">
-                {/* Showing count */}
-                <span className="text-sm text-gray-700">
-                Showing{" "}
-                <span className="font-semibold">
-                    {Math.min(1 + (currentPage - 1) * pageSize, filteredProjects.length)}
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold">
-                    {Math.min(currentPage * pageSize, filteredProjects.length)}
-                </span>{" "}
-                of <span className="font-semibold">{filteredProjects.length}</span> Results
-                </span>
-
-                {/* Navigation */}
-                <div className="flex items-center space-x-2">
-                <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border rounded-lg disabled:opacity-50"
-                >
-                    Previous
-                </button>
-                <span className="text-sm font-medium">
-                    Page {currentPage} of {totalPages}
-                </span>
-                <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border rounded-lg disabled:opacity-50"
-                >
-                    Next
-                </button>
-                </div>
+    
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+  <DataTable
+    columns={[
+      {
+        label: "Project Name",
+        field: "title",
+        render: (project) => (
+          <span className="font-semibold text-gray-900">{project.title}</span>
+        ),
+      },
+      {
+        label: "Customer",
+        field: "customer",
+        render: (project) => (
+          <span className="text-gray-600">
+            {project.customer_firstname} {project.customer_lastname}
+          </span>
+        ),
+      },
+      {
+        label: "Due Date",
+        field: "end_date",
+        render: (project) => (
+          <span className="text-sm text-gray-600">
+            {new Date(project.end_date).toLocaleDateString()}
+          </span>
+        ),
+      },
+      {
+        label: "Status",
+        field: "status",
+        render: (project) => (
+          <span
+            className={`px-2 py-1 text-xs font-medium rounded-full ${
+              project.status === "Completed"
+                ? "bg-green-100 text-green-800"
+                : project.status === "On-Hold"
+                ? "bg-gray-200 text-gray-800"
+                : project.status === "In-Progress"
+                ? "bg-blue-100 text-blue-800"
+                : project.status === "Cancelled"
+                ? "bg-red-100 text-red-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {project.status}
+          </span>
+        ),
+      },
+      {
+        label: "Progress",
+        field: "progress_status",
+        render: (project) => (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-purple-600 h-2 rounded-full"
+                style={{ width: `${project.progress_status}%` }}
+              />
             </div>
-        )}
+            <span className="text-xs font-medium text-gray-700">
+              {project.progress_status}%
+            </span>
+          </div>
+        ),
+      },
+    ]}
+    data={filteredProjects}
+    loading={loading}
+    error={null}
+  
+    actions={(project) => (
+      <>
+        <Link
+          href={`/projects/view/${project.id}`}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+        >
+          <Eye className="w-4 h-4 text-gray-500" /> View
+        </Link>
+        <Link
+          href={`/projects/edit/${project.id}`}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition"
+        >
+          <Pencil className="w-4 h-4 text-gray-500" /> Edit
+        </Link>
+        <button
+         
+          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+        >
+          <Trash2 className="w-4 h-4 text-red-500" /> Delete
+        </button>
+      </>
+    )}
+  />
+</div>
 
     </DashboardLayout>
   );

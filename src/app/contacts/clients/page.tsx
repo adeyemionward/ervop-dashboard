@@ -10,6 +10,8 @@ import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import DataTable from "@/components/DataTable";
+import Modal from "@/components/Modal";
+import CreateClientModal from "./new/page";
 
 interface Contact {
   id: number;
@@ -35,7 +37,7 @@ export default function ContactsPage() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
@@ -141,15 +143,29 @@ export default function ContactsPage() {
             <span>Export Clients</span>
           </Link>
 
-          <Link
-            href="/contacts/clients/new"
+           <button
+            onClick={() => setIsModalOpen(true)}
             className="btn-primary flex items-center justify-center"
-          >
+            >
             <Icons.plus />
             <span>Add New Client</span>
-          </Link>
+            </button>
         </div>
       </HeaderTitleCard>
+
+      
+        {/* ✅ Modal Wrapper */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Add New Client"
+        >
+          <CreateClientModal
+            onClose={() => setIsModalOpen(false)}
+            onCreated={fetchContacts} // fetchContacts refreshes the parent list
+          />
+        </Modal>
+
 
       {/* SEARCH + FILTER */}
       <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex flex-wrap  gap-4 border border-gray-200 items-center justify-between">

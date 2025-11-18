@@ -16,7 +16,7 @@ const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   />
 );
 
-export const RecurringInvoiceSetup = ({
+export const RecurringInvoiceSetup = ({ 
   isRecurring,
   setIsRecurring,
   repeats,

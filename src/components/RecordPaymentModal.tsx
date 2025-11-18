@@ -38,7 +38,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
         amount: Number(paymentAmount),
         payment_date: paymentDate,
         payment_method: paymentMethod,
-        notes: paymentNotes,
+        title: paymentNotes,
       };
 
       const token = localStorage.getItem("token");

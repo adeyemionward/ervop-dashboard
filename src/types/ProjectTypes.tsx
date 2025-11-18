@@ -48,14 +48,14 @@ export interface Customer {
   phone: string;
 }
 
-export interface AppointmentDisplayData {
+export interface ProjectDisplayData {
   id: string;
-  appointmentId: number;
+  projectId: number;
   createdAt: string;
   date: string;
   time: string;
-  appointmentAmount: number;
-  appointmentStatus: string;
+  projectAmount: number;
+  projectStatus: string;
   notes: string;
   serviceName: string;
   customer: Customer;
@@ -66,12 +66,12 @@ export interface AppointmentDisplayData {
 }
 
 // API types
-export interface ApiAppointment {
+export interface ApiProject {
   id: number;
   user_id: number; 
   date: string;
   time: string;
-  appointment_status: string | null;
+  project_status: string | null;
   amount: number;
   notes: string;
   service_id: number;
@@ -83,11 +83,33 @@ export interface ApiAppointment {
   customer_phone: string;
   created_at: string;
   invoices?: ApiInvoice[];
+  quotations?: ApiQuotation[];
   notesHistory?: NoteItem[];
   service?: { name: string };
   customer?: { id: number; firstname: string; lastname: string; email: string; phone: string };
 
   documents?: DocumentItem[];
+}
+
+// API types
+export interface ApiQuotation {
+  id: number;
+  quotation_no?: string;
+  status?: string;
+  issue_date?: string;
+  due_date?: string;
+  tax_percentage?: number;
+  discount_percentage?: number;
+  tax_amount?: number;
+  discount?: number;
+  notes?: string;
+  items?: {
+    id: number;
+    description: string;
+    quantity: number;
+    rate: number;
+  }[];
+
 }
 
 export interface ApiInvoice {

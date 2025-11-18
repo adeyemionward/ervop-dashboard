@@ -29,6 +29,7 @@ export default function Header({ onDesktopToggle, onMobileToggle }: HeaderProps)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
+      localStorage.setItem("redirectAfterLogin", window.location.pathname);
       router.push('/auth/login');
     }
   }, [router]);
