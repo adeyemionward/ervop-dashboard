@@ -101,7 +101,18 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
           ) ?? [],
 
 
-          
+          expenses:
+          apiData.expenses?.map((exp) => ({
+            id: exp.id,
+            title: exp.title ?? "",
+            amount: Number(exp.amount) || 0,
+            date: exp.date
+              ? new Date(exp.date).toLocaleDateString("en-US")
+              : "",
+            category: exp.category ?? null,
+            paymentMethod: exp.payment_method ?? null,
+            vendorOrContractor: exp.contact_id ?? null,
+          })) ?? [],
         notesHistory:
           apiData.notesHistory?.map((n) => ({
             id: n.id,
@@ -151,27 +162,41 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
       );
 
       setQuotations(
-        apiData.quotations?.map((inv) => ({
-          id: inv.id,
-          quotationNumber: inv.quotation_no || `#INV-${inv.id}`,
-          issueDate: inv.issue_date || "",  // store raw ISO string
-          dueDate: inv.due_date || "",      // store raw ISO string
-          taxPercentage: inv.tax_percentage ?? 0,
-          discountPercentage: inv.discount_percentage ?? 0,
-          taxAmount: inv.tax_amount ?? 0,
-          discountAmount: inv.discount ?? 0,
-          notes: inv.notes ?? "",
-          status: (inv.status as "Paid" | "Pending") || "Pending",
-          items:
+        apiData.quotations?.map((inv) => {
+          const items =
             inv.items?.map((it) => ({
               id: it.id,
               description: it.description,
               quantity: Number(it.quantity) || 0,
               rate: Number(it.rate) || 0,
               amount: (Number(it.quantity) || 0) * (Number(it.rate) || 0),
-            })) ?? [],
-        })) ?? []
+            })) ?? [];
+
+          const subTotal = items.reduce((sum, it) => sum + it.amount, 0);
+          const discountAmount = inv.discount ?? 0;
+          const taxAmount = inv.tax_amount ?? 0;
+          const totalAmount = subTotal - discountAmount + taxAmount;
+
+          return {
+            id: inv.id,
+            quotationNumber: inv.quotation_no || `#INV-${inv.id}`,
+            issueDate: inv.issue_date || "",
+            dueDate: inv.due_date || "",
+            taxPercentage: inv.tax_percentage ?? 0,
+            discountPercentage: inv.discount_percentage ?? 0,
+
+            taxAmount,
+            discountAmount,
+            subTotal,
+            totalAmount,
+
+            notes: inv.notes ?? "",
+            status: (inv.status as "Paid" | "Pending") || "Pending",
+            items,
+          };
+        }) ?? []
       );
+
 
       setProject(formatted);
     } catch (err) {

@@ -1,4 +1,5 @@
 // -------------------- TYPES --------------------
+import { ExpenseResponse } from "@/types/expenses";
 export type PaymentItem = {
   id: number;
   date: string;
@@ -48,6 +49,33 @@ export interface Customer {
   phone: string;
 }
 
+// ========== EXPENSES ==========
+export interface ApiExpense {
+  id: number;
+  user_id: number;
+  contact_id: number | null;    // vendor or contractor
+  project_id: number;
+  amount: string;
+  date: string;
+  title: string | null;
+  category: string | null;
+  payment_method: string | null;
+  type: string | null;
+  sub_type: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseDisplayItem {
+  id: number;
+  title: string | null;
+  amount: number;
+  date: string;
+  category: string | null;
+  paymentMethod: string | null;
+  vendorOrContractor: number | null; // contact_id
+}
+
 export interface ProjectDisplayData {
   id: string;
   projectId: number;
@@ -63,6 +91,8 @@ export interface ProjectDisplayData {
   paymentHistory: PaymentHistoryItem[];
   notesHistory: NoteItem[];
   documents: DocumentItem[];
+
+ expenses: (ExpenseResponse | ExpenseDisplayItem)[];
 }
 
 // API types
@@ -89,6 +119,7 @@ export interface ApiProject {
   customer?: { id: number; firstname: string; lastname: string; email: string; phone: string };
 
   documents?: DocumentItem[];
+  expenses?: ApiExpense[];
 }
 
 // API types

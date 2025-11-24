@@ -24,6 +24,8 @@ import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
 import QuotationModal from "@/components/QuotationModal";
 import { Quotation } from "@/types/quotation";
+import CreateExpenseModal from "@/components/ExpenseModal";
+import { ExpenseResponse } from "@/types/expenses";
 
 // -------------------- HOOKS --------------------
 const useParams = () => {
@@ -52,12 +54,21 @@ export default function ProjectDetailsPage() {
   const projectIdFromUrl = params.id as string;
   const queryClient = useQueryClient();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  const [expenses, setExpenses] = useState<ExpenseResponse[]>([]);
+// const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+// const [expenseToEdit, setExpenseToEdit] = useState<ExpenseItemType | null>(null);
+
+const [expenseSearch, setExpenseSearch] = useState("");
+const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+const [expenseToEdit, setExpenseToEdit] = useState(null);
+
   // 1. STATE & DATA
 
     // call the project state
   const {
     project, setProject,
-    invoices, setInvoices,
     expandedInvoice, setExpandedInvoice,
     quotationToEdit, setQuotationToEdit,
     isQuotationModalOpen, setIsQuotationModalOpen,
@@ -70,8 +81,11 @@ export default function ProjectDetailsPage() {
    
     isPaymentModalOpen, setIsPaymentModalOpen,
     selectedInvoiceId, setSelectedInvoiceId,
+
     paymentToDelete, setPaymentToDelete,
+    expenseToDelete, setExpenseToDelete,
     deletingId, setDeletingId,
+
      quotationToDelete, setQuotationToDelete,
     deletingQuotationId, setDeletingQuotationId,
 
@@ -124,11 +138,30 @@ export default function ProjectDetailsPage() {
         }
     }, [fetchedProject, setProject]);
 
+
+
+    useEffect(() => {
+    if (fetchedInvoices) {
+        setInvoices(fetchedInvoices);
+    }
+}, [fetchedInvoices]);
+
+
     useEffect(() => {
     if (fetchedQuotations) {
         setQuotations(fetchedQuotations);
     }
 }, [fetchedQuotations]);
+
+useEffect(() => {
+  // Check if project data exists and if its expenses array has length
+  if (project?.expenses?.length) { 
+    
+    // Use type assertion (as ExpenseResponse[]) to force compliance with the state type.
+    // This tells TypeScript to trust that the data from the project is suitable for the state.
+    setExpenses(project.expenses as ExpenseResponse[]); 
+  }
+}, [project?.expenses]);
   
     const handleEditInvoiceClick = (invoice: Invoice) => {
         setInvoiceToEdit(invoice);
@@ -163,152 +196,46 @@ export default function ProjectDetailsPage() {
             setIsQuotationModalOpen(true);
         };
     
-    const deleteInvoiceMutation = useMutation({
+        const deleteInvoiceMutation = useMutation({
         mutationFn: async (id: number) => {
             const token = localStorage.getItem("token") || "";
             const res = await fetch(`${BASE_URL}/professionals/invoices/delete/${id}`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to delete invoice");
-            return data;
+            return { id }; // return deleted invoice ID
         },
+
         onMutate: (id: number) => {
-            setDeletingInvoiceId(id);
-
-            // Optimistic update
-            const previousInvoices = invoices;
-            setInvoices(prev => prev?.filter(inv => inv.id !== id) || []);
-
-            return { previousInvoices };
+            setDeletingInvoiceId(id); // just mark as deleting
         },
-        onError: (error, id, context) => {
-            if (context?.previousInvoices) setInvoices(context.previousInvoices);
-            toast.error(error.message || "Failed to delete invoice.");
-            setDeletingInvoiceId(null);
-        },
-        onSuccess: () => {
+
+        onSuccess: ({ id }) => {
+            // Remove from UI only after successful deletion
+            setInvoices(prev => prev ? prev.filter(inv => inv.id !== id) : []);
             toast.success("Invoice deleted successfully!");
             setInvoiceToDelete(null);
             setDeletingInvoiceId(null);
-            queryClient.invalidateQueries(); // optional refetch for server sync
-        }
-    });
+            queryClient.invalidateQueries(); // optional refetch
+        },
 
-
-    const deleteQuotationMutation = useMutation({
-    mutationFn: async (id: number) => {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(`${BASE_URL}/professionals/finances/quotations/delete/${id}`, {
-        method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        onError: (error) => {
+            toast.error(error.message || "Failed to delete invoice.");
+            setDeletingInvoiceId(null); // reset deleting state
         },
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to delete quotation");
-        return data;
-    },
 
-  onMutate: async (id: number) => {
-    // Save previous state before modifying
-    const previousQuotations = quotations;
-
-    // Optimistic update: remove the quotation instantly from UI
-    setQuotations(prev =>
-        prev ? prev.filter(q => q.id !== id) : []
-    );
-
-    setDeletingQuotationId(id);
-
-    return { previousQuotations };
-},
-
-
-  onError: (err, id, context) => {
-    if (context?.previousQuotations) setQuotations(context.previousQuotations);
-    toast.error(err.message || "Failed to delete quotation");
-    setDeletingQuotationId(null);
-  },
-
-  onSuccess: () => {
-    toast.success("Quotation deleted successfully!");
-    setQuotationToDelete(null);
-    setDeletingQuotationId(null);
-  },
-});
-
-
-
-    const deletePaymentMutation = useMutation({
-        mutationFn: (id: number) => {
-            const token = localStorage.getItem("token") || "";
-            return fetch(`${BASE_URL}/professionals/invoices/deletePayment/${id}`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            }).then(async (res) => {
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.message || "Failed to delete payment");
-                return data;
-            });
-        },
-        onMutate: async (id: number) => {
-            // Optimistic update: Temporarily remove the payment from the UI
-            const previousPayments = project?.paymentHistory;
-            setProject(prev => prev ? {
-                ...prev,
-                paymentHistory: prev.paymentHistory.filter(p => p.id !== id),
-            } : null);
-            setDeletingId(id);
-            return { previousPayments };
-        },
-        onSuccess: () => {
-            fetchProject(); // 🔥 re-populate both project + invoices states
-            queryClient.invalidateQueries({ queryKey: ["project", projectIdFromUrl] });
-            toast.success("Payment deleted successfully!");
-            setPaymentToDelete(null);
-        },
-        onError: (error, variables, context) => {
-        // Revert the optimistic update on error
-        if (context?.previousPayments) {
-            setProject(prev => {
-                // If prev is null, return null and don't proceed.
-                if (!prev) {
-                    return null;
-                }
-
-                // Ensure context.previousPayments is an array.
-                // Use an empty array if it's undefined.
-                const previousPayments = context?.previousPayments || [];
-
-                return {
-                    ...prev,
-                    paymentHistory: previousPayments,
-                };
-            });
-        }
-        setDeletingId(null);
-        toast.error(error.message || "Failed to delete payment.");
-        },
-    });
-
-    const deleteNoteMutation = useMutation<
-        string, // response type
-        Error, // error type
-        number, // variable type (the id)
-        { previousNotes: NoteItem[] } // context type
-        >
-        ({
+        const deleteQuotationMutation = useMutation({
             mutationFn: async (id: number) => {
                 const token = localStorage.getItem("token") || "";
-                const res = await fetch(`${BASE_URL}/professionals/projects/notes/delete/${id}`, {
+                const res = await fetch(`${BASE_URL}/professionals/finances/quotations/delete/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -317,45 +244,185 @@ export default function ProjectDetailsPage() {
                 });
 
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.message || "Failed to delete note");
-                return data;
+                if (!res.ok) throw new Error(data.message || "Failed to delete quotation");
+                return { id }; // return deleted quotation ID
             },
 
             onMutate: (id: number) => {
-                const previousNotes = project?.notesHistory || [];
-
-                setProject(prev =>
-                prev
-                    ? {
-                        ...prev,
-                        notesHistory: prev.notesHistory.filter(n => n.id !== id),
-                    }
-                    : null
-                );
-
-                setDeletingNoteId(id);
-                return { previousNotes };
+                // Set deleting ID so button shows "Deleting..."
+                setDeletingQuotationId(id);
             },
 
-            onError: (error, id, context) => {
-                if (context?.previousNotes) {
+            onSuccess: ({ id }) => {
+                setQuotations(prev => prev ? prev.filter(q => q.id !== id) : []);
+                toast.success("Quotation deleted successfully!");
+                setQuotationToDelete(null);
+                setDeletingQuotationId(null); // reset after success
+            },
+
+            onError: (err) => {
+                toast.error(err.message || "Failed to delete quotation");
+                setDeletingQuotationId(null); // reset on error
+            },
+        });
+
+   
+        const deletePaymentMutation = useMutation({
+            mutationFn: async (id: number) => {
+                const token = localStorage.getItem("token") || "";
+                const res = await fetch(`${BASE_URL}/professionals/transactions/delete/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to delete payment");
+
+                return { id };
+            },
+
+            onMutate: (id: number) => {
+                // Just like quotations: start delete UI state
+                setDeletingId(id);
+            },
+
+            onSuccess: ({ id }) => {
+                // Remove payment from UI after API success
                 setProject(prev =>
                     prev
-                    ? { ...prev, notesHistory: context.previousNotes }
-                    : null
+                        ? {
+                            ...prev,
+                            paymentHistory: prev.paymentHistory.filter(p => p.id !== id),
+                        }
+                        : null
                 );
+
+                queryClient.invalidateQueries({
+                    queryKey: ["project", projectIdFromUrl],
+                });
+
+                toast.success("Payment deleted successfully!");
+                setPaymentToDelete(null);
+                setDeletingId(null);
+            },
+
+            onError: (err) => {
+                toast.error(err.message || "Failed to delete payment");
+                setDeletingId(null);
+            },
+        });
+
+        const deleteExpenseMutation = useMutation({
+        mutationFn: async (id: number) => {
+            const token = localStorage.getItem("token") || "";
+            const res = await fetch(`${BASE_URL}/professionals/transactions/delete/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to delete expense");
+
+            return { id };
+        },
+
+        onMutate: (id: number) => {
+            setDeletingId(id); // spinner / disabled button
+        },
+
+        onSuccess: ({ id }) => {
+            // ✅ Remove from the correct array
+            setProject(prev =>
+            prev
+                ? {
+                    ...prev,
+                    expenses: prev.expenses.filter(exp => exp.id !== id),
                 }
+                : null
+            );
 
-                setDeletingNoteId(null);
-                toast.error(error.message || "Failed to delete note.");
-            },
+            // ✅ Close the modal
+            setExpenseToDelete(null);
 
-            onSuccess: () => {
-                toast.success("Note deleted successfully!");
-                setNoteToDelete(null);
-                setDeletingNoteId(null);
-            },
-    });
+            // ✅ Reset deleting state
+            setDeletingId(null);
+
+            toast.success("Expense deleted successfully!");
+
+            // Optional: refetch project to sync backend
+            queryClient.invalidateQueries({ queryKey: ["project", projectIdFromUrl] });
+        },
+
+        onError: (err) => {
+            toast.error(err.message || "Failed to delete expense.");
+            setDeletingId(null);
+        },
+        });
+
+
+        const deleteNoteMutation = useMutation<
+            string, // response type
+            Error, // error type
+            number, // variable type (the id)
+            { previousNotes: NoteItem[] } // context type
+            >
+            ({
+                mutationFn: async (id: number) => {
+                    const token = localStorage.getItem("token") || "";
+                    const res = await fetch(`${BASE_URL}/professionals/projects/notes/delete/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || "Failed to delete note");
+                    return data;
+                },
+
+                onMutate: (id: number) => {
+                    const previousNotes = project?.notesHistory || [];
+
+                    setProject(prev =>
+                    prev
+                        ? {
+                            ...prev,
+                            notesHistory: prev.notesHistory.filter(n => n.id !== id),
+                        }
+                        : null
+                    );
+
+                    setDeletingNoteId(id);
+                    return { previousNotes };
+                },
+
+                onError: (error, id, context) => {
+                    if (context?.previousNotes) {
+                    setProject(prev =>
+                        prev
+                        ? { ...prev, notesHistory: context.previousNotes }
+                        : null
+                    );
+                    }
+
+                    setDeletingNoteId(null);
+                    toast.error(error.message || "Failed to delete note.");
+                },
+
+                onSuccess: () => {
+                    toast.success("Note deleted successfully!");
+                    setNoteToDelete(null);
+                    setDeletingNoteId(null);
+                },
+        });
 
     // ---------- Delete File ----------
     const handleDelete = async (fileId: number): Promise<void> => {
@@ -478,439 +545,410 @@ export default function ProjectDetailsPage() {
 
                 </div>
             </div>
-
+            
+            {/* FINANCIALS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {activeTab === "financials" && (
-                        
-                        <InfoCard
-                            title="Quotations"
-                            action={
-                                <button
-                                   
-                                    onClick={openCreateQuotationModal} 
-                                    className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                                    >
-                                    + Create Quotation
-                                </button>
-                            }
-                            >
-                            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-                               
-                                {quotations && quotations.length > 0 ? (
-                                    quotations.map((q) => {
-                                        const subtotal = q.items?.reduce((acc, item) => {
-                                        const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                                        return acc + base;
-                                        }, 0) ?? 0;
+  {/* Left Column: Quotations & Invoices */}
+  <div className="lg:col-span-2 space-y-8">
+    {/* Quotations */}
+    {activeTab === "financials" && (
+      <InfoCard
+        title="Quotations"
+        action={
+          <button
+            onClick={openCreateQuotationModal}
+            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+          >
+            + Create Quotation
+          </button>
+        }
+      >
+        <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
+          {quotations && quotations.length > 0 ? (
+            quotations.map((q) => {
+              const subtotal =
+                q.items?.reduce((acc, item) => {
+                  const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
+                  return acc + base;
+                }, 0) ?? 0;
+              const finalTotal =
+                subtotal + (subtotal * (q.taxPercentage ?? 0)) / 100 -
+                (subtotal * (q.discountPercentage ?? 0)) / 100;
 
-                                        const finalTotal =
-                                        subtotal +
-                                        (subtotal * (q.taxPercentage ?? 0)) / 100 -
-                                        (subtotal * (q.discountPercentage ?? 0)) / 100;
+              const isExpanded = expandedInvoice === q.id;
 
-                                        return (
-                                        <div key={q.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md">
-
-                                            {/* HEADER */}
-                                            <div
-                                            className="flex justify-between items-center p-4 cursor-pointer"
-                                            onClick={() =>
-                                                setExpandedInvoice(expandedInvoice === q.id ? null : q.id)
-                                            }
-                                            >
-                                            <div>
-                                                <p className="font-semibold">{q.quotationNumber}</p>
-                                                <p className="text-xs text-gray-500">Issued: {q.issueDate}</p>
-                                                <p className="text-xs text-gray-500">Due: {q.dueDate}</p>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                <p className="font-semibold">₦{finalTotal.toLocaleString()}</p>
-
-                                                <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setQuotationToEdit(q);
-                                                    setIsQuotationModalOpen(true);
-                                                }}
-                                                className="p-2 hover:bg-gray-200 rounded-full"
-                                                >
-                                                <Edit className="h-5 w-5" />
-                                                </button>
-
-                                                <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setQuotationToDelete(q);
-                                                }}
-                                                className="p-2 hover:bg-gray-200 text-red-600 rounded-full"
-                                                >
-                                                <Trash2 className="h-5 w-5" />
-                                                </button>
-
-                                                {expandedInvoice === q.id ? (
-                                                <ChevronUp className="h-5 w-5" />
-                                                ) : (
-                                                <ChevronDown className="h-5 w-5" />
-                                                )}
-                                            </div>
-                                            </div>
-
-                                            {/* EXPANDED */}
-                                            {expandedInvoice === q.id && (
-                                            <div className="px-4 pb-4">
-                                                <table className="w-full text-sm text-left mt-2 border-t">
-                                                <thead>
-                                                    <tr>
-                                                    <th>Description</th>
-                                                    <th className="text-right">Qty</th>
-                                                    <th className="text-right">Rate</th>
-                                                    <th className="text-right">Amount</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {q.items.map((item) => (
-                                                    <tr key={item.id} className="border-t">
-                                                        <td className="py-2">{item.description}</td>
-                                                        <td className="py-2 text-right">{item.quantity}</td>
-                                                        <td className="py-2 text-right">₦{item.rate}</td>
-                                                        <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                                                    </tr>
-                                                    ))}
-                                                </tbody>
-                                                </table>
-
-                                                <div className="flex flex-col items-end mt-3">
-                                                <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                                                <p>Tax: {q.taxPercentage}%</p>
-                                                <p>Discount: {q.discountPercentage}%</p>
-                                                <p className="text-lg font-semibold">
-                                                    Total: ₦{finalTotal.toLocaleString()}
-                                                </p>
-                                                </div>
-                                            </div>
-                                            )}
-                                        </div>
-                                        );
-                                    })
-                                    ) : (
-                                    <p className="text-gray-400 text-center py-4">No quotation available</p>
-                                )}
-
-                            </div>
-                        </InfoCard>
-                    )}
-                </div>
-
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {activeTab === "financials" && (
-
-                        <InfoCard
-                            title="Invoices"
-                            action={
-                                <button
-                                onClick={openCreateInvoiceModal}
-                                className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-                                >
-                                + Create Invoice
-                                </button>
-                            }
-                            >
-                            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-                                {fetchedInvoices && fetchedInvoices.length > 0 ? (
-                                fetchedInvoices.map((invoice) => {
-                                    const subtotal = invoice.items?.reduce((acc, item) => {
-                                    const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                                    return acc + base;
-                                    }, 0) ?? 0;
-
-                                    const finalTotal =
-                                    subtotal +
-                                    (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
-                                    (subtotal * (invoice.discountPercentage ?? 0)) / 100;
-
-                                    const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
-
-                                    let statusLabel = "Pending";
-                                    let statusclassName = "bg-yellow-100 text-yellow-800";
-
-                                    if (remainingBalance === 0) {
-                                    statusLabel = "Fully Paid";
-                                    statusclassName = "bg-green-100 text-green-800";
-                                    } else if (remainingBalance === finalTotal) {
-                                    statusLabel = "Unpaid";
-                                    statusclassName = "bg-red-100 text-red-800";
-                                    } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
-                                    statusLabel = "Partially Paid";
-                                    statusclassName = "bg-blue-100 text-blue-800";
-                                    }
-
-                                    if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
-                                    statusLabel = "Overdue";
-                                    statusclassName = "bg-red-200 text-red-900";
-                                    }
-
-                                    const isExpanded = expandedInvoice === invoice.id;
-
-                                    return (
-                                    <div
-                                        key={invoice.id}
-                                        className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition"
-                                    >
-                                        {/* Row Header */}
-                                        <div
-                                        className="flex justify-between items-center p-4 cursor-pointer"
-                                        onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
-                                        >
-                                        <div>
-                                            <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
-                                            <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
-                                            <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
-                                            <p className="text-xs text-gray-500">
-                                            Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                            Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                            <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
-                                            <span
-                                                className={clsx(
-                                                "px-2 py-0.5 text-xs font-medium rounded-full",
-                                                statusclassName
-                                                )}
-                                            >
-                                                {statusLabel}
-                                            </span>
-                                            </div>
-
-                                            <div className="flex items-center space-x-1">
-                                            <button
-                                                onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleEditInvoiceClick(invoice);
-                                                }}
-                                                className="p-2 rounded-full hover:bg-gray-200"
-                                                title="Edit Invoice"
-                                            >
-                                                <Edit className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                e.stopPropagation();
-                                                setInvoiceToDelete(invoice);
-                                                }}
-                                                className="p-2 rounded-full hover:bg-gray-200 text-red-600"
-                                                title="Delete Invoice"
-                                            >
-                                                <Trash2 className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedInvoiceId(invoice.id);
-                                                setIsPaymentModalOpen(true);
-                                                }}
-                                                className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
-                                                title="Record Payment"
-                                            >
-                                                <PlusCircle className="h-5 w-5" />
-                                            </button>
-                                            {isExpanded ? (
-                                                <ChevronUp className="h-5 w-5 text-gray-500" />
-                                            ) : (
-                                                <ChevronDown className="h-5 w-5 text-gray-500" />
-                                            )}
-                                            </div>
-                                        </div>
-                                        </div>
-
-                                        {/* Expanded Row */}
-                                        {isExpanded && (
-                                        <div className="px-4 pb-4">
-                                            <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
-                                            <thead>
-                                                <tr className="text-gray-600">
-                                                <th className="py-2">Description</th>
-                                                <th className="py-2 text-right">Qty</th>
-                                                <th className="py-2 text-right">Rate</th>
-                                                <th className="py-2 text-right">Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {invoice.items.map((item) => (
-                                                <tr key={item.id} className="border-t border-gray-100">
-                                                    <td className="py-2">{item.description}</td>
-                                                    <td className="py-2 text-right">{item.quantity}</td>
-                                                    <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
-                                                    <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                                                </tr>
-                                                ))}
-                                            </tbody>
-                                            </table>
-
-                                            <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
-                                            <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                                            <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
-                                            <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
-                                            <p className="text-lg">
-                                                Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
-                                            </p>
-                                            </div>
-                                        </div>
-                                        )}
-                                    </div>
-                                    );
-                                })
-                                ) : (
-                                <p className="text-gray-400 text-center py-4">No invoice available</p>
-                                )}
-                            </div>
-                        </InfoCard>
-                    )}
-                </div>
-
-                <div className="lg:col-span-1 space-y-8">
-                    <div className="lg:col-span-1 space-y-8">
-                    
-                        {activeTab === "financials" && (
-                            <>
-                            <InfoCard
-                                title="Payment History"
-                                action={
-                                    <span
-                                    className={clsx(
-                                        "px-3 py-1 text-xs font-medium rounded-full",
-                                        {
-                                        "bg-yellow-100 text-yellow-800":
-                                            totals.totalPaid > 0 && totals.totalPaid < project.projectAmount,
-                                        "bg-green-100 text-green-800":
-                                            totals.totalPaid >= project.projectAmount,
-                                        "bg-red-100 text-red-800": totals.totalPaid === 0,
-                                        }
-                                    )}
-                                    >
-                                    {totals.totalPaid === 0
-                                        ? "Unpaid"
-                                        : totals.totalPaid < project.projectAmount
-                                        ? "Partially Paid"
-                                        : "Paid"}
-                                    </span>
-                                }
-                                >
-                                {/* Totals */}
-                                <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Total Budget</p>
-                                        <p className="font-semibold text-gray-800">
-                                            ₦{Number(project.projectAmount).toLocaleString("en-NG", {
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 0,
-                                            })}
-                                        </p>
-
-                                    </div>
-                                    <div>
-                                    <p className="text-xs text-gray-500">Total Paid</p>
-                                    <p className="font-semibold text-green-600">₦{totals.totalPaid.toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                    <p className="text-xs text-gray-500">Outstanding</p>
-                                    <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
-                                    </div>
-                                </div>
-
-                                {/* Search bar */}
-                                <div className="mb-3">
-                                    <input
-                                    type="text"
-                                    placeholder="Search by Invoice Number..."
-                                    value={searchInvoice}
-                                    onChange={(e) => setSearchInvoice(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    />
-                                </div>
-
-                                {/* History list */}
-                                <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
-                                    {filteredHistory.map((p) => (
-                                    <div key={p.id} className="flex justify-between text-sm">
-                                        <div>
-                                        <p className="text-xs text-gray-500">{p.invoice_no}</p>
-                                        <p className="text-gray-500">{p.date}</p>
-                                        <p className="text-gray-800 text-xs"> {p.method}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                        <p className="font-medium text-gray-800">{p.amount}</p>
-                                        <button
-                                            onClick={() => setPaymentToDelete(p)}
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                        </div>
-                                    </div>
-                                    ))}
-                                </div>
-                                
-                            </InfoCard>
-
-                            <InfoCard title="Expenses">
-                                    {/* Totals */}
-                                    <div className="grid grid-cols-1 mb-4 text-center">
-                                        <div>
-                                            <p className="text-xs text-gray-500">Total Expenses</p>
-                                            <p className="font-semibold text-red-600">₦80,000</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Search bar */}
-                                    <div className="mb-3">
-                                        <input
-                                            type="text"
-                                            placeholder="Search by description or category..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                        />
-                                    </div>
-
-                                    {/* Expense list */}
-                                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
-                                        {/* Expense item */}
-                                        <div className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
-                                            <div>
-                                            <p className="text-gray-800 font-medium">Contractor Payment</p>
-                                            <p className="text-gray-500 text-xs">2025-10-01</p>
-                                            <p className="text-gray-400 text-xs">Labor</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                            <p className="font-medium text-gray-800">₦50,000</p>
-                                            <button className="text-red-500 hover:text-red-700">
-                                                {/* Trash icon placeholder */}
-                                                🗑
-                                            </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Add expense button */}
-                                    <div className="mt-3 flex justify-end">
-                                    <button className="bg-[#7E51FF] text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm">
-                                        + Record Expense
-                                    </button>
-                                    </div>
-                            </InfoCard>
-                            </>
-                        )}
-
+              return (
+                <div key={q.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md">
+                  {/* Header */}
+                  <div
+                    className="flex justify-between items-center p-4 cursor-pointer"
+                    onClick={() => setExpandedInvoice(isExpanded ? null : q.id)}
+                  >
+                    <div>
+                      <p className="font-semibold">{q.quotationNumber}</p>
+                      <p className="text-xs text-gray-500">Issued: {q.issueDate}</p>
+                      <p className="text-xs text-gray-500">Due: {q.dueDate}</p>
                     </div>
+                    <div className="flex items-center gap-4">
+                      <p className="font-semibold">₦{finalTotal.toLocaleString()}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuotationToEdit(q);
+                          setIsQuotationModalOpen(true);
+                        }}
+                        className="p-2 hover:bg-gray-200 rounded-full"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuotationToDelete(q);
+                        }}
+                        className="p-2 hover:bg-gray-200 text-red-600 rounded-full"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                      {isExpanded ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4">
+                      <table className="w-full text-sm text-left mt-2 border-t">
+                        <thead>
+                          <tr>
+                            <th>Description</th>
+                            <th className="text-right">Qty</th>
+                            <th className="text-right">Rate</th>
+                            <th className="text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {q.items.map((item) => (
+                            <tr key={item.id} className="border-t">
+                              <td className="py-2">{item.description}</td>
+                              <td className="py-2 text-right">{item.quantity}</td>
+                              <td className="py-2 text-right">₦{item.rate}</td>
+                              <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      <div className="flex flex-col items-end mt-3 space-y-1">
+                        <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
+                        <p>Tax: {q.taxPercentage}%</p>
+                        <p>Discount: {q.discountPercentage}%</p>
+                        <p className="text-lg font-semibold">Total: ₦{finalTotal.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              );
+            })
+          ) : (
+            <p className="text-gray-400 text-center py-4">No quotation available</p>
+          )}
+        </div>
+      </InfoCard>
+    )}
+
+    {/* Invoices */}
+    {activeTab === "financials" && (
+      <InfoCard
+        title="Invoices"
+        action={
+          <button
+            onClick={openCreateInvoiceModal}
+            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+          >
+            + Create Invoice
+          </button>
+        }
+      >
+        <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
+          {invoices && invoices.length > 0 ? (
+            invoices.map((invoice) => {
+              const subtotal =
+                invoice.items?.reduce((acc, item) => {
+                  const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
+                  return acc + base;
+                }, 0) ?? 0;
+              const finalTotal =
+                subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
+                (subtotal * (invoice.discountPercentage ?? 0)) / 100;
+              const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
+
+              let statusLabel = "Pending";
+              let statusClassName = "bg-yellow-100 text-yellow-800";
+              if (remainingBalance === 0) {
+                statusLabel = "Fully Paid";
+                statusClassName = "bg-green-100 text-green-800";
+              } else if (remainingBalance === finalTotal) {
+                statusLabel = "Unpaid";
+                statusClassName = "bg-red-100 text-red-800";
+              } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
+                statusLabel = "Partially Paid";
+                statusClassName = "bg-blue-100 text-blue-800";
+              }
+              if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
+                statusLabel = "Overdue";
+                statusClassName = "bg-red-200 text-red-900";
+              }
+
+              const isExpanded = expandedInvoice === invoice.id;
+
+              return (
+                <div key={invoice.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition">
+                  {/* Header */}
+                  <div
+                    className="flex justify-between items-center p-4 cursor-pointer"
+                    onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
+                      <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
+                      <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
+                      <p className="text-xs text-gray-500">
+                        Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}</p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
+                        <span className={clsx("px-2 py-0.5 text-xs font-medium rounded-full", statusClassName)}>
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditInvoiceClick(invoice);
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-200"
+                          title="Edit Invoice"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInvoiceToDelete(invoice);
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-200 text-red-600"
+                          title="Delete Invoice"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedInvoiceId(invoice.id);
+                            setIsPaymentModalOpen(true);
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
+                          title="Record Payment"
+                        >
+                          <PlusCircle className="h-5 w-5" />
+                        </button>
+                        {isExpanded ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Expanded */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4">
+                      <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
+                        <thead>
+                          <tr className="text-gray-600">
+                            <th className="py-2">Description</th>
+                            <th className="py-2 text-right">Qty</th>
+                            <th className="py-2 text-right">Rate</th>
+                            <th className="py-2 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invoice.items.map((item) => (
+                            <tr key={item.id} className="border-t border-gray-100">
+                              <td className="py-2">{item.description}</td>
+                              <td className="py-2 text-right">{item.quantity}</td>
+                              <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
+                              <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
+                        <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
+                        <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
+                        <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
+                        <p className="text-lg">
+                          Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-gray-400 text-center py-4">No invoice available</p>
+          )}
+        </div>
+      </InfoCard>
+    )}
+  </div>
+
+  {/* Right Column: Payment History & Expenses */}
+  <div className="lg:col-span-1 space-y-8">
+    {activeTab === "financials" && (
+      <>
+        {/* Payment History */}
+        <InfoCard
+          title="Payment History"
+          action={
+            <span
+              className={clsx(
+                "px-3 py-1 text-xs font-medium rounded-full",
+                {
+                  "bg-yellow-100 text-yellow-800": totals.totalPaid > 0 && totals.totalPaid < project.projectAmount,
+                  "bg-green-100 text-green-800": totals.totalPaid >= project.projectAmount,
+                  "bg-red-100 text-red-800": totals.totalPaid === 0,
+                }
+              )}
+            >
+              {totals.totalPaid === 0 ? "Unpaid" : totals.totalPaid < project.projectAmount ? "Partially Paid" : "Paid"}
+            </span>
+          }
+        >
+          {/* Totals */}
+          <div className="grid grid-cols-3 gap-4 mb-4 text-center">
+            <div>
+              <p className="text-xs text-gray-500">Total Budget</p>
+              <p className="font-semibold text-gray-800">
+                ₦{Number(project.projectAmount).toLocaleString("en-NG")}
+              </p>
             </div>
+            <div>
+              <p className="text-xs text-gray-500">Total Paid</p>
+              <p className="font-semibold text-green-600">₦{totals.totalPaid.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Outstanding</p>
+              <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
+            </div>
+          </div>
+
+          {/* Search & List */}
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Search by Invoice Number..."
+              value={searchInvoice}
+              onChange={(e) => setSearchInvoice(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+            {filteredHistory.map((p) => (
+              <div key={p.id} className="flex justify-between text-sm">
+                <div>
+                  <p className="text-xs text-gray-500">{p.invoice_no}</p>
+                  <p className="text-gray-500">{p.date}</p>
+                  <p className="text-gray-800 text-xs">{p.method}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-800">{p.amount}</p>
+                  <button onClick={() => setPaymentToDelete(p)} className="text-red-500 hover:text-red-700">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </InfoCard>
+
+        {/* Expenses */}
+        <InfoCard title="Expenses">
+          {/* Totals */}
+          <div className="grid grid-cols-1 mb-4 text-center">
+            <div>
+              <p className="text-xs text-gray-500">Total Expenses</p>
+              <p className="font-semibold text-red-600">
+                ₦{project?.expenses?.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="mb-3">
+            <input
+              type="text"
+              value={expenseSearch}
+              onChange={(e) => setExpenseSearch(e.target.value)}
+              placeholder="Search by description or category..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          {/* List */}
+          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+            {(expenses ?? [])
+              .filter(
+                (exp) =>
+                  (exp.title ?? "").toLowerCase().includes(expenseSearch.toLowerCase()) ||
+                  (exp.category ?? "").toLowerCase().includes(expenseSearch.toLowerCase())
+              )
+              .map((expense) => (
+                <div key={expense.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                  <div>
+                    <p className="text-gray-800 font-medium">{expense.title ?? "None"}</p>
+                    <p className="text-gray-500 text-xs">{new Date(expense.date).toLocaleDateString()}</p>
+                    <p className="text-gray-400 text-xs">{expense.category ?? "None"}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-800">₦{Number(expense.amount).toLocaleString()}</p>
+                    <button onClick={() => setExpenseToDelete(expense)} className="text-red-500 hover:text-red-700">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          {/* Add Expense */}
+          <div className="mt-3 flex justify-end">
+            <button
+              className="bg-[#7E51FF] text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+              onClick={() => {
+                setExpenseToEdit(null);
+                setIsExpenseModalOpen(true);
+              }}
+            >
+              + Add Expense
+            </button>
+          </div>
+        </InfoCard>
+      </>
+    )}
+  </div>
+</div>
+
 
             {/* other */}
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
@@ -1143,7 +1181,31 @@ export default function ProjectDetailsPage() {
             )}
 
 
+            {isExpenseModalOpen && (
+                <CreateExpenseModal
+                    isOpen={isExpenseModalOpen}
+                    onClose={() => {
+                        setIsExpenseModalOpen(false)
+                    }}
+                    onCreated={(newExpense) => {
+                        // Insert or update in the parent list
+                        setExpenses((prev) =>
+                            expenseToEdit
+                                ? prev.map((exp) =>
+                                    exp.id === newExpense.id ? newExpense : exp
+                                )
+                                : [newExpense, ...prev]
+                        )
 
+                        setIsExpenseModalOpen(false)
+                        setExpenseToEdit(null)
+                    }}
+                    projectId={project.id}            // <— IMPORTANT
+                    sourceType="project"              // <— Just like InvoiceModal
+                    mode={expenseToEdit ? "edit" : "create"}
+                    existingExpense={expenseToEdit}
+                />
+            )}
 
             {isInvoiceModalOpen && (
                 <InvoiceModal
@@ -1191,6 +1253,20 @@ export default function ProjectDetailsPage() {
             />
 
             <DeleteConfirmModal
+  isOpen={!!expenseToDelete} // ✅ modal controlled by this state
+  onCancel={() => setExpenseToDelete(null)} 
+  onConfirm={() => expenseToDelete && deleteExpenseMutation.mutate(expenseToDelete.id)}
+  title="Delete Expense"
+  message={
+    expenseToDelete
+      ? `Are you sure you want to delete the expense of ${expenseToDelete.amount} on ${expenseToDelete.date}?`
+      : ""
+  }
+  deleting={deletingId === expenseToDelete?.id} // only disables for the active expense
+/>
+
+
+            <DeleteConfirmModal
                 isOpen={!!invoiceToDelete}
                 onCancel={() => setInvoiceToDelete(null)}
                 onConfirm={() => invoiceToDelete && deleteInvoiceMutation.mutate(invoiceToDelete.id)}
@@ -1210,7 +1286,7 @@ export default function ProjectDetailsPage() {
                 title="Delete quotation"
                 message={
                     quotationToDelete
-                        ? `Are you sure you want to delete the quotation of ${quotationToDelete.quotationNumber}?`
+                        ? `Are you sure you want to delete the quotationm of ${quotationToDelete.quotationNumber}?`
                         : ""
                 }
                 deleting={deletingQuotationId === quotationToDelete?.id}

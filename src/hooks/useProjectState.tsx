@@ -2,11 +2,12 @@
 import { ProjectDisplayData, DocumentFileItem, NoteItem, PaymentHistoryItem } from "@/types/ProjectTypes";
 import { Invoice, InvoiceItem } from "@/types/invoice";
 import { Quotation } from "@/types/quotation";
+
+import { ExpenseResponse } from "@/types/expenses"; 
 import { useState } from "react";
 
 export const useProjectState = () => {
   const [project, setProject] = useState<ProjectDisplayData | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
   
   const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
@@ -30,7 +31,7 @@ export const useProjectState = () => {
   
 
   // QUOTATIONS
-const [quotations, setQuotations] = useState<Invoice[]>([]);
+const [quotations, setQuotations] = useState<Quotation[]>([]);
 const [quotationToEdit, setQuotationToEdit] = useState<Quotation | null>(null);
 const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
 const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
@@ -46,9 +47,41 @@ const [deletingQuotationId, setDeletingQuotationId] = useState<number | null>(nu
   const [fileToDelete, setFileToDelete] = useState<DocumentFileItem | null>(null);
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
 
+//   // EXPENSES
+// const [expenses, setExpenses] = useState<any[]>([]);
+// const [expenseToEdit, setExpenseToEdit] = useState<any | null>(null);
+// const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+// const [expenseToDelete, setExpenseToDelete] = useState<any | null>(null);
+// const [deletingExpenseId, setDeletingExpenseId] = useState<number | null>(null);
+
+// import { useState } from "react";
+// // Import the type you defined
+
+// export default function YourPageOrComponent() {
+
+  // EXPENSES STATE
+  
+  // 1. Array of expenses: Use ExpenseResponse[]
+  const [expenses, setExpenses] = useState<ExpenseResponse[]>([]);
+
+  // 2. Single expense to edit: Use ExpenseResponse | null
+  const [expenseToEdit, setExpenseToEdit] = useState<ExpenseResponse | null>(null);
+
+  // 3. Boolean remains boolean (No change needed here)
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
+  // 4. Single expense to delete: Use ExpenseResponse | null
+  const [expenseToDelete, setExpenseToDelete] = useState<ExpenseResponse | null>(null);
+
+  // 5. ID is usually a number (or string depending on DB), this line was likely fine but checking logic:
+  const [deletingExpenseId, setDeletingExpenseId] = useState<number | null>(null);
+
+  // ... rest of your component
+
+
+
   return {
     project, setProject,
-    invoices, setInvoices,
     quotations, setQuotations,
     expandedInvoice, setExpandedInvoice,
     invoiceToEdit, setInvoiceToEdit,
@@ -82,5 +115,12 @@ const [deletingQuotationId, setDeletingQuotationId] = useState<number | null>(nu
     deletingFileId, setDeletingFileId,
     fileToDelete, setFileToDelete,
     isFileModalOpen, setIsFileModalOpen,
+
+    expenses, setExpenses,
+    expenseToEdit, setExpenseToEdit,
+    isExpenseModalOpen, setIsExpenseModalOpen,
+    expenseToDelete, setExpenseToDelete,
+    deletingExpenseId, setDeletingExpenseId,
+
   };
 };

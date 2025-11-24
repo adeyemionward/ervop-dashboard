@@ -17,7 +17,10 @@ export interface Quotation {
   discountPercentage: number;
   taxAmount: number;
   discountAmount: number;
+  subTotal: number;       // add this
+  totalAmount: number;    // add this
   status: 'Paid' | 'Pending';
   items: QuotationItem[];
   notes: string;
+
 }
