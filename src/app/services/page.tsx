@@ -62,41 +62,40 @@ export default function ServicesPage() {
  
     const handleGoBack = useGoBack();
     
- const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+//   const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
     console.log("ENV CHECK - BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
-    console.log("USER TOKEN:", userToken);
+    // console.log("USER TOKEN:", userToken);
     
     // --- 2. DATA FETCHING ---
     // We manually fetch here to have better control over the 'services' state
    const fetchServices = useCallback(async () => {
-  if (!userToken) return;
+    setLoading(true);
+    try {
+        const userToken = localStorage.getItem('token'); // safe: runs in browser
+        if (!userToken) throw new Error("No token");
 
-  setLoading(true);
-  try {
-    const res = await fetch(`${BASE_URL}/professionals/services/list`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${userToken}`,
-      },
-    });
+        const res = await fetch(`${BASE_URL}/professionals/services/list`, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${userToken}`,
+            },
+        });
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+        const result = await res.json();
+        if (result.status) setServices(result.services);
+        else setError("Failed to load services");
+    } catch (err) {
+        console.error(err);
+        setError("An error occurred");
+    } finally {
+        setLoading(false);
     }
-
-    const { services } = await res.json(); // adjust according to your API
-    setServices(services);
-  } catch (err) {
-    console.error(err);
-    setError(err instanceof Error ? err.message : "Failed to load services");
-  } finally {
-    setLoading(false);
-  }
-}, [userToken]);
+}, []); 
 
 useEffect(() => {
-  fetchServices();
+    fetchServices(); // runs only on client
 }, [fetchServices]);
 
 
@@ -142,7 +141,7 @@ useEffect(() => {
             `${BASE_URL}/professionals/services/delete/${serviceToDelete.id}`,
             {
                 method: "DELETE",
-                headers: { Authorization: `Bearer ${userToken}` },
+                // headers: { Authorization: `Bearer ${userToken}` },
             }
             );
             const result = await res.json();
