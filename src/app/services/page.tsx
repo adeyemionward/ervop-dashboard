@@ -38,8 +38,6 @@ const ServiceStatusBadge = ({ status }: { status: string }) => {
 // --- Main Page Component ---
 export default function ServicesPage() {
     
- const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
     // --- 1. STATE MANAGEMENT ---
     const [services, setServices] = useState<Service[]>([]);
@@ -64,13 +62,22 @@ export default function ServicesPage() {
  
     const handleGoBack = useGoBack();
     
+ const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+    
     // --- 2. DATA FETCHING ---
     // We manually fetch here to have better control over the 'services' state
     useEffect(() => {
         const fetchServices = async () => {
             try {
+                if (!userToken) {
+                    throw new Error("No authentication token found.");
+                }
                 const res = await fetch(`${BASE_URL}/professionals/services/list`, {
-                    headers: { Authorization: `Bearer ${userToken}` }
+                    headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${userToken}`,
+                    },
                 });
                 const result = await res.json();
                 if (result.status) {
