@@ -1,21 +1,38 @@
-// src/components/IndustryOptions.js
-export const customStyles = {
-  control: (provided, state) => ({
+import {
+  CSSObjectWithLabel,
+  ControlProps,
+  StylesConfig
+} from "react-select";
+
+export interface Option {
+  value: string;
+  label: string;
+}
+
+export const customStyles: StylesConfig<Option, false> = {
+  control: (
+    provided: CSSObjectWithLabel,
+    state: ControlProps<Option, false>
+  ) => ({
     ...provided,
     minHeight: "50px",
     height: "50px",
     borderRadius: "0.5rem",
     borderColor: state.isFocused ? "#9333EA" : "#D1D5DB",
-    boxShadow: state.isFocused ? "0 0 0 2px rgba(147, 51, 234, 0.5)" : "none",
+    boxShadow: state.isFocused
+      ? "0 0 0 2px rgba(147, 51, 234, 0.5)"
+      : "none",
     "&:hover": {
       borderColor: state.isFocused ? "#9333EA" : "#9CA3AF",
     },
   }),
-  input: (provided) => ({
+
+  input: (provided: CSSObjectWithLabel) => ({
     ...provided,
     margin: "0px",
   }),
-  indicatorsContainer: (provided) => ({
+
+  indicatorsContainer: (provided: CSSObjectWithLabel) => ({
     ...provided,
     height: "50px",
   }),

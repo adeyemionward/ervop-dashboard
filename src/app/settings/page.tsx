@@ -340,21 +340,18 @@ export default function GeneralSettingsPage() {
                                 <div  className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Country */}
                                         
-                                        <div className="w-full">
+                                    <div className="w-full">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Select Country
                                         </label>
-                                        <Select
-                                            options={countryOptions}
-                                            value={selectedCountry}
-                                            onChange={(newValue) => setSelectedCountry(newValue)} // works now
-                                            placeholder="Search and select a country..."
-                                            className="text-sm"
-                                                    styles={customStyles}
+                                       <Select
+                                        options={countryOptions}
+                                        value={selectedCountry}
+                                        onChange={(opt) => setSelectedCountry(opt)}
+                                        placeholder="Search and select a country..."
+                                        styles={customStyles}
                                         />
-                                        </div>
-
-                                    {/* Industry */}
+                                    </div>
                                     <div>
                                         <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
                                         City

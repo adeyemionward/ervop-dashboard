@@ -1,8 +1,19 @@
-// src/components/CountryOptions.ts
-import { StylesConfig } from "react-select";
+import {
+  CSSObjectWithLabel,
+  ControlProps,
+  StylesConfig
+} from "react-select";
 
-export const customStyles: StylesConfig = {
-  control: (provided, state) => ({
+export interface Option {
+  value: string;
+  label: string;
+}
+
+export const customStyles: StylesConfig<Option, false> = {
+  control: (
+    provided: CSSObjectWithLabel,
+    state: ControlProps<Option, false>
+  ) => ({
     ...provided,
     minHeight: "50px",
     height: "50px",
@@ -16,12 +27,12 @@ export const customStyles: StylesConfig = {
     },
   }),
 
-  input: (provided) => ({
+  input: (provided: CSSObjectWithLabel) => ({
     ...provided,
     margin: "0px",
   }),
 
-  indicatorsContainer: (provided) => ({
+  indicatorsContainer: (provided: CSSObjectWithLabel) => ({
     ...provided,
     height: "50px",
   }),
