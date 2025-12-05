@@ -5,6 +5,7 @@ import {Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
+import  config  from '@/config/env';
 
 // --- MAIN PAGE COMPONENT ---
 export default function LoginPage() {
@@ -15,7 +16,8 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false); // State for password visibility
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+    // const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+    const BASE_URL = config.baseUrl;
     const router = useRouter();
     const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();

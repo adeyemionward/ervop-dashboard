@@ -1,5 +1,6 @@
 'use client';
 
+import config from "@/config/env";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
 import { useState, useMemo, useEffect } from "react"; 
@@ -23,7 +24,7 @@ interface Service {
 }
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
+const BASE_URL = config.baseUrl;
 
 // --- Badge Component ---
 const ServiceStatusBadge = ({ status }: { status: string }) => {
