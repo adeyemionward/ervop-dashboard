@@ -23,8 +23,6 @@ interface Service {
     status: string; // Changed to string to match your Modal
 }
 
-const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-const BASE_URL = "http://127.0.0.1:8000/api/v1"//config.baseUrl;
 
 // --- Badge Component ---
 const ServiceStatusBadge = ({ status }: { status: string }) => {
@@ -39,6 +37,9 @@ const ServiceStatusBadge = ({ status }: { status: string }) => {
 
 // --- Main Page Component ---
 export default function ServicesPage() {
+    
+ const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
     // --- 1. STATE MANAGEMENT ---
     const [services, setServices] = useState<Service[]>([]);
