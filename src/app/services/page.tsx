@@ -88,7 +88,7 @@ export default function ServicesPage() {
                     setError("Failed to load services");
                 }
             } catch (err) {
-                //console.error(err);
+                console.error(err);
                 setError("An error occurred");
             } finally {
                 setLoading(false);
@@ -152,7 +152,7 @@ export default function ServicesPage() {
                 //console.error(result.message);
             }
         } catch (error) {
-            //console.error("Delete failed:", error);
+            console.error("11Delete failed:", error);
         } finally {
             setIsDeleting(false);
         }
