@@ -18,7 +18,7 @@ import { formatDate } from "@/app/utils/formatDate";
 import toast from "react-hot-toast";
 import DocumentSidePanel from "@/components/DocumentSidePanel";
 import Modal from "@/components/Modal";
-import CreateDocModal from "./new/page";
+import CreateDocModal from "@/components/CreateDocModal";
 
 
 // ---------- Types ----------

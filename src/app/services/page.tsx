@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import Modal from "@/components/Modal";
 // Make sure this import path points to your updated Modal component
-import ServiceFormModal from "./new/page"; 
+import CreateServiceModal from "@/components/CreateServiceModal"; 
 import { useGoBack } from "@/hooks/useGoBack";
 import DataTable from "@/components/DataTable";
 import { Eye, Pencil, Trash2 } from "lucide-react";
@@ -194,7 +194,7 @@ export default function ServicesPage() {
                 // Dynamic Title based on state
                 title={viewingService ? "Service Details" : editingService ? "Edit Service" : "Add New Service"}
             >
-                <ServiceFormModal 
+                <CreateServiceModal 
                     onClose={() => setIsModalOpen(false)} 
                     // Pass whichever service is selected (View or Edit)
                     serviceToEdit={editingService || viewingService} 

@@ -21,7 +21,7 @@ interface ServiceModalProps {
   isViewMode?: boolean; // 🆕 Added prop
 }
 
-export default function ServiceFormModal({ 
+export default function CreateServiceModal({ 
   onClose, 
   serviceToEdit, 
   onSuccess, 

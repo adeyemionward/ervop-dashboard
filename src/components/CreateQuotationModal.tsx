@@ -13,7 +13,7 @@ interface QuotationModalProps {
 
 type LineItem = { description: string; qty: number; rate: number; };
 
-export default function QuotationModal({ onClose, onCreated }: QuotationModalProps) {
+export default function CreateQuotationModal({ onClose, onCreated }: QuotationModalProps) {
   const [items, setItems] = useState<LineItem[]>([{ description: "", qty: 1, rate: 0 }]);
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);

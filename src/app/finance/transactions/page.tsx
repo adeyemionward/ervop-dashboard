@@ -10,8 +10,8 @@ import clsx from "clsx";
 import Link from "next/link";
 import TransactionActivityModal from "@/components/TransactionSlideOver";
 import Modal from "@/components/Modal";
-import CreateIncomeModal from "../income/new/page";
-import CreateExpenseModal from "../expenses/new/page";
+import CreateIncomeModal from "@/components/CreateIncomeModal";
+import CreateExpenseModal from "@/components/CreateExpenseModal";
 
 const useGoBack = () => () => { if (typeof window !== 'undefined') window.history.back(); };
 // --- TYPE DEFINITIONS ---

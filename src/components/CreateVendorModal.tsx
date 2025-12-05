@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { toast } from "react-hot-toast";
 
 // ✅ Export interface for parent page use
-export interface Contractor {
+export interface Vendor {
   id: number;
   firstname: string;
   lastname: string;
@@ -21,11 +21,11 @@ export interface Contractor {
 
 interface VendorFormModalProps {
   onClose: () => void;
-  vendorToEdit?: Contractor | null; // If null, "Create" mode
-  onSuccess: (vendor: Contractor, isEdit: boolean) => void;
+  vendorToEdit?: Vendor | null; // If null, "Create" mode
+  onSuccess: (vendor: Vendor, isEdit: boolean) => void;
 }
 
-export default function ContractorFormModal({ 
+export default function CreateVendorModal({ 
   onClose, 
   vendorToEdit, 
   onSuccess 
@@ -82,8 +82,8 @@ export default function ContractorFormModal({
 
       // ✅ Dynamic URL & Method
       const url = vendorToEdit
-        ? `${BASE_URL}/professionals/contractors/update/${vendorToEdit.id}`
-        : `${BASE_URL}/professionals/contractors/create/`;
+        ? `${BASE_URL}/professionals/vendors/update/${vendorToEdit.id}`
+        : `${BASE_URL}/professionals/vendors/create/`;
 
       const method = vendorToEdit ? "PUT" : "POST";
 

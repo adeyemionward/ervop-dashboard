@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import DataTable from "@/components/DataTable";
 import Modal from "@/components/Modal";
-import ClientFormModal, { Contact } from "./new/page";
+import ClientFormModal, { Contact } from "@/components/ClientFormModal";
 
 
 // Using the Client interface exported from ClientFormModal to ensure consistency

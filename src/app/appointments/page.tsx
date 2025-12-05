@@ -13,7 +13,7 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import toast from 'react-hot-toast';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
-import CreateAppointmentModal from './new/page';
+import CreateAppointmentModal from '@/components/CreateAppointmentModal';
 
 
 const useGoBack = () => () => window.history.back();

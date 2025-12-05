@@ -12,7 +12,7 @@ import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import { FileText, CheckCircle2, Clock, XCircle, Pencil, Trash2, Eye, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import Modal from "@/components/Modal";
-import QuotationModal from "./new/page";
+import CreateQuotationModal from "@/components/CreateQuotationModal";
 
 type Customer = {
   id: number;
@@ -149,7 +149,7 @@ export default function QuotationsPage() {
         onClose={() => setIsModalOpen(false)}
         title="Generate New Quotation"
       >
-        <QuotationModal 
+        <CreateQuotationModal 
           onClose={() => setIsModalOpen(false)} 
           onCreated={fetchQuotations}
         />

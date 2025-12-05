@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import DataTable from "@/components/DataTable";
 import Modal from "@/components/Modal";
 // ✅ Import the reusable modal and interface
-import VendorFormModal, { Vendor } from "./new/page";
+import CreateVendorModal, { Vendor } from "@/components/CreateVendorModal";
 
 export default function VendorsPage() {
   const handleGoBack = useGoBack();
@@ -177,7 +177,7 @@ export default function VendorsPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingVendor ? "Edit Vendor" : "Add New Vendor"}
       >
-        <VendorFormModal
+        <CreateVendorModal
           onClose={() => setIsModalOpen(false)}
           // Explicit cast helps if API types are loose (null vs undefined)
           vendorToEdit={editingVendor as Vendor | null} 
