@@ -38,12 +38,13 @@ type OrderType = {
   tax_percentage: number;
   orderStatus: string;
   paymentStatus: string;
-  customer: { name: string; email: string; phone: string };
+  customer: { name: string; company:string; email: string; phone: string };
   professional: { 
     name: string; 
     address:  string; 
     business_name: string;
-    business_logo: string 
+    business_logo: string
+    business_signature: string 
     phone: string,
     email: string,
   };
@@ -92,6 +93,7 @@ async function fetchOrder(id: string): Promise<OrderType> {
     discount_percentage: invoice.discount_percentage,
     tax_percentage: invoice.tax_percentage,
     customer: {
+      company: invoice.customer.company,
       name: `${invoice.customer.firstname} ${invoice.customer.lastname}`,
       email: invoice.customer.email,
       phone: invoice.customer.phone,
@@ -103,6 +105,7 @@ async function fetchOrder(id: string): Promise<OrderType> {
       email: invoice.professional.email,
       address: invoice.professional.address,
       business_logo: invoice.professional.business_logo,
+      business_signature: invoice.professional.business_signature,
     },
     items: invoice.items.map((item: Item) => ({
       id: item.id,
@@ -358,7 +361,7 @@ const mutation = useMutation({
                       {/* Customer Info */}
                       <div>
                           <p className="font-semibold text-gray-500 text-sm mb-1">BILLED TO</p>
-                          <p className="font-bold text-gray-800">{order.customer.name}</p>
+                          <p className="font-bold text-gray-800">{order.customer.company || order.customer.name}</p>
                           <p className="text-gray-600">{order.customer.email}</p>
                           <p className="text-gray-600">{order.customer.phone}</p>
                       </div>
@@ -407,10 +410,26 @@ const mutation = useMutation({
                   
 
                   {/* <!-- Footer --> */}
-                  <div className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
-                      <p>Thank you for your business!</p>
-                      <p>{order.professional.business_name} | {order.professional.phone} | {order.professional.email}</p>
-                  </div>
+                   <div className="mt-4  border-t flex flex-col items-center text-center">
+
+                    {/* Signature Image */}
+                   {order.professional.business_signature ? (
+                        <img
+                            src={order.professional.business_signature}
+                            alt="Business Logo"
+                            className="w-24 h-24 object-contain"
+                        />
+                    ) : (
+                        <p className="text-sm text-gray-500 italic">
+                            No signature uploaded
+                        </p>
+                    )}
+
+
+                    {/* Company Name */}
+                    
+                    <p className="font-semibold text-gray-700 mb-3">Authorized Signature</p>
+                </div>
 
               </div>
               </div>

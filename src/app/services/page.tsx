@@ -2,111 +2,209 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import DataStateWrapper from "@/components/DataStateWrapper";
-import { useFetchData } from '@/hooks/useFetchData';
+import { useState, useMemo, useEffect } from "react"; 
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import Modal from "@/components/Modal";
-import CreateServiceModal from "./new/page";
+// Make sure this import path points to your updated Modal component
+import ServiceFormModal from "./new/page"; 
 import { useGoBack } from "@/hooks/useGoBack";
+import DataTable from "@/components/DataTable";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 
-
-const ServiceStatusBadge = ({ status }: { status: 'active' | 'inactive'}) => {
-    const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full";
-    const statusClasses = {
-        'active': "bg-green-100 text-green-800",
-        'inactive': "bg-red-100 text-red-800",
-    };
-    return <span className={`${baseClasses} ${statusClasses[status]}`}>{status}</span>;
-};
- const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
-
-
-
+// --- Types ---
 interface Service {
     id: number;
     name: string;
+    description?: string;
     service_type: string;
-    duration: number;
+    duration?: number;
     price: number;
-    status: 'active' | 'inactive';
+    status: string; // Changed to string to match your Modal
 }
-interface ServicesResponse {
-    status: boolean;
-    services: Service[]; // The array of services is inside this property
-}
+
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
+
+// --- Badge Component ---
+const ServiceStatusBadge = ({ status }: { status: string }) => {
+    const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full";
+    const isActive = status.toLowerCase() === 'active';
+    return (
+        <span className={`${baseClasses} ${isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+            {status}
+        </span>
+    );
+};
 
 // --- Main Page Component ---
 export default function ServicesPage() {
 
-     // State for filtering and pagination
+    // --- 1. STATE MANAGEMENT ---
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Filter States
     const [searchTerm, setSearchTerm] = useState('');
     const [serviceStatusFilter, setServiceStatusFilter] = useState<'All' | 'active' | 'inactive'>('All');
-    // const [currentPage, setCurrentPage] = useState(1);
+    
+    // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // ✅ FIXED: Added these missing state variables
+    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [viewingService, setViewingService] = useState<Service | null>(null);
+
+    // Delete States
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+ 
+    const handleGoBack = useGoBack();
+    
+    // --- 2. DATA FETCHING ---
+    // We manually fetch here to have better control over the 'services' state
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${BASE_URL}/professionals/services/list`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const result = await res.json();
+                if (result.status) {
+                    setServices(result.services);
+                } else {
+                    setError("Failed to load services");
+                }
+            } catch (err) {
+                console.error(err);
+                setError("An error occurred");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchServices();
+    }, []);
+
+    // --- 3. HANDLERS ---
+
+    // Open "Add New" Modal
+    const openAddModal = () => {
+        setEditingService(null);
+        setViewingService(null);
+        setIsModalOpen(true);
+    };
+
+    // Open "Edit" Modal
+    const openEditModal = (service: Service) => {
+        setEditingService(service);
+        setViewingService(null);
+        setIsModalOpen(true);
+    };
+
+    // Open "View" Modal
+    const openViewModal = (service: Service) => {
+        setViewingService(service);
+        setEditingService(null);
+        setIsModalOpen(true);
+    };
+
+    // Handle updates from the Modal (Success Callback)
+    const handleSaveSuccess = (savedService: Service, isEdit: boolean) => {
+        if (isEdit) {
+            setServices(prev => prev.map(s => s.id === savedService.id ? savedService : s));
+        } else {
+            setServices(prev => [savedService, ...prev]);
+        }
+    };
+
+    // Handle Delete
+    const handleDelete = async () => {
+        if (!serviceToDelete) return;
+        setIsDeleting(true);
+    
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(
+            `${BASE_URL}/professionals/services/delete/${serviceToDelete.id}`,
+            {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            }
+            );
+            const result = await res.json();
+    
+            if (result.status) {
+                setServices((prev) => prev.filter((s) => s.id !== serviceToDelete.id));
+                setShowDeleteModal(false);
+                setServiceToDelete(null);
+            } else {
+                console.error(result.message);
+            }
+        } catch (error) {
+            console.error("Delete failed:", error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const handleClearFilters = () => {
         setSearchTerm('');
         setServiceStatusFilter('All');
-        // setCurrentPage(1);
     };
-    const handleGoBack = useGoBack();
-    
-     // Get the services
-    const { data, loading, error } = useFetchData<ServicesResponse>(`${BASE_URL}/professionals/services/list`);
-    // Correctly and safely access the 'services' array
-    const services = data?.services || [];
 
-
-      const filteredServices = useMemo(() => {
-             return services.filter(service => {
-                 const matchesSearchTerm = searchTerm === '' || service.name.toLowerCase().includes(searchTerm.toLowerCase());
-                 const matchesStatus = serviceStatusFilter === 'All' || service.status === serviceStatusFilter.toLowerCase();
-                 return matchesSearchTerm && matchesStatus;
-             });
-         }, [services, searchTerm, serviceStatusFilter]);
-
-    // Handlers
     const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setServiceStatusFilter(e.target.value as 'All' | 'active' | 'inactive');
-        // setCurrentPage(1); // Reset to page 1 on filter change
     };
 
-    
+    // --- 4. FILTER LOGIC ---
+    const filteredServices = useMemo(() => {
+        return services.filter(service => {
+            const matchesSearchTerm = searchTerm === '' || service.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = serviceStatusFilter === 'All' || service.status.toLowerCase() === serviceStatusFilter.toLowerCase();
+            return matchesSearchTerm && matchesStatus;
+        });
+    }, [services, searchTerm, serviceStatusFilter]);
 
 
-    // const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
-
+    // --- 5. RENDER ---
     return (
         <DashboardLayout>
-            {/* <main className="flex-1 p-8 overflow-y-auto"> */}
-         
-                <HeaderTitleCard
+            <HeaderTitleCard
                 onGoBack={handleGoBack} 
                 title="Services"
-                description="Manage your inventory and product catalog."
-                >
+                description="Manage the services you offer to clients."
+            >
                 <div className="flex flex-col md:flex-row gap-2">
                     <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="btn-primary flex items-center justify-center"
+                        onClick={openAddModal} // ✅ Uses the handler
+                        className="btn-primary flex items-center justify-center"
                     >
-                    <Icons.plus />
-                    <span>Add New Service</span>
+                        <Icons.plus />
+                        <span>Add New Service</span>
                     </button>
                 </div>
-                </HeaderTitleCard>
+            </HeaderTitleCard>
 
-                {/* ✅ Modal Wrapper */}
-                <Modal
+            {/* ✅ MODAL LOGIC */}
+            <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Add New Service"
-                >
-                <CreateServiceModal onClose={() => setIsModalOpen(false)} />
-                </Modal>
+                // Dynamic Title based on state
+                title={viewingService ? "Service Details" : editingService ? "Edit Service" : "Add New Service"}
+            >
+                <ServiceFormModal 
+                    onClose={() => setIsModalOpen(false)} 
+                    // Pass whichever service is selected (View or Edit)
+                    serviceToEdit={editingService || viewingService} 
+                    // Set View Mode if viewingService exists
+                    isViewMode={!!viewingService} 
+                    onSuccess={handleSaveSuccess}
+                />
+            </Modal>
 
-
+            {/* Filters */}
             <div className="mb-4 p-4 bg-white rounded-lg shadow-sm flex items-center gap-4">
                 <div className="relative flex-shrink-0 w-64">
                     <input
@@ -129,57 +227,106 @@ export default function ServicesPage() {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                 </select>
-                <div className="flex-grow"></div> {/* This spacer pushes the buttons to the right */}
+                <div className="flex-grow"></div> 
                 <div className="flex items-center space-x-2 flex-shrink-0">
                         <button
                             onClick={handleClearFilters}
                             className="text-sm text-gray-600 hover:text-primary-600 p-2 cursor-pointer hover:bg-gray-200 bg-gray-100 font-medium flex items-center space-x-1 rounded-lg"
-                            >
+                        >
                             <Icons.refresh className="h-6 w-6" />
                             <span>Refresh</span>
                         </button>
-                        {/* <button className="p-2 text-gray-500 cursor-pointer hover:text-primary-600 hover:bg-gray-200 bg-gray-100 rounded-full">
-                            <Icons.refresh className="h-6 w-6" />
-                        </button>  */}
                 </div>
             </div>
 
+            {/* Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <DataStateWrapper loading={loading} error={error}>
-                        {/* // The table is rendered only when data is available. */}
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-4">Service Name</th>
-                                    <th scope="col" className="px-6 py-4">Service Type</th>
-                                    <th scope="col" className="px-6 py-4">Price</th>
-                                    <th scope="col" className="px-6 py-4">Status</th>
-                                    <th scope="col" className="px-6 py-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredServices.map((service) => (
-                                    <tr key={service.id} className="bg-white border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4">{service.name}</td>
-                                        <td className="px-6 py-4">{service.service_type}</td>
-                                        <td className="px-6 py-4">{service.price}</td>
-                                        <td className="px-6 py-4"><ServiceStatusBadge status={service.status as 'active' | 'inactive'} /></td>
-                                        <td className="px-6 py-4">
-                                            <Link href={`/services/${service.id}`}>
-                                                <button className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md cursor-pointer text-xs font-medium hover:bg-gray-200">
-                                                    View Details
-                                                </button>
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataStateWrapper>
+                    <DataTable
+                        columns={[
+                            {
+                                label: "Service Name",
+                                field: "name",
+                                render: (service) => <span className="font-semibold text-gray-900">{service.name}</span>,
+                            },
+                            {
+                                label: "Service Type",
+                                field: "service_type",
+                            },
+                            {
+                                label: "Price",
+                                field: "price",
+                                render: (service) => <span className="font-medium text-gray-600">{service.price}</span>,
+                            },
+                            {
+                                label: "Status",
+                                field: "status",
+                                render: (service) => <ServiceStatusBadge status={service.status} />,
+                            },
+                        ]}
+                        data={filteredServices}
+                        loading={loading}
+                        error={error}
+                        itemsPerPage={10}
+                        actions={(service) => (
+                            <>
+                                {/* View Button */}
+                                <button 
+                                    onClick={() => openViewModal(service)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition w-full text-left"
+                                >
+                                    <Eye className="w-4 h-4 text-gray-500" /> View
+                                </button>
+                                
+                                {/* Edit Button */}
+                                <button 
+                                    onClick={() => openEditModal(service)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 cursor-pointer transition w-full text-left"
+                                >
+                                    <Pencil className="w-4 h-4 text-gray-500" /> Edit
+                                </button>
+
+                                {/* Delete Button */}
+                                <button onClick={() => {
+                                    setServiceToDelete(service);
+                                    setShowDeleteModal(true);
+                                }} className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
+                                    <Trash2 className="w-4 h-4 text-red-500" /> Delete
+                                </button>
+                            </>
+                        )}
+                    />
                 </div>
             </div>
-            {/* </main> */}
+
+            {/* Delete Modal Confirmation */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                        <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete{" "}
+                            <span className="font-bold">{serviceToDelete?.name}</span>?
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={isDeleting}
+                                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                            >
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 }

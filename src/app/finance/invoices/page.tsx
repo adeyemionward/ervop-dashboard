@@ -9,9 +9,13 @@ import Link from "next/link";
 import StatCard from "@/components/StatCard";
 import DataTable from "@/components/DataTable";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal"; // ✅ import modal
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
+import Modal from "@/components/Modal";
+import InvoiceSettings from "@/types/InvoiceSettings";
+import InvoiceSettingsModal from "@/components/InvoiceSettingsModal";
+
 
 type Customer = {
   id: number;
@@ -53,10 +57,31 @@ export default function InvoicesPage() {
   // ✅ Delete states
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+     // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [isModalOpen, setIsModalOpen] = useState(false);
+const [editingSettings, setEditingSettings] = useState<InvoiceSettings | null>(null);
+
+// --- Invoice Settings Save Handler ---
+const handleInvoiceSave = (data: InvoiceSettings, isEdit: boolean) => {
+  setEditingSettings(prev => {
+    if (isEdit) {
+      // If editing, merge changes with existing state (optional)
+      return { ...prev, ...data };
+    } else {
+      // If creating new settings
+      return data;
+    }
+  });
+
+  console.log("Saved invoice settings:", data, "isEdit:", isEdit);
+};
+
+
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000/api/v1";
   const userToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
+ 
   useEffect(() => {
     const fetchInvoices = async () => {
       setError(null);
@@ -133,12 +158,38 @@ export default function InvoicesPage() {
         description="Track and manage all your invoices in one place."
       >
         <div className="flex flex-col md:flex-row gap-2">
+          <button
+            onClick={() => {
+              setEditingSettings(editingSettings); // keep existing values if already saved
+              setIsModalOpen(true);
+            }}
+            className="bg-white border border-purple-300 text-purple-800 px-4 py-2 font-medium rounded-lg hover:bg-purple-50 flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <Settings />
+            <span>Invoice Settings</span>
+          </button>
+
+
           <Link href="invoices/new" className="btn-primary flex items-center justify-center">
-            <Icons.plus />
+            <Plus />
             <span>Generate Invoice</span>
           </Link>
         </div>
       </HeaderTitleCard>
+      {/* ✅ MODAL LOGIC */}
+        
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingSettings ? "Edit Invoice Settings" : "Add Invoice Settings"}
+      >
+        <InvoiceSettingsModal
+          onClose={() => setIsModalOpen(false)}
+          // existingData={editingSettings}   // if null → create mode
+          onSuccess={handleInvoiceSave}
+        />
+      </Modal>
+
 
       {/* OVERVIEW CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, FC, ReactNode } from 'react';
-import { Check, X as XIcon, User, Briefcase, Calendar as CalendarIcon, Save, CheckCircle, ArrowLeft } from "lucide-react";
+import {  User, Briefcase, Calendar as CalendarIcon, Save, CheckCircle, ArrowLeft } from "lucide-react";
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from "@/components/DashboardLayout";

@@ -1,5 +1,5 @@
 import React from "react";
-import { DollarSign, Folder, Users, Calendar, ArrowUpRight } from "lucide-react";
+import { DollarSign, Folder, Users, Calendar, ArrowUpRight, TrendingUp } from "lucide-react";
 import { DashboardData } from "@/types/Dashboard";
 import Link from "next/link";
 import clsx from "clsx";
@@ -10,94 +10,156 @@ interface Props {
 
 interface StatCardProps {
   title: string;
-  small?: string;
-  value: string | number; // ✅ allow both string and number
-  allTimeValue?: string | number; // ✅ allow both string and number
+  value: string | number;
+  allTimeValue?: string | number;
   allTimeLink?: string;
   icon: React.ElementType;
-  iconBgColor: string;
-  iconColor: string;
+  colorTheme: "green" | "blue" | "purple" | "yellow";
 }
 
 const StatCard: React.FC<StatCardProps> = ({
   title,
-  small,
   value,
   allTimeValue,
   allTimeLink,
   icon: Icon,
-  iconBgColor,
-  iconColor,
-}) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-200 flex items-center space-x-4">
-    <div className={clsx("p-3 rounded-full", iconBgColor)}>
-      <Icon className={clsx("h-6 w-6", iconColor)} />
-    </div>
-    <div>
-      <p className="text-sm font-medium text-gray-500">
-        {title} {small && <small>{small}</small>}
-      </p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+  colorTheme,
+}) => {
+  // Enhanced color styles for border, background, and text emphasis
+  const colorStyles = {
+    // Green Theme (Emerald)
+    green: {
+      bg: "bg-emerald-50",
+      text: "text-emerald-600",
+      border: "border-emerald-200", // Lighter border for card body
+      valueText: "text-emerald-700", // Stronger color for the main value
+    },
+    // Blue Theme (Blue)
+    blue: {
+      bg: "bg-blue-50",
+      text: "text-blue-600",
+      border: "border-blue-200",
+      valueText: "text-blue-700",
+    },
+    // Purple Theme (Violet)
+    purple: {
+      bg: "bg-violet-50",
+      text: "text-violet-600",
+      border: "border-violet-200",
+      valueText: "text-violet-700",
+    },
+    // Yellow Theme (Amber)
+    yellow: {
+      bg: "bg-amber-50",
+      text: "text-amber-600",
+      border: "border-amber-200",
+      valueText: "text-amber-700",
+    },
+  };
+
+  const currentStyle = colorStyles[colorTheme];
+
+  return (
+    // Card now uses the color-specific border on hover
+    <div className={clsx(
+        "group relative overflow-hidden bg-white p-4 rounded-xl border border-slate-200 shadow-sm transition-all duration-300 ease-out",
+        "hover:shadow-lg hover:-translate-y-0.5",
+        `hover:${currentStyle.border}` // Dynamic hover border
+    )}>
+
+      {/* Header: Compact layout */}
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+            {title}
+          </p>
+        </div>
+        {/* Icon Container: Uses bg and text color for a punch */}
+        <div className={clsx(" rounded-lg border", currentStyle.bg, currentStyle.text, currentStyle.border)}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+
+      {/* Body: Value now uses a stronger color */}
+      <div className="flex items-baseline gap-2">
+        <h3 className={clsx("text-2xl font-bold tracking-tight", currentStyle.valueText)}>
+          {value}
+        </h3>
+      </div>
+
+      {/* Footer: Tighter spacing */}
       {allTimeValue && (
-        allTimeLink ? (
-          <Link
-            href={allTimeLink}
-            className="text-xs text-gray-500 mt-1 flex items-center hover:text-blue-600 group transition-colors"
-          >
-            <span>{allTimeValue} All-Time</span>
-            <ArrowUpRight className="w-3 h-3 ml-1 group-hover:opacity-100 transition-opacity" />
-          </Link>
-        ) : (
-          <p className="text-xs text-gray-500 mt-1">{allTimeValue} All-Time</p>
-        )
+        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {/* Trending icon background subtly uses the theme color */}
+            <div className={clsx("p-0.5 rounded-full", currentStyle.bg, currentStyle.text)}>
+              <TrendingUp className="w-3 h-3" />
+            </div>
+            <span className="text-[12px] font-medium text-slate-500">
+              {allTimeValue} <span className={clsx("font-normal", currentStyle.text)}>Total</span>
+            </span>
+          </div>
+
+          {allTimeLink && (
+            <Link
+              href={allTimeLink}
+              // Link color is now theme-specific for better contrast
+              className={clsx(
+                  "flex items-center text-[12px] font-semibold transition-colors",
+                  currentStyle.text, // Use the theme's text color
+                  `hover:${currentStyle.text}` // Optional: keep hover color the same or use a darker shade
+              )}
+            >
+              View
+              <ArrowUpRight className="w-3 h-3 ml-0.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </Link>
+          )}
+        </div>
       )}
     </div>
-  </div>
-);
+  );
+};
 
 export const OverviewStats: React.FC<Props> = ({ data }) => {
   const stats = data.stats;
 
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    // Reduced Grid Gap to gap-4
+    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
-        title="Today's Revenue"
+        title="Revenue Month"
         value={stats.todayRevenue}
         allTimeValue={stats.allTimeRevenue}
         allTimeLink="/revenue"
         icon={DollarSign}
-        iconBgColor="bg-green-100"
-        iconColor="text-green-600"
+        colorTheme="green"
       />
 
       <StatCard
-        title="Today's Projects"
-        value={stats.todayProjects}
-        allTimeValue={`${stats.allTimeProjects} Total`}
+        title="Active Projects"
+        value={stats.activeProjects}
+        allTimeValue={stats.allTimeProjects}
         allTimeLink="/projects"
         icon={Folder}
-        iconBgColor="bg-blue-100"
-        iconColor="text-blue-600"
+        colorTheme="blue"
       />
 
       <StatCard
-        title="Upcoming Appointments"
+        title="Upcoming Appts"
         value={stats.upcomingAppointments}
-        allTimeValue={`${stats.totalAppointments} Total`}
+        allTimeValue={stats.totalAppointments}
         allTimeLink="/appointments"
         icon={Calendar}
-        iconBgColor="bg-purple-100"
-        iconColor="text-purple-600"
+        colorTheme="purple"
       />
 
       <StatCard
-        title="New Clients (This Week)"
+        title="New Clients"
         value={stats.newClientsThisWeek}
-        allTimeValue={`${stats.totalClients} Total`}
+        allTimeValue={stats.totalClients}
         allTimeLink="/clients"
         icon={Users}
-        iconBgColor="bg-yellow-100"
-        iconColor="text-yellow-600"
+        colorTheme="yellow"
       />
     </section>
   );

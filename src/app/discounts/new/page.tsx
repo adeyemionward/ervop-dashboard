@@ -3,9 +3,8 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
 import Link from "next/link";
-import { useState, useMemo } from "react";
-import Image from "next/image";
-import clsx from "clsx";
+import { useState } from "react";
+import Image from "next/image"
 import SelectProductsModal from "@/components/SelectProductsModal"; // Import the modal
 
 // --- Type Definitions ---

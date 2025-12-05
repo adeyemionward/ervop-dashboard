@@ -1,6 +1,6 @@
 // src/hooks/ProjectApi.ts
 import { useState, useEffect } from "react";
-import { ApiProject, ProjectDisplayData } from "@/types/ProjectTypes";
+import { ApiProject, AttachedForm, AvailableForm, ProjectDisplayData } from "@/types/ProjectTypes";
 import { Invoice } from "@/types/invoice";
 import { Quotation } from "@/types/quotation";
 
@@ -11,6 +11,11 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  // Added new state variable
+  const [availableForms, setAvailableForms] = useState<AvailableForm[]>([]);
+
+  // 👉 ADD THIS LINE HERE:
+  const [attachedForms, setAttachedForms] = useState<AttachedForm[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +140,25 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
                 created_at: f.created_at,
               })) ?? [],
           })) ?? [],
+
+          // ✅ NEW: Map the available forms data
+          availableForms: apiData.availableForms?.map(form => ({
+              id: form.id,
+              title: form.title,
+              user_id: form.user_id,
+          })) ?? [],
+
+          // ✅ NEW: Map Attached Forms
+          attachedForms: apiData.attachedForms?.map(att => ({
+              id: att.id,
+              form_id: att.form_id,
+              title: att.title,
+              // description: att.description,
+              status: att.status,
+              public_url: att.public_url,
+              created_at: att.created_at,
+              completed_at: att.completed_at
+          })) ?? [],
       };
 
       setInvoices(
@@ -197,6 +221,11 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
         }) ?? []
       );
 
+      // Store the mapped forms data locally in the hook state
+      setAvailableForms(formatted.availableForms);
+      // 👉 ADD THIS LINE HERE:
+      setAttachedForms(formatted.attachedForms)
+
 
       setProject(formatted);
     } catch (err) {
@@ -210,5 +239,5 @@ export const ProjectApi = (projectIdFromUrl?: string) => {
     if (token) fetchProject();
   }, [projectIdFromUrl, token]);
 
-  return { project, invoices,  quotations,  isLoading, error, fetchProject };
+  return { project, invoices,  quotations, availableForms, attachedForms, isLoading, error, fetchProject };
 };

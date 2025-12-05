@@ -35,9 +35,10 @@ const sidebarNavItems = [
     title: 'Financial Manager',
     icon: Wallet,
     items: [
-      { title: 'Quotations', href: '/finance/quotations', icon: FileText },
-      { title: 'Invoices', href: '/finance/invoices', icon: FileText },
+      
       { title: 'Transactions', href: '/finance/transactions', icon: Wallet },
+      { title: 'Invoices', href: '/finance/invoices', icon: FileText },
+      { title: 'Quotations', href: '/finance/quotations', icon: FileText },
     ]
   },
 
@@ -45,17 +46,7 @@ const sidebarNavItems = [
   { title: 'Site Customizations', href: '/customizations', icon: Palette },
   { title: 'Settings', href: '/settings', icon: Settings },
 
-    { title: 'Logout', href: '/logout', icon: LogOut },
-
-  
-  // General Toolkit
-  // {
-  //   title: 'General Toolkit',
-  //   isCollapsible: false,
-  //   items: [
-     
-  //   ]
-  // }
+  { title: 'Logout', href: '/logout', icon: LogOut },
 ];
 
 interface SidebarProps {

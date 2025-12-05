@@ -28,7 +28,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClose, onFi
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+      setFiles((prev) => [...prev, ...Array.from(e.target.files || [])]);
     }
   };
 
@@ -89,9 +89,9 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClose, onFi
     setDocumentTitle("");
     onClose();
     onFileUploaded?.();
-  } catch (err: any) {
+  } catch (err) {
     console.error(err);
-    toast.error(err.message || "Failed to upload file");
+    toast.error("Failed to upload file");
   } finally {
     setLoading(false);
   }

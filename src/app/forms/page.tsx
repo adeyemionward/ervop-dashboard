@@ -197,26 +197,28 @@ export default function FormTemplatesPage() {
                         </p>
                         </div>
                         <div className="flex items-center justify-end gap-4 p-4 border-t border-gray-200 bg-gray-50/50">
-                        <button
-                            onClick={() => setTemplateToDelete(template)}
-                            className="flex items-center gap-2 text-sm text-red-400 bg-red-50 hover:text-red-600 cursor-pointer font-medium p-2 rounded-md hover:bg-red-100"
+                        
+                            <button
+                                onClick={() => handleUseClick(template)}
+                                className="flex items-center gap-2  bg-purple-50 text-purple-700 font-semibold cursor-pointer rounded-lg hover:bg-purple-100 transition-colors"
                             >
-                            <Trash2 className="w-4 h-4" /> 
-                            <span>Delete</span>
-                        </button>
+                                <Send /> <span>Use Form</span>
+                            </button>
 
-                        <button
-                            onClick={() => handleViewFormClick(template)}
-                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium p-2 cursor-pointer rounded-md hover:bg-gray-100"
-                        >
-                            <Eye className="w-4 h-4" /> <span>View</span>
-                        </button>
-                        <button
-                            onClick={() => handleUseClick(template)}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 font-semibold cursor-pointer rounded-lg hover:bg-purple-100 transition-colors"
-                        >
-                            <Send /> <span>Use Form</span>
-                        </button>
+                            <button
+                                onClick={() => handleViewFormClick(template)}
+                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium p-2 cursor-pointer rounded-md hover:bg-gray-100"
+                            >
+                                <Eye className="w-4 h-4" /> <span>View</span>
+                            </button>
+                        
+                            <button
+                                onClick={() => setTemplateToDelete(template)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-50 hover:text-red-600 cursor-pointer font-medium p-2 rounded-md hover:bg-red-100"
+                                >
+                                <Trash2 className="w-4 h-4" /> 
+                                <span>Delete</span>
+                            </button>
                         </div>
                     </div>
                     ))}

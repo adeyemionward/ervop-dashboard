@@ -1,24 +1,36 @@
 // utils/normalizeHeaderData.ts
-import { WebsiteData } from '@/types/WebsiteTypes';
+import { WebsiteData, MenuItem } from '@/types/WebsiteTypes';
 
-const cleanText = (value: any): string => {
+type NestedObject = Record<string, unknown>;
+
+const cleanText = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   return value.replace(/\*\*/g, '').trim();
 };
 
-export const normalizeHeaderData = (apiHeader: any): WebsiteData['header'] => {
+export const normalizeHeaderData = (apiHeader: NestedObject): WebsiteData['header'] => {
+  const menu = apiHeader?.menuItems as NestedObject | undefined;
+
+  const buildMenuItem = (key: string, defaultTitle: string, visible = true): MenuItem => {
+    const menuItem = menu?.[key] as Record<string, unknown> | undefined;
+    return {
+      title: cleanText(menuItem?.title ?? defaultTitle),
+      visible,
+    };
+  };
+
   return {
     visible: true,
-    title: cleanText(apiHeader?.title ?? 'My Brand'),
-    logo: apiHeader?.logo ?? '',
+    title: cleanText(apiHeader?.['title'] ?? 'My Brand'),
+    logo: cleanText(apiHeader?.['logo'] ?? ''),
     menuItems: {
-      home: { title: cleanText(apiHeader?.menuItems?.home?.title ?? 'Home'), visible: true },
-      about: { title: cleanText(apiHeader?.menuItems?.about?.title ?? 'About'), visible: true },
-      faq: { title: cleanText(apiHeader?.menuItems?.faq?.title ?? 'FAQ'), visible: false },
-      shop: { title: cleanText(apiHeader?.menuItems?.shop?.title ?? 'Appointment'), visible: true },
-      services: { title: cleanText(apiHeader?.menuItems?.services?.title ?? 'Services'), visible: true },
-      portfolio: { title: cleanText(apiHeader?.menuItems?.portfolio?.title ?? 'Portfolio'), visible: false },
-      contact: { title: cleanText(apiHeader?.menuItems?.contact?.title ?? 'Contact'), visible: true },
+      home: buildMenuItem('home', 'Home'),
+      about: buildMenuItem('about', 'About'),
+      faq: buildMenuItem('faq', 'FAQ', false),
+      shop: buildMenuItem('shop', 'Appointment'),
+      services: buildMenuItem('services', 'Services'),
+      portfolio: buildMenuItem('portfolio', 'Portfolio', false),
+      contact: buildMenuItem('contact', 'Contact'),
     },
   };
 };

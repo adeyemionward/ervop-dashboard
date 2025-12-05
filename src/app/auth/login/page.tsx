@@ -56,6 +56,7 @@ export default function LoginPage() {
 
                 localStorage.setItem("user", JSON.stringify(result.user));
                 localStorage.setItem("token", result.token);
+                localStorage.setItem("refresh_token", result.refresh_token);
 
                 const redirectTo = localStorage.getItem("redirectAfterLogin") || "/dashboard";
                 localStorage.removeItem("redirectAfterLogin");

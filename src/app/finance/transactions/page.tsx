@@ -333,26 +333,25 @@ const handleClose = () => {
                     </button>
 
                     {isOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-3">
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 cursor-pointer w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
-                        >
-                            <CreditCard className="h-5 w-5 text-purple-600" />
-                            <span>Add Income</span>
-                        </button>
+                        <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-3">
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 cursor-pointer w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
+                            >
+                                <CreditCard className="h-5 w-5 text-purple-600" />
+                                <span>Add Income</span>
+                            </button>
 
-                        <div className="my-1 border-t border-gray-100"></div>
+                            <div className="my-1 border-t border-gray-100"></div>
 
-                        <button
-                            onClick={() => setIsExpenseModalOpen(true)}
-                            className="flex items-center gap-2 cursor-pointer  w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
-                        >
-                            <Wallet className="h-5 w-5 text-purple-600" />
-                            <span>Add Expense</span>
-                        </button>
-                    </div>
-
+                            <button
+                                onClick={() => setIsExpenseModalOpen(true)}
+                                className="flex items-center gap-2 cursor-pointer  w-full px-3 py-2.5 text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-all duration-200"
+                            >
+                                <Wallet className="h-5 w-5 text-purple-600" />
+                                <span>Add Expense</span>
+                            </button>
+                        </div>
                     )}
                 </div>
                 

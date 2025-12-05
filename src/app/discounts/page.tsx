@@ -3,9 +3,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
 import Link from "next/link";
-import { useState, useMemo } from "react";
-import Image from "next/image";
-import clsx from "clsx";
 import ActionTableCard from "@/components/ActionTableCard";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
@@ -18,22 +15,6 @@ export default function DiscountPage() {
   return (
     
     <DashboardLayout>
-      
-     {/* <main className="flex-1 p-8 overflow-y-auto"> */}
-
-                {/* <!-- Page Header --> */}
-                {/* <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900"></h1>
-                    
-                        <Link href="discounts/new" className="btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                            <span></span>
-                        </Link>
-                </div> */}
-
-                {/* <button className="bg-red-50 text-red-600 hover:bg-red-100 font-semibold py-2 px-4 rounded-lg flex items-center transition-colors text-sm">
-                               <span>Issue Refund</span>
-                              </button> */}
                 
                 <HeaderTitleCard onGoBack={handleGoBack} title="Discounts" description="A complete history of all product transactions">
                     <div className="flex flex-col md:flex-row gap-2">

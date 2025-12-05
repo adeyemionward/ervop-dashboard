@@ -17,7 +17,7 @@ export interface DashboardStats {
   /** Percentage change in revenue compared to the previous day */
   revenueChange?: number;
 
-  /** Number of projects currently active today */
+  /** Number of projects currently active */
   activeProjects: number;
 
   /** Total number of projects all time */

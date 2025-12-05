@@ -1,17 +1,31 @@
-// File: /utils/normalizeHomeData.ts
+// utils/normalizeHomeData.ts
 import { WebsiteData } from '@/types/WebsiteTypes';
 
-const cleanText = (value: any): string => {
+type NestedObject = Record<string, unknown>;
+
+/** Safely cleans a string: removes '**' and trims whitespace */
+const cleanText = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   return value.replace(/\*\*/g, '').trim();
 };
 
-// Helper to safely get nested keys
-const getNested = (obj: any, path: (string | number)[], defaultValue: any = ''): any => {
-  return path.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : null), obj) ?? defaultValue;
+/** Safely gets a nested property from an object */
+const getNested = (
+  obj: NestedObject | undefined,
+  path: (string | number)[],
+  defaultValue: unknown = ''
+): unknown => {
+  return path.reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === 'object' && key in acc) {
+      return (acc as NestedObject)[key];
+    }
+    return null;
+  }, obj) ?? defaultValue;
 };
 
-export const normalizeHomeData = (apiHome: any): WebsiteData['home'] => ({
+
+/** Normalizes API home data into WebsiteData['home'] */
+export const normalizeHomeData = (apiHome: NestedObject): WebsiteData['home'] => ({
   visible: true,
   hero: {
     visible: true,
@@ -20,14 +34,16 @@ export const normalizeHomeData = (apiHome: any): WebsiteData['home'] => ({
     subheadline: cleanText(getNested(apiHome, ['hero', 'home', 'hero', 'subheadline'])),
     ctaText: cleanText(getNested(apiHome, ['hero', 'home', 'hero', 'ctaText'])),
     ctaText2: cleanText(getNested(apiHome, ['hero', 'home', 'hero', 'ctaText2'])),
-    images: Object.values(getNested(apiHome, ['hero', 'home', 'hero', 'image'], {})).map(
-      (img: any) => cleanText(img.description)
-    ),
+    images: Object.values(
+      getNested(apiHome, ['hero', 'home', 'hero', 'image'], {}) as NestedObject
+    ).map((img) => cleanText((img as NestedObject)?.description)),
   },
   processes: {
     visible: true,
     title: cleanText(getNested(apiHome, ['process', 'home', 'process', 'section_title'])),
-    steps: Object.keys(getNested(apiHome, ['process', 'home', 'process', 'title'], {})).map((key) => ({
+    steps: Object.keys(
+      getNested(apiHome, ['process', 'home', 'process', 'title'], {}) as NestedObject
+    ).map((key) => ({
       title: cleanText(getNested(apiHome, ['process', 'home', 'process', 'title', key])),
       description: cleanText(getNested(apiHome, ['process', 'home', 'process', 'description', key])),
     })),
@@ -35,12 +51,12 @@ export const normalizeHomeData = (apiHome: any): WebsiteData['home'] => ({
   whyUs: {
     visible: true,
     title: cleanText(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'section_title'])),
-    points: Object.keys(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'title'], {})).map(
-      (key) => ({
-        title: cleanText(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'title', key])),
-        description: cleanText(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'description', key])),
-      })
-    ),
+    points: Object.keys(
+      getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'title'], {}) as NestedObject
+    ).map((key) => ({
+      title: cleanText(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'title', key])),
+      description: cleanText(getNested(apiHome, ['why_choose_us', 'home', 'why_choose_us', 'description', key])),
+    })),
   },
   services: {
     visible: true,

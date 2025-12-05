@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LogoUpload from '@/components/customization/pages/LogoUpload';
 import MenuLinksEditor from '@/components/customization/pages/MenuLinksEditor';
 import { WebsiteData } from '@/types/WebsiteTypes';
@@ -8,32 +8,33 @@ import { AccordionSection, InputField } from '@/components/customization/pages/s
 import { normalizeHeaderData } from '@/app/utils/normalizeHeaderData';
 
 type Props = {
-  initialHeader?: WebsiteData['header'];
-  initialTheme?: WebsiteData['theme'];
-  initialSeo?: WebsiteData['seo'];
+  data: WebsiteData['header'];
+  onUpdate: (field: keyof WebsiteData['header'], value: unknown) => void;
+  onMenuToggle: (menuKey: keyof WebsiteData['header']['menuItems']) => void;
 };
 
-const HeaderSection: React.FC<Props> = ({
-  initialHeader,
-  
-}) => {
-  // State for header, theme, and SEO
+const HeaderSection: React.FC<Props> = ({ data, onUpdate, onMenuToggle }) => {
   const [headerData, setHeaderData] = useState<WebsiteData['header']>(
-    initialHeader ? initialHeader : normalizeHeaderData({})
+    normalizeHeaderData(data ?? {}) // fallback to empty object
   );
 
- 
-  const handleHeaderUpdate = (field: keyof WebsiteData['header'], value: unknown) => {
-    setHeaderData(prev => ({ ...prev, [field]: value }));
-  };
+  // Keep local state in sync if parent updates `data`
+  useEffect(() => {
+    setHeaderData(normalizeHeaderData(data));
+  }, [data]);
 
+  const handleHeaderUpdate = (field: keyof WebsiteData['header'], value: unknown) => {
+    const updated = { ...headerData, [field]: value };
+    setHeaderData(updated);
+    onUpdate(field, value);
+  };
 
   return (
     <AccordionSection
       title="Header"
       description="Customize your site's main navigation, branding, and global settings."
-      isVisible={headerData.visible}
-      onToggle={() => handleHeaderUpdate('visible', !headerData.visible)}
+      isVisible={headerData?.visible ?? true}
+      onToggle={() => handleHeaderUpdate('visible', !headerData?.visible)}
     >
       <div className="space-y-6">
         {/* Logo Upload */}
@@ -46,7 +47,7 @@ const HeaderSection: React.FC<Props> = ({
         {/* Brand Name */}
         <InputField
           label="Brand Name / Title"
-          value={headerData.title}
+          value={headerData.title ?? ''}
           onChange={(e) => handleHeaderUpdate('title', e.target.value)}
           maxLength={40}
           placeholder="Enter your brand name"
@@ -54,17 +55,17 @@ const HeaderSection: React.FC<Props> = ({
 
         {/* Menu Links */}
         <MenuLinksEditor
-  menuItems={headerData.menuItems}
-  onToggle={(menuKey) => {
-    const updatedMenu = { ...headerData.menuItems };
-
-    if (updatedMenu[menuKey]) {
-      updatedMenu[menuKey].visible = !updatedMenu[menuKey]!.visible;
-      handleHeaderUpdate('menuItems', updatedMenu);
-    }
-  }}
-/>
-
+          menuItems={headerData.menuItems ?? {}}
+          onToggle={(menuKey) => {
+            if (!headerData.menuItems) return;
+            const updatedMenu = { ...headerData.menuItems };
+            if (updatedMenu[menuKey]) {
+              updatedMenu[menuKey].visible = !updatedMenu[menuKey].visible;
+              handleHeaderUpdate('menuItems', updatedMenu);
+              onMenuToggle(menuKey);
+            }
+          }}
+        />
       </div>
     </AccordionSection>
   );

@@ -66,10 +66,11 @@ const UseFormModal: React.FC<UseFormModalProps> = ({
     setSelectedProject(modalProject);
     setSelectedAppointment(modalAppointment);
 
-    const token = localStorage.getItem('token');
+    const randomNumber = Math.floor(Math.random() * 1000000); // generates a random number between 0-999999
     router.push(
-      `/forms/fill-form?clientId=${modalClient}&projectId=${modalProject}&templateId=${template?.id}&token=${token}`
+      `/forms/fill-form?clientId=${modalClient}&projectId=${modalProject}&templateId=${template?.id}&rand=${randomNumber}`
     );
+
   };
 
   const closeModal = () => {

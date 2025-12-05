@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, FC, ReactNode } from 'react';
+import React, { useState, useEffect, FC } from 'react';
 import { Check, X as XIcon, User, Briefcase, Calendar as CalendarIcon, ArrowLeft } from "lucide-react";
 
 import DashboardLayout from "@/components/DashboardLayout";

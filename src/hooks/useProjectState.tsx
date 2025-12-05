@@ -1,5 +1,5 @@
 // useProjectState.ts
-import { ProjectDisplayData, DocumentFileItem, NoteItem, PaymentHistoryItem } from "@/types/ProjectTypes";
+import { ProjectDisplayData, DocumentFileItem, NoteItem, PaymentHistoryItem, AttachedForm } from "@/types/ProjectTypes";
 import { Invoice, InvoiceItem } from "@/types/invoice";
 import { Quotation } from "@/types/quotation";
 
@@ -77,7 +77,9 @@ const [deletingQuotationId, setDeletingQuotationId] = useState<number | null>(nu
   const [deletingExpenseId, setDeletingExpenseId] = useState<number | null>(null);
 
   // ... rest of your component
-
+  // --- State for Deleting Attached Form ---
+  const [attachedFormToDelete, setAttachedFormToDelete] = useState<AttachedForm| null>(null);
+   const [deletingFormId, setDeletingFormId] = useState<number | null>(null);
 
 
   return {
@@ -115,6 +117,9 @@ const [deletingQuotationId, setDeletingQuotationId] = useState<number | null>(nu
     deletingFileId, setDeletingFileId,
     fileToDelete, setFileToDelete,
     isFileModalOpen, setIsFileModalOpen,
+
+    attachedFormToDelete, setAttachedFormToDelete,
+    deletingFormId, setDeletingFormId,
 
     expenses, setExpenses,
     expenseToEdit, setExpenseToEdit,

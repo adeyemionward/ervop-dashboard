@@ -111,7 +111,7 @@ export default function CreateOrderPage() {
                         <h1 className="text-3xl font-bold text-gray-900">Create Orders</h1>
                     </div>
                     <button className="bg-white border border-gray-300 text-gray-800 px-6 py-3 cursor-pointer font-medium rounded-sm  hover:bg-gray-50 flex items-center space-x-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
                         <span>Watch Tutorial</span>
                     </button>
                 </div>

@@ -19,6 +19,26 @@ export type PaymentHistoryItem = {
   created_at: string;
 };
 
+export interface AvailableForm {
+    id: number;
+    user_id: number;
+    title: string;
+    // description: string | null; // It can be null in the API response
+    // status: string;           // E.g., 'Draft', 'Active'
+    // created_at: string;
+  }
+
+  export interface AttachedForm {
+    id: number; // The ID of the attachment record
+    form_id: number;
+    title: string;
+    // description: string | null;
+    status: 'pending' | 'submitted';
+    public_url: string;
+    created_at: string;
+    completed_at?: string;
+}
+
 export type NoteItem = { 
   id: number; 
   content: string; 
@@ -92,7 +112,9 @@ export interface ProjectDisplayData {
   notesHistory: NoteItem[];
   documents: DocumentItem[];
 
- expenses: (ExpenseResponse | ExpenseDisplayItem)[];
+  expenses: (ExpenseResponse | ExpenseDisplayItem)[];
+  availableForms: AvailableForm[];
+  attachedForms: AttachedForm[];
 }
 
 // API types
@@ -120,6 +142,8 @@ export interface ApiProject {
 
   documents?: DocumentItem[];
   expenses?: ApiExpense[];
+  availableForms?: AvailableForm[];
+  attachedForms: AttachedForm[];
 }
 
 // API types

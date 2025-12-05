@@ -1,15 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
-import { 
-    Megaphone, Mail, MessageSquare, Plus, ArrowUpRight, BarChart2, CheckCircle, Clock,
+import {  Mail, Plus,
     MousePointerClick,
     DollarSign,
     MoreHorizontal,
     Users,
-    Edit
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -54,11 +51,7 @@ const CampaignStatusBadge = ({ status }: { status: CampaignStatus }) => {
         'Draft': "bg-gray-100 text-gray-700",
         'Scheduled': "bg-blue-100 text-blue-800",
     };
-    const icon = {
-        'Sent': <CheckCircle className="w-3 h-3"/>,
-        'Draft': <Edit className="w-3 h-3"/>, // Assuming Edit icon exists
-        'Scheduled': <Clock className="w-3 h-3"/>,
-    }
+  
     return <span className={clsx(baseClasses, statusClasses[status])}>{status}</span>;
 };
 

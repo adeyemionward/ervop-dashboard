@@ -2,13 +2,10 @@
 
 import React, { useState } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
-import Link from "next/link";
-import { 
-    CreditCard, Landmark, Wallet, CheckCircle, PlusCircle, Power, PowerOff, Banknote, Edit,
+import { CheckCircle, PlusCircle, Power, PowerOff, Banknote, Edit,
     X
 } from 'lucide-react';
 import clsx from 'clsx';
-import Image from 'next/image';
 
 // --- TYPE DEFINITIONS ---
 type GatewayStatus = 'Connected' | 'Not Connected';

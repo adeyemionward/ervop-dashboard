@@ -1,29 +1,44 @@
 import { WebsiteData, FaqItem } from '@/types/WebsiteTypes';
 
-const findDeepestFaq = (obj: any): any => {
+type NestedObject = Record<string, unknown>;
+
+/** Recursively searches for the first object that has `question` and `answer` */
+const findDeepestFaq = (obj: NestedObject): { question: Record<string, string>; answer: Record<string, string> } | null => {
   if (!obj || typeof obj !== 'object') return null;
-  if (obj.question && obj.answer) return obj; // found deepest
+
+  if ('question' in obj && 'answer' in obj) {
+    const question = obj.question;
+    const answer = obj.answer;
+
+    if (
+      question && typeof question === 'object' &&
+      answer && typeof answer === 'object'
+    ) {
+      return { question: question as Record<string, string>, answer: answer as Record<string, string> };
+    }
+  }
+
   for (const key in obj) {
-    if (typeof obj[key] === 'object') {
-      const found = findDeepestFaq(obj[key]);
+    const value = obj[key];
+    if (value && typeof value === 'object') {
+      const found = findDeepestFaq(value as NestedObject);
       if (found) return found;
     }
   }
+
   return null;
 };
 
-export const normalizeFaqData = (apiFaq: any): WebsiteData['faq'] => {
+/** Normalizes API FAQ data into WebsiteData['faq'] */
+export const normalizeFaqData = (apiFaq: NestedObject): WebsiteData['faq'] => {
   const faqSection = findDeepestFaq(apiFaq);
+
   if (!faqSection) return { visible: false, items: [] };
 
-  const questions = faqSection.question ?? {};
-  const answers = faqSection.answer ?? {};
-
-  const items: FaqItem[] = Object.keys(questions).map((key) => ({
-    question: questions[key] ?? '',
-    answer: answers[key] ?? '',
+  const items: FaqItem[] = Object.keys(faqSection.question).map((key) => ({
+    question: faqSection.question[key] ?? '',
+    answer: faqSection.answer[key] ?? '',
   }));
 
   return { visible: true, items };
 };
-

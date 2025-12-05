@@ -4,29 +4,30 @@ import React, { useState, useEffect, FC } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import clsx from "clsx";
+import Image from "next/image";
+import toast from "react-hot-toast";
 import DashboardLayout from "@/components/DashboardLayout";
-import InvoiceModal from "@/components/InvoiceModal"; 
-import NoteModal from "@/components/NoteModal";
-import RecordPaymentModal from "@/components/RecordPaymentModal";
-import {Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle,  FileText, Download, FileImage } from 'lucide-react';
+import {Edit, RefreshCw, Trash2, ChevronUp, ChevronDown, PlusCircle,  FileText, Download, FileImage, Copy, ExternalLink, Eye } from 'lucide-react';
 import { formatDate } from "@/app/utils/formatDate";
 import {Invoice } from "@/types/invoice";
 import { downloadFile } from "@/app/utils/downloadFile";
-import DeleteConfirmModal from "@/components/DeleteConfirmModal";
-import FileUploadModal from "@/components/FileUploadModal";
 import { PaymentHistoryItem, NoteItem, ProjectDisplayData  } from "@/types/ProjectTypes";
 import { useProjectState } from "@/hooks/useProjectState";
 import { ProjectApi } from "@/app/actions/ProjectApi"; // NEW
 
-import Image from "next/image";
-import toast from "react-hot-toast";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
-import QuotationModal from "@/components/QuotationModal";
 import { Quotation } from "@/types/quotation";
-import CreateExpenseModal from "@/components/ExpenseModal";
 import { ExpenseResponse } from "@/types/expenses";
 
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import FileUploadModal from "@/components/FileUploadModal";
+import CreateExpenseModal from "@/components/ExpenseModal";
+import InvoiceModal from "@/components/InvoiceModal"; 
+import NoteModal from "@/components/NoteModal";
+import RecordPaymentModal from "@/components/RecordPaymentModal";
+import QuotationModal from "@/components/QuotationModal";
+import AvailableFormsModal from "@/components/AvailableFormsModal";
 // -------------------- HOOKS --------------------
 const useParams = () => {
   if (typeof window !== 'undefined') {
@@ -55,10 +56,10 @@ export default function ProjectDetailsPage() {
   const queryClient = useQueryClient();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  
+  const [isFormsModalOpen, setIsFormsModalOpen] = useState(false);
 
   const [expenses, setExpenses] = useState<ExpenseResponse[]>([]);
-// const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-// const [expenseToEdit, setExpenseToEdit] = useState<ExpenseItemType | null>(null);
 
 const [expenseSearch, setExpenseSearch] = useState("");
 const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -96,13 +97,28 @@ const [expenseToEdit, setExpenseToEdit] = useState(null);
     deletingNoteId, setDeletingNoteId,
     deletingFileId, setDeletingFileId,
     fileToDelete, setFileToDelete,
-    isFileModalOpen, setIsFileModalOpen
+    isFileModalOpen, setIsFileModalOpen,
+
+    attachedFormToDelete, setAttachedFormToDelete,
+    deletingFormId, setDeletingFormId,
+
   } = useProjectState();
-  
-    const { project: fetchedProject, invoices: fetchedInvoices, quotations:fetchedQuotations, fetchProject, isLoading, error } = ProjectApi(projectIdFromUrl);
 
 
 
+    const { project: fetchedProject, invoices: fetchedInvoices, quotations:fetchedQuotations, attachedForms: apiAttachedForms, fetchProject, isLoading, error } = ProjectApi(projectIdFromUrl);
+      // 2. Determine current project data source
+   const currentProject = project || fetchedProject; 
+
+    // 3. Define 'attachedForms' correctly based on priority
+    // If currentProject has data (from your delete update), use it. Otherwise use API data.
+    const attachedForms = currentProject?.attachedForms || apiAttachedForms || [];
+
+    // Handler for copying link
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Link copied to clipboard!");
+    };
 
      const [isOpen, setIsOpen] = useState(false);
 
@@ -120,6 +136,8 @@ const [expenseToEdit, setExpenseToEdit] = useState(null);
         { key: "financials", label: "Financials" },
         { key: "documents", label: "Documents" },
         { key: "notes", label: "Notes" },
+        { key: "forms", label: "Forms" },
+        { key: "tasks", label: "Tasks" },
     ];
 
     
@@ -141,27 +159,27 @@ const [expenseToEdit, setExpenseToEdit] = useState(null);
 
 
     useEffect(() => {
-    if (fetchedInvoices) {
-        setInvoices(fetchedInvoices);
-    }
-}, [fetchedInvoices]);
+      if (fetchedInvoices) {
+          setInvoices(fetchedInvoices);
+      }
+    }, [fetchedInvoices]);
 
 
     useEffect(() => {
-    if (fetchedQuotations) {
-        setQuotations(fetchedQuotations);
-    }
-}, [fetchedQuotations]);
+        if (fetchedQuotations) {
+            setQuotations(fetchedQuotations);
+        }
+    }, [fetchedQuotations]);
 
-useEffect(() => {
-  // Check if project data exists and if its expenses array has length
-  if (project?.expenses?.length) { 
-    
-    // Use type assertion (as ExpenseResponse[]) to force compliance with the state type.
-    // This tells TypeScript to trust that the data from the project is suitable for the state.
-    setExpenses(project.expenses as ExpenseResponse[]); 
-  }
-}, [project?.expenses]);
+    useEffect(() => {
+      // Check if project data exists and if its expenses array has length
+      if (project?.expenses?.length) { 
+        
+        // Use type assertion (as ExpenseResponse[]) to force compliance with the state type.
+        // This tells TypeScript to trust that the data from the project is suitable for the state.
+        setExpenses(project.expenses as ExpenseResponse[]); 
+      }
+    }, [project?.expenses]);
   
     const handleEditInvoiceClick = (invoice: Invoice) => {
         setInvoiceToEdit(invoice);
@@ -195,6 +213,12 @@ useEffect(() => {
             setQuotationToEdit(null); // reset any previous quotation
             setIsQuotationModalOpen(true);
         };
+
+       const handleFormsAttachmentSuccess = () => {
+          fetchProject(); // Reload the page data
+          setIsFormsModalOpen(false); // Close the modal
+          // Note: The modal already showed a Toast on success, so we don't need another one here.
+      };
     
         const deleteInvoiceMutation = useMutation({
         mutationFn: async (id: number) => {
@@ -424,6 +448,58 @@ useEffect(() => {
                 },
         });
 
+
+// ---------- Delete Attached Form (Exact copy of File Delete style) ----------
+const handleDetachForm = async (formId: number): Promise<void> => {
+    // 1. Set loading state
+    setDeletingFormId(formId);
+
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("Authentication token missing");
+            return;
+        }
+
+        // 2. Call API
+        const res = await fetch(`${BASE_URL}/professionals/projects/forms/delete/${formId}`, {
+            method: "DELETE",
+            headers: { 
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}` 
+            },
+        });
+
+        // 3. Parse Response safely
+        const data: { status?: boolean; message?: string } = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed to detach form");
+        }
+
+        // 4. Optimistic Update (Update local state immediately)
+        setProject((prev) => {
+            if (!prev) return prev; // Keep null if it was null
+
+            // Filter out the form with the matching ID from the attachedForms array
+            const updatedAttachedForms = prev.attachedForms.filter((f) => f.id !== formId);
+
+            return { ...prev, attachedForms: updatedAttachedForms };
+        });
+
+        toast.success("Form detached successfully");
+
+    } catch (err) {
+        // 5. Type-safe error handling
+        const errorMessage =
+            err instanceof Error ? err.message : "An unexpected error occurred while detaching the form.";
+        toast.error(errorMessage);
+    } finally {
+        // 6. Cleanup
+        setDeletingFormId(null);
+        setAttachedFormToDelete(null);
+    }
+};
     // ---------- Delete File ----------
     const handleDelete = async (fileId: number): Promise<void> => {
     setDeletingFileId(fileId);
@@ -548,406 +624,406 @@ useEffect(() => {
             
             {/* FINANCIALS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  {/* Left Column: Quotations & Invoices */}
-  <div className="lg:col-span-2 space-y-8">
-    {/* Quotations */}
-    {activeTab === "financials" && (
-      <InfoCard
-        title="Quotations"
-        action={
-          <button
-            onClick={openCreateQuotationModal}
-            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-          >
-            + Create Quotation
-          </button>
-        }
-      >
-        <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
-          {quotations && quotations.length > 0 ? (
-            quotations.map((q) => {
-              const subtotal =
-                q.items?.reduce((acc, item) => {
-                  const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                  return acc + base;
-                }, 0) ?? 0;
-              const finalTotal =
-                subtotal + (subtotal * (q.taxPercentage ?? 0)) / 100 -
-                (subtotal * (q.discountPercentage ?? 0)) / 100;
-
-              const isExpanded = expandedInvoice === q.id;
-
-              return (
-                <div key={q.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md">
-                  {/* Header */}
-                  <div
-                    className="flex justify-between items-center p-4 cursor-pointer"
-                    onClick={() => setExpandedInvoice(isExpanded ? null : q.id)}
+              {/* Left Column: Quotations & Invoices */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Quotations */}
+                {activeTab === "financials" && (
+                  <InfoCard
+                    title="Quotations"
+                    action={
+                      <button
+                        onClick={openCreateQuotationModal}
+                        className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+                      >
+                        + Create Quotation
+                      </button>
+                    }
                   >
-                    <div>
-                      <p className="font-semibold">{q.quotationNumber}</p>
-                      <p className="text-xs text-gray-500">Issued: {q.issueDate}</p>
-                      <p className="text-xs text-gray-500">Due: {q.dueDate}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <p className="font-semibold">₦{finalTotal.toLocaleString()}</p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuotationToEdit(q);
-                          setIsQuotationModalOpen(true);
-                        }}
-                        className="p-2 hover:bg-gray-200 rounded-full"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuotationToDelete(q);
-                        }}
-                        className="p-2 hover:bg-gray-200 text-red-600 rounded-full"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                      {isExpanded ? (
-                        <ChevronUp className="h-5 w-5" />
+                    <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
+                      {quotations && quotations.length > 0 ? (
+                        quotations.map((q) => {
+                          const subtotal =
+                            q.items?.reduce((acc, item) => {
+                              const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
+                              return acc + base;
+                            }, 0) ?? 0;
+                          const finalTotal =
+                            subtotal + (subtotal * (q.taxPercentage ?? 0)) / 100 -
+                            (subtotal * (q.discountPercentage ?? 0)) / 100;
+
+                          const isExpanded = expandedInvoice === q.id;
+
+                          return (
+                            <div key={q.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md">
+                              {/* Header */}
+                              <div
+                                className="flex justify-between items-center p-4 cursor-pointer"
+                                onClick={() => setExpandedInvoice(isExpanded ? null : q.id)}
+                              >
+                                <div>
+                                  <p className="font-semibold">{q.quotationNumber}</p>
+                                  <p className="text-xs text-gray-500">Issued: {q.issueDate}</p>
+                                  <p className="text-xs text-gray-500">Due: {q.dueDate}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <p className="font-semibold">₦{finalTotal.toLocaleString()}</p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setQuotationToEdit(q);
+                                      setIsQuotationModalOpen(true);
+                                    }}
+                                    className="p-2 hover:bg-gray-200 rounded-full"
+                                  >
+                                    <Edit className="h-5 w-5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setQuotationToDelete(q);
+                                    }}
+                                    className="p-2 hover:bg-gray-200 text-red-600 rounded-full"
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </button>
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-5 w-5" />
+                                  ) : (
+                                    <ChevronDown className="h-5 w-5" />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Expanded */}
+                              {isExpanded && (
+                                <div className="px-4 pb-4">
+                                  <table className="w-full text-sm text-left mt-2 border-t">
+                                    <thead>
+                                      <tr>
+                                        <th>Description</th>
+                                        <th className="text-right">Qty</th>
+                                        <th className="text-right">Rate</th>
+                                        <th className="text-right">Amount</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {q.items.map((item) => (
+                                        <tr key={item.id} className="border-t">
+                                          <td className="py-2">{item.description}</td>
+                                          <td className="py-2 text-right">{item.quantity}</td>
+                                          <td className="py-2 text-right">₦{item.rate}</td>
+                                          <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+
+                                  <div className="flex flex-col items-end mt-3 space-y-1">
+                                    <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
+                                    <p>Tax: {q.taxPercentage}%</p>
+                                    <p>Discount: {q.discountPercentage}%</p>
+                                    <p className="text-lg font-semibold">Total: ₦{finalTotal.toLocaleString()}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       ) : (
-                        <ChevronDown className="h-5 w-5" />
+                        <p className="text-gray-400 text-center py-4">No quotation available</p>
                       )}
                     </div>
-                  </div>
+                  </InfoCard>
+                )}
 
-                  {/* Expanded */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4">
-                      <table className="w-full text-sm text-left mt-2 border-t">
-                        <thead>
-                          <tr>
-                            <th>Description</th>
-                            <th className="text-right">Qty</th>
-                            <th className="text-right">Rate</th>
-                            <th className="text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {q.items.map((item) => (
-                            <tr key={item.id} className="border-t">
-                              <td className="py-2">{item.description}</td>
-                              <td className="py-2 text-right">{item.quantity}</td>
-                              <td className="py-2 text-right">₦{item.rate}</td>
-                              <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      <div className="flex flex-col items-end mt-3 space-y-1">
-                        <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                        <p>Tax: {q.taxPercentage}%</p>
-                        <p>Discount: {q.discountPercentage}%</p>
-                        <p className="text-lg font-semibold">Total: ₦{finalTotal.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-gray-400 text-center py-4">No quotation available</p>
-          )}
-        </div>
-      </InfoCard>
-    )}
-
-    {/* Invoices */}
-    {activeTab === "financials" && (
-      <InfoCard
-        title="Invoices"
-        action={
-          <button
-            onClick={openCreateInvoiceModal}
-            className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
-          >
-            + Create Invoice
-          </button>
-        }
-      >
-        <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
-          {invoices && invoices.length > 0 ? (
-            invoices.map((invoice) => {
-              const subtotal =
-                invoice.items?.reduce((acc, item) => {
-                  const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
-                  return acc + base;
-                }, 0) ?? 0;
-              const finalTotal =
-                subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
-                (subtotal * (invoice.discountPercentage ?? 0)) / 100;
-              const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
-
-              let statusLabel = "Pending";
-              let statusClassName = "bg-yellow-100 text-yellow-800";
-              if (remainingBalance === 0) {
-                statusLabel = "Fully Paid";
-                statusClassName = "bg-green-100 text-green-800";
-              } else if (remainingBalance === finalTotal) {
-                statusLabel = "Unpaid";
-                statusClassName = "bg-red-100 text-red-800";
-              } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
-                statusLabel = "Partially Paid";
-                statusClassName = "bg-blue-100 text-blue-800";
-              }
-              if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
-                statusLabel = "Overdue";
-                statusClassName = "bg-red-200 text-red-900";
-              }
-
-              const isExpanded = expandedInvoice === invoice.id;
-
-              return (
-                <div key={invoice.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition">
-                  {/* Header */}
-                  <div
-                    className="flex justify-between items-center p-4 cursor-pointer"
-                    onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
+                {/* Invoices */}
+                {activeTab === "financials" && (
+                  <InfoCard
+                    title="Invoices"
+                    action={
+                      <button
+                        onClick={openCreateInvoiceModal}
+                        className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+                      >
+                        + Create Invoice
+                      </button>
+                    }
                   >
-                    <div>
-                      <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
-                      <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
-                      <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
-                      <p className="text-xs text-gray-500">
-                        Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}</p>
+                    <div className="space-y-3 max-h-[38rem] overflow-y-auto pr-2">
+                      {invoices && invoices.length > 0 ? (
+                        invoices.map((invoice) => {
+                          const subtotal =
+                            invoice.items?.reduce((acc, item) => {
+                              const base = item.amount ?? (item.quantity ?? 0) * (item.rate ?? 0);
+                              return acc + base;
+                            }, 0) ?? 0;
+                          const finalTotal =
+                            subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 -
+                            (subtotal * (invoice.discountPercentage ?? 0)) / 100;
+                          const remainingBalance = Number(invoice.remainingBalance ?? finalTotal);
+
+                          let statusLabel = "Pending";
+                          let statusClassName = "bg-yellow-100 text-yellow-800";
+                          if (remainingBalance === 0) {
+                            statusLabel = "Fully Paid";
+                            statusClassName = "bg-green-100 text-green-800";
+                          } else if (remainingBalance === finalTotal) {
+                            statusLabel = "Unpaid";
+                            statusClassName = "bg-red-100 text-red-800";
+                          } else if (remainingBalance > 0 && remainingBalance < finalTotal) {
+                            statusLabel = "Partially Paid";
+                            statusClassName = "bg-blue-100 text-blue-800";
+                          }
+                          if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && remainingBalance > 0) {
+                            statusLabel = "Overdue";
+                            statusClassName = "bg-red-200 text-red-900";
+                          }
+
+                          const isExpanded = expandedInvoice === invoice.id;
+
+                          return (
+                            <div key={invoice.id} className="bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition">
+                              {/* Header */}
+                              <div
+                                className="flex justify-between items-center p-4 cursor-pointer"
+                                onClick={() => setExpandedInvoice(isExpanded ? null : invoice.id)}
+                              >
+                                <div>
+                                  <p className="font-semibold text-gray-800">{invoice.invoiceNumber}</p>
+                                  <p className="text-xs text-gray-500">Issued: {invoice.issuedDate}</p>
+                                  <p className="text-xs text-gray-500">Due: {invoice.dueDate}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Paid: ₦{(Number(finalTotal) - Number(invoice.remainingBalance)).toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500">Bal.: ₦{Number(invoice.remainingBalance).toLocaleString()}</p>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
+                                    <span className={clsx("px-2 py-0.5 text-xs font-medium rounded-full", statusClassName)}>
+                                      {statusLabel}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center space-x-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditInvoiceClick(invoice);
+                                      }}
+                                      className="p-2 rounded-full hover:bg-gray-200"
+                                      title="Edit Invoice"
+                                    >
+                                      <Edit className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setInvoiceToDelete(invoice);
+                                      }}
+                                      className="p-2 rounded-full hover:bg-gray-200 text-red-600"
+                                      title="Delete Invoice"
+                                    >
+                                      <Trash2 className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedInvoiceId(invoice.id);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
+                                      title="Record Payment"
+                                    >
+                                      <PlusCircle className="h-5 w-5" />
+                                    </button>
+                                    {isExpanded ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+                                  </div>
+                                </div>
+
+                              </div>
+
+                              {/* Expanded */}
+                              {isExpanded && (
+                                <div className="px-4 pb-4">
+                                  <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
+                                    <thead>
+                                      <tr className="text-gray-600">
+                                        <th className="py-2">Description</th>
+                                        <th className="py-2 text-right">Qty</th>
+                                        <th className="py-2 text-right">Rate</th>
+                                        <th className="py-2 text-right">Amount</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {invoice.items.map((item) => (
+                                        <tr key={item.id} className="border-t border-gray-100">
+                                          <td className="py-2">{item.description}</td>
+                                          <td className="py-2 text-right">{item.quantity}</td>
+                                          <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
+                                          <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+
+                                  <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
+                                    <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
+                                    <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
+                                    <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
+                                    <p className="text-lg">
+                                      Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-gray-400 text-center py-4">No invoice available</p>
+                      )}
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-800">₦{finalTotal.toLocaleString()}</p>
-                        <span className={clsx("px-2 py-0.5 text-xs font-medium rounded-full", statusClassName)}>
-                          {statusLabel}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditInvoiceClick(invoice);
-                          }}
-                          className="p-2 rounded-full hover:bg-gray-200"
-                          title="Edit Invoice"
-                        >
-                          <Edit className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInvoiceToDelete(invoice);
-                          }}
-                          className="p-2 rounded-full hover:bg-gray-200 text-red-600"
-                          title="Delete Invoice"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedInvoiceId(invoice.id);
-                            setIsPaymentModalOpen(true);
-                          }}
-                          className="p-2 rounded-full hover:bg-gray-200 text-[#7E51FF]"
-                          title="Record Payment"
-                        >
-                          <PlusCircle className="h-5 w-5" />
-                        </button>
-                        {isExpanded ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Expanded */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4">
-                      <table className="w-full text-sm text-left border-t border-gray-200 mt-2">
-                        <thead>
-                          <tr className="text-gray-600">
-                            <th className="py-2">Description</th>
-                            <th className="py-2 text-right">Qty</th>
-                            <th className="py-2 text-right">Rate</th>
-                            <th className="py-2 text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {invoice.items.map((item) => (
-                            <tr key={item.id} className="border-t border-gray-100">
-                              <td className="py-2">{item.description}</td>
-                              <td className="py-2 text-right">{item.quantity}</td>
-                              <td className="py-2 text-right">₦{item.rate.toLocaleString()}</td>
-                              <td className="py-2 text-right">₦{item.quantity * item.rate}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      <div className="flex flex-col items-end mt-3 font-semibold text-gray-800 space-y-1">
-                        <p>Subtotal: ₦{subtotal.toLocaleString()}</p>
-                        <p>Tax ({invoice.taxPercentage ?? 0}%): ₦{((subtotal * (invoice.taxPercentage ?? 0)) / 100).toLocaleString()}</p>
-                        <p>Discount ({invoice.discountPercentage ?? 0}%): ₦{((subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}</p>
-                        <p className="text-lg">
-                          Total: ₦{(subtotal + (subtotal * (invoice.taxPercentage ?? 0)) / 100 - (subtotal * (invoice.discountPercentage ?? 0)) / 100).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-gray-400 text-center py-4">No invoice available</p>
-          )}
-        </div>
-      </InfoCard>
-    )}
-  </div>
-
-  {/* Right Column: Payment History & Expenses */}
-  <div className="lg:col-span-1 space-y-8">
-    {activeTab === "financials" && (
-      <>
-        {/* Payment History */}
-        <InfoCard
-          title="Payment History"
-          action={
-            <span
-              className={clsx(
-                "px-3 py-1 text-xs font-medium rounded-full",
-                {
-                  "bg-yellow-100 text-yellow-800": totals.totalPaid > 0 && totals.totalPaid < project.projectAmount,
-                  "bg-green-100 text-green-800": totals.totalPaid >= project.projectAmount,
-                  "bg-red-100 text-red-800": totals.totalPaid === 0,
-                }
-              )}
-            >
-              {totals.totalPaid === 0 ? "Unpaid" : totals.totalPaid < project.projectAmount ? "Partially Paid" : "Paid"}
-            </span>
-          }
-        >
-          {/* Totals */}
-          <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-            <div>
-              <p className="text-xs text-gray-500">Total Budget</p>
-              <p className="font-semibold text-gray-800">
-                ₦{Number(project.projectAmount).toLocaleString("en-NG")}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Total Paid</p>
-              <p className="font-semibold text-green-600">₦{totals.totalPaid.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Outstanding</p>
-              <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
-            </div>
-          </div>
-
-          {/* Search & List */}
-          <div className="mb-3">
-            <input
-              type="text"
-              placeholder="Search by Invoice Number..."
-              value={searchInvoice}
-              onChange={(e) => setSearchInvoice(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
-            {filteredHistory.map((p) => (
-              <div key={p.id} className="flex justify-between text-sm">
-                <div>
-                  <p className="text-xs text-gray-500">{p.invoice_no}</p>
-                  <p className="text-gray-500">{p.date}</p>
-                  <p className="text-gray-800 text-xs">{p.method}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-800">{p.amount}</p>
-                  <button onClick={() => setPaymentToDelete(p)} className="text-red-500 hover:text-red-700">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                  </InfoCard>
+                )}
               </div>
-            ))}
-          </div>
-        </InfoCard>
 
-        {/* Expenses */}
-        <InfoCard title="Expenses">
-          {/* Totals */}
-          <div className="grid grid-cols-1 mb-4 text-center">
-            <div>
-              <p className="text-xs text-gray-500">Total Expenses</p>
-              <p className="font-semibold text-red-600">
-                ₦{project?.expenses?.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
-              </p>
+              {/* Right Column: Payment History & Expenses */}
+              <div className="lg:col-span-1 space-y-8">
+                {activeTab === "financials" && (
+                  <>
+                    {/* Payment History */}
+                    <InfoCard
+                      title="Payment History"
+                      action={
+                        <span
+                          className={clsx(
+                            "px-3 py-1 text-xs font-medium rounded-full",
+                            {
+                              "bg-yellow-100 text-yellow-800": totals.totalPaid > 0 && totals.totalPaid < project.projectAmount,
+                              "bg-green-100 text-green-800": totals.totalPaid >= project.projectAmount,
+                              "bg-red-100 text-red-800": totals.totalPaid === 0,
+                            }
+                          )}
+                        >
+                          {totals.totalPaid === 0 ? "Unpaid" : totals.totalPaid < project.projectAmount ? "Partially Paid" : "Paid"}
+                        </span>
+                      }
+                    >
+                      {/* Totals */}
+                      <div className="grid grid-cols-3 gap-4 mb-4 text-center">
+                        <div>
+                          <p className="text-xs text-gray-500">Total Budget</p>
+                          <p className="font-semibold text-gray-800">
+                            ₦{Number(project.projectAmount).toLocaleString("en-NG")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Total Paid</p>
+                          <p className="font-semibold text-green-600">₦{totals.totalPaid.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Outstanding</p>
+                          <p className="font-semibold text-red-600">₦{totals.outstanding.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Search & List */}
+                      <div className="mb-3">
+                        <input
+                          type="text"
+                          placeholder="Search by Invoice Number..."
+                          value={searchInvoice}
+                          onChange={(e) => setSearchInvoice(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+                        {filteredHistory.map((p) => (
+                          <div key={p.id} className="flex justify-between text-sm">
+                            <div>
+                              <p className="text-xs text-gray-500">{p.invoice_no}</p>
+                              <p className="text-gray-500">{p.date}</p>
+                              <p className="text-gray-800 text-xs">{p.method}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-800">{p.amount}</p>
+                              <button onClick={() => setPaymentToDelete(p)} className="text-red-500 hover:text-red-700">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </InfoCard>
+
+                    {/* Expenses */}
+                    <InfoCard title="Expenses">
+                      {/* Totals */}
+                      <div className="grid grid-cols-1 mb-4 text-center">
+                        <div>
+                          <p className="text-xs text-gray-500">Total Expenses</p>
+                          <p className="font-semibold text-red-600">
+                            ₦{project?.expenses?.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Search */}
+                      <div className="mb-3">
+                        <input
+                          type="text"
+                          value={expenseSearch}
+                          onChange={(e) => setExpenseSearch(e.target.value)}
+                          placeholder="Search by description or category..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      {/* List */}
+                      <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
+                        {(expenses ?? [])
+                          .filter(
+                            (exp) =>
+                              (exp.title ?? "").toLowerCase().includes(expenseSearch.toLowerCase()) ||
+                              (exp.category ?? "").toLowerCase().includes(expenseSearch.toLowerCase())
+                          )
+                          .map((expense) => (
+                            <div key={expense.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
+                              <div>
+                                <p className="text-gray-800 font-medium">{expense.title ?? "None"}</p>
+                                <p className="text-gray-500 text-xs">{new Date(expense.date).toLocaleDateString()}</p>
+                                <p className="text-gray-400 text-xs">{expense.category ?? "None"}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-800">₦{Number(expense.amount).toLocaleString()}</p>
+                                <button onClick={() => setExpenseToDelete(expense)} className="text-red-500 hover:text-red-700">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Add Expense */}
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          className="bg-[#7E51FF] text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+                          onClick={() => {
+                            setExpenseToEdit(null);
+                            setIsExpenseModalOpen(true);
+                          }}
+                        >
+                          + Add Expense
+                        </button>
+                      </div>
+                    </InfoCard>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* Search */}
-          <div className="mb-3">
-            <input
-              type="text"
-              value={expenseSearch}
-              onChange={(e) => setExpenseSearch(e.target.value)}
-              placeholder="Search by description or category..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          {/* List */}
-          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3">
-            {(expenses ?? [])
-              .filter(
-                (exp) =>
-                  (exp.title ?? "").toLowerCase().includes(expenseSearch.toLowerCase()) ||
-                  (exp.category ?? "").toLowerCase().includes(expenseSearch.toLowerCase())
-              )
-              .map((expense) => (
-                <div key={expense.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg shadow-sm">
-                  <div>
-                    <p className="text-gray-800 font-medium">{expense.title ?? "None"}</p>
-                    <p className="text-gray-500 text-xs">{new Date(expense.date).toLocaleDateString()}</p>
-                    <p className="text-gray-400 text-xs">{expense.category ?? "None"}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-gray-800">₦{Number(expense.amount).toLocaleString()}</p>
-                    <button onClick={() => setExpenseToDelete(expense)} className="text-red-500 hover:text-red-700">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
-
-          {/* Add Expense */}
-          <div className="mt-3 flex justify-end">
-            <button
-              className="bg-[#7E51FF] text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
-              onClick={() => {
-                setExpenseToEdit(null);
-                setIsExpenseModalOpen(true);
-              }}
-            >
-              + Add Expense
-            </button>
-          </div>
-        </InfoCard>
-      </>
-    )}
-  </div>
-</div>
 
 
             {/* other */}
@@ -1094,6 +1170,94 @@ useEffect(() => {
                             </div>
                         </InfoCard>
                     )} 
+
+                    {/* --- FORMS TAB CONTENT (Updated to show ATTACHED forms) --- */}
+                    {activeTab === "forms" && (
+                        <InfoCard
+                            title="Project Forms"
+                            action={
+                                <button
+                                    onClick={() => setIsFormsModalOpen(true)}
+                                    className="text-sm bg-purple-100 font-medium text-purple-600 py-2 px-3 rounded-lg hover:text-purple-800"
+                                >
+                                    + Attach New Form
+                                </button>
+                            }
+                        >
+                            <div className="max-h-64 overflow-y-auto pr-2 space-y-4">
+                                {attachedForms.length > 0 ? (
+                                    attachedForms.map((form) => (
+                                        <div key={form.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                            
+                                            {/* Left: Info */}
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-gray-800">{form.title}</p>
+                                                    <span className={clsx("px-2 py-0.5 text-[10px] font-medium rounded-full uppercase tracking-wider", {
+                                                        'bg-yellow-100 text-yellow-800': form.status === 'pending',
+                                                        'bg-green-100 text-green-800': form.status === 'submitted'
+                                                    })}>
+                                                        {form.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Sent: {new Date(form.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+
+                                            {/* Right: Actions */}
+                                            <div className="flex items-center gap-2">
+                                                
+                                                {/* 1. Copy Link */}
+                                                <button 
+                                                    onClick={() => copyToClipboard(form.public_url)}
+                                                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer transition"
+                                                    title="Copy Link"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+
+                                                {/* 2. Open Link */}
+                                                <a 
+                                                    href={form.public_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer transition"
+                                                    title="Open Form"
+                                                >
+                                                    <ExternalLink size={16} />
+                                                </a>
+
+                                                {/* 3. View Submission (Only if submitted) */}
+                                                {form.status === 'submitted' && (
+                                                    <Link 
+                                                        href={`/forms/submission/${form.id}`} 
+                                                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full cursor-pointer transition"
+                                                        title="View Submission"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </Link>
+                                                )}
+
+                                                {/* 4. Delete (Detach) */}
+                                                <button 
+                                                    onClick={() => setAttachedFormToDelete(form)} 
+                                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer transition"
+                                                    title="Detach Form"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <p>No forms have been attached to this project yet.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </InfoCard>
+                    )}
                 </div>  
             </div>  
             
@@ -1119,40 +1283,39 @@ useEffect(() => {
             )}
 
             {isNoteModalOpen && (
-            <NoteModal
-                isOpen={isNoteModalOpen}
-                onClose={() => {
-                setIsNoteModalOpen(false);
-                setNoteToEdit(null);
-                }}
-                noteToEdit={noteToEdit}
-                entityId={projectIdFromUrl}  // ✅ correct prop name
-                type="project"
-                onNoteSaved={(savedNote, isUpdate) => {
-                setProject((prev: ProjectDisplayData | null) => {
-                    if (!prev) return prev;
+              <NoteModal
+                  isOpen={isNoteModalOpen}
+                  onClose={() => {
+                  setIsNoteModalOpen(false);
+                  setNoteToEdit(null);
+                  }}
+                  noteToEdit={noteToEdit}
+                  entityId={projectIdFromUrl}  // ✅ correct prop name
+                  type="project"
+                  onNoteSaved={(savedNote, isUpdate) => {
+                  setProject((prev: ProjectDisplayData | null) => {
+                      if (!prev) return prev;
 
-                    const noteWithCreatedAt: NoteItem = {
-                    ...savedNote,
-                    created_at: savedNote.created_at ?? new Date().toISOString(),
-                    };
+                      const noteWithCreatedAt: NoteItem = {
+                      ...savedNote,
+                      created_at: savedNote.created_at ?? new Date().toISOString(),
+                      };
 
-                    return {
-                    ...prev,
-                    notesHistory: isUpdate
-                        ? prev.notesHistory.map((n) =>
-                            n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
-                        )
-                        : [noteWithCreatedAt, ...prev.notesHistory],
-                    };
-                });
+                      return {
+                      ...prev,
+                      notesHistory: isUpdate
+                          ? prev.notesHistory.map((n) =>
+                              n.id === noteWithCreatedAt.id ? noteWithCreatedAt : n
+                          )
+                          : [noteWithCreatedAt, ...prev.notesHistory],
+                      };
+                  });
 
-                setIsNoteModalOpen(false);
-                setNoteToEdit(null);
-                }}
-            />
+                  setIsNoteModalOpen(false);
+                  setNoteToEdit(null);
+                  }}
+              />
             )}
-
 
             {isQuotationModalOpen && (
                 <QuotationModal
@@ -1179,7 +1342,6 @@ useEffect(() => {
                 />
 
             )}
-
 
             {isExpenseModalOpen && (
                 <CreateExpenseModal
@@ -1230,93 +1392,126 @@ useEffect(() => {
                     existingInvoice={invoiceToEdit}
                 />
             )}
+            
+            {isFileModalOpen && (
+              <FileUploadModal
+                  isOpen={isFileModalOpen}
+                  onClose={() => setIsFileModalOpen(false)}
+                  onFileUploaded={() => {
+                    fetchProject(); 
+                  }}
+              />
+            )}
 
-            <FileUploadModal
-                isOpen={isFileModalOpen}
-                onClose={() => setIsFileModalOpen(false)}
-                onFileUploaded={() => {
-                        fetchProject(); 
-                }}
+            {isFormsModalOpen && (
+                <AvailableFormsModal 
+                    isOpen={isFormsModalOpen}
+                    onClose={() => setIsFormsModalOpen(false)}
+                    
+                    projectId={projectIdFromUrl} 
+                    availableForms={currentProject?.availableForms || []}
+
+                    // ✅ ADD THIS LINE: Pass the attached forms so the modal knows what to check!
+                    attachedForms={attachedForms} 
+                    
+                    onAttachSuccess={handleFormsAttachmentSuccess} 
+                />
+            )}
+
+            {/* 7. Detach Form Modal */}
+            <DeleteConfirmModal
+                isOpen={!!attachedFormToDelete}
+                onCancel={() => setAttachedFormToDelete(null)}
+                
+                // ✅ Pass the ID directly to the new function
+                onConfirm={() => attachedFormToDelete && handleDetachForm(attachedFormToDelete.id)}
+                
+                title="Detach Form"
+                message={
+                    attachedFormToDelete
+                        ? `Are you sure you want to remove "${attachedFormToDelete.title}" from this project?`
+                        : ""
+                }
+                // ✅ Use the specific deletingFormId state
+                deleting={deletingFormId === attachedFormToDelete?.id}
             />
         
             <DeleteConfirmModal
-                isOpen={!!paymentToDelete}
-                onCancel={() => setPaymentToDelete(null)}
-                onConfirm={() => paymentToDelete && deletePaymentMutation.mutate(paymentToDelete.id)}
-                title="Delete Payment"
-                message={
-                    paymentToDelete
-                    ? `Are you sure you want to delete the payment of ${paymentToDelete.amount} on ${paymentToDelete.date}?`
-                    : ""
-                }
-                deleting={deletingId === paymentToDelete?.id} // ✅ only disables for the active payment
+              isOpen={!!paymentToDelete}
+              onCancel={() => setPaymentToDelete(null)}
+              onConfirm={() => paymentToDelete && deletePaymentMutation.mutate(paymentToDelete.id)}
+              title="Delete Payment"
+              message={
+                  paymentToDelete
+                  ? `Are you sure you want to delete the payment of ${paymentToDelete.amount} on ${paymentToDelete.date}?`
+                  : ""
+              }
+              deleting={deletingId === paymentToDelete?.id} // ✅ only disables for the active payment
             />
 
             <DeleteConfirmModal
-  isOpen={!!expenseToDelete} // ✅ modal controlled by this state
-  onCancel={() => setExpenseToDelete(null)} 
-  onConfirm={() => expenseToDelete && deleteExpenseMutation.mutate(expenseToDelete.id)}
-  title="Delete Expense"
-  message={
-    expenseToDelete
-      ? `Are you sure you want to delete the expense of ${expenseToDelete.amount} on ${expenseToDelete.date}?`
-      : ""
-  }
-  deleting={deletingId === expenseToDelete?.id} // only disables for the active expense
-/>
-
-
-            <DeleteConfirmModal
-                isOpen={!!invoiceToDelete}
-                onCancel={() => setInvoiceToDelete(null)}
-                onConfirm={() => invoiceToDelete && deleteInvoiceMutation.mutate(invoiceToDelete.id)}
-                title="Delete Invoice"
-                message={
-                    invoiceToDelete
-                        ? `Are you sure you want to delete the invoice of ${invoiceToDelete.invoiceNumber}?`
-                        : ""
-                }
-                deleting={deletingInvoiceId === invoiceToDelete?.id}
+              isOpen={!!expenseToDelete} // ✅ modal controlled by this state
+              onCancel={() => setExpenseToDelete(null)} 
+              onConfirm={() => expenseToDelete && deleteExpenseMutation.mutate(expenseToDelete.id)}
+              title="Delete Expense"
+              message={
+                expenseToDelete
+                  ? `Are you sure you want to delete the expense of ${expenseToDelete.amount} on ${expenseToDelete.date}?`
+                  : ""
+              }
+              deleting={deletingId === expenseToDelete?.id} // only disables for the active expense
             />
 
             <DeleteConfirmModal
-                isOpen={!!quotationToDelete}
-                onCancel={() => setQuotationToDelete(null)}
-                onConfirm={() => quotationToDelete && deleteQuotationMutation.mutate(quotationToDelete.id)}
-                title="Delete quotation"
-                message={
-                    quotationToDelete
-                        ? `Are you sure you want to delete the quotationm of ${quotationToDelete.quotationNumber}?`
-                        : ""
-                }
-                deleting={deletingQuotationId === quotationToDelete?.id}
+              isOpen={!!invoiceToDelete}
+              onCancel={() => setInvoiceToDelete(null)}
+              onConfirm={() => invoiceToDelete && deleteInvoiceMutation.mutate(invoiceToDelete.id)}
+              title="Delete Invoice"
+              message={
+                  invoiceToDelete
+                      ? `Are you sure you want to delete the invoice of ${invoiceToDelete.invoiceNumber}?`
+                      : ""
+              }
+              deleting={deletingInvoiceId === invoiceToDelete?.id}
             />
 
             <DeleteConfirmModal
-                isOpen={!!noteToDelete}
-                onCancel={() => setNoteToDelete(null)}
-                onConfirm={() => noteToDelete && deleteNoteMutation.mutate(noteToDelete.id)}
-                title="Delete Note"
-                message={
-                    noteToDelete
-                        ? `Are you sure you want to delete this note: "${noteToDelete.content}"?`
-                        : ""
-                }
-                deleting={deletingNoteId === noteToDelete?.id}
+              isOpen={!!quotationToDelete}
+              onCancel={() => setQuotationToDelete(null)}
+              onConfirm={() => quotationToDelete && deleteQuotationMutation.mutate(quotationToDelete.id)}
+              title="Delete quotation"
+              message={
+                  quotationToDelete
+                      ? `Are you sure you want to delete the quotationm of ${quotationToDelete.quotationNumber}?`
+                      : ""
+              }
+              deleting={deletingQuotationId === quotationToDelete?.id}
             />
 
-            {/* delete modal */}
             <DeleteConfirmModal
-                isOpen={!!fileToDelete}
-                onCancel={() => setFileToDelete(null)}
-                onConfirm={() => fileToDelete && handleDelete(fileToDelete.id)}
-                title="Delete File"
-                message={
-                fileToDelete
-                    ? `Are you sure you want to delete "${fileNameFromPath(fileToDelete.file_path)}"?`
-                    : ""
-                }
-                deleting={deletingFileId === fileToDelete?.id}
+              isOpen={!!noteToDelete}
+              onCancel={() => setNoteToDelete(null)}
+              onConfirm={() => noteToDelete && deleteNoteMutation.mutate(noteToDelete.id)}
+              title="Delete Note"
+              message={
+                  noteToDelete
+                      ? `Are you sure you want to delete this note: "${noteToDelete.content}"?`
+                      : ""
+              }
+              deleting={deletingNoteId === noteToDelete?.id}
+            />
+
+            <DeleteConfirmModal
+              isOpen={!!fileToDelete}
+              onCancel={() => setFileToDelete(null)}
+              onConfirm={() => fileToDelete && handleDelete(fileToDelete.id)}
+              title="Delete File"
+              message={
+              fileToDelete
+                  ? `Are you sure you want to delete "${fileNameFromPath(fileToDelete.file_path)}"?`
+                  : ""
+              }
+              deleting={deletingFileId === fileToDelete?.id}
             />
 
         </DashboardLayout>

@@ -4,9 +4,9 @@ import { DashboardData } from "@/types/Dashboard";
 // 🧩 Mock dashboard data (no API calls)
 export const mockDashboardData: DashboardData = {
   stats: {
-    todayRevenue: "₦184,500",
+    todayRevenue: "₦184,500", 
     allTimeRevenue: "₦15.4M",
-    todayProjects: 5,
+    activeProjects: 5,
     allTimeProjects: 320,
     upcomingAppointments: 8,
     totalAppointments: 100,
