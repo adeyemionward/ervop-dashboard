@@ -64,6 +64,8 @@ export default function ServicesPage() {
     
  const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+    console.log("ENV CHECK - BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
+    console.log("USER TOKEN:", userToken);
     
     // --- 2. DATA FETCHING ---
     // We manually fetch here to have better control over the 'services' state
@@ -86,7 +88,7 @@ export default function ServicesPage() {
                     setError("Failed to load services");
                 }
             } catch (err) {
-                console.error(err);
+                //console.error(err);
                 setError("An error occurred");
             } finally {
                 setLoading(false);
@@ -147,10 +149,10 @@ export default function ServicesPage() {
                 setShowDeleteModal(false);
                 setServiceToDelete(null);
             } else {
-                console.error(result.message);
+                //console.error(result.message);
             }
         } catch (error) {
-            console.error("Delete failed:", error);
+            //console.error("Delete failed:", error);
         } finally {
             setIsDeleting(false);
         }
