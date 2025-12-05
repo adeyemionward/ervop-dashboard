@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic"; // ✅ prevents SSR/build errors
 
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
@@ -27,16 +26,20 @@ interface FormType {
   fields: FormField[];
 }
 
+export const dynamic = "force-dynamic"; // prevents SSR/build errors
+
 export default function FillForm() {
   const handleGoBack = useGoBack();
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const clientId = searchParams.get("clientId");
-  const projectId = searchParams.get("projectId");
-  const templateId = searchParams.get("templateId");
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const [params, setParams] = useState<{
+    clientId: string | null;
+    projectId: string | null;
+    templateId: string | null;
+  }>({ clientId: null, projectId: null, templateId: null });
 
+  const [token, setToken] = useState<string | null>(null);
   const [client, setClient] = useState<Contact | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [form, setForm] = useState<FormType | null>(null);
@@ -44,13 +47,23 @@ export default function FillForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Get params and token on client
+  useEffect(() => {
+    setParams({
+      clientId: searchParams.get("clientId"),
+      projectId: searchParams.get("projectId"),
+      templateId: searchParams.get("templateId"),
+    });
+    setToken(localStorage.getItem("token"));
+  }, [searchParams]);
+
   // Fetch form template
   useEffect(() => {
-    if (!token || !templateId) return;
+    if (!token || !params.templateId) return;
 
     const fetchForm = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/forms/show/${templateId}`, {
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/forms/show/${params.templateId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -65,15 +78,15 @@ export default function FillForm() {
     };
 
     fetchForm();
-  }, [token, templateId]);
+  }, [token, params.templateId]);
 
   // Fetch client
   useEffect(() => {
-    if (!clientId || !token) return;
+    if (!token || !params.clientId) return;
 
     const fetchClient = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/contacts/show/${clientId}`, {
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/contacts/show/${params.clientId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -84,15 +97,15 @@ export default function FillForm() {
     };
 
     fetchClient();
-  }, [clientId, token]);
+  }, [token, params.clientId]);
 
   // Fetch project
   useEffect(() => {
-    if (!projectId || !token) return;
+    if (!token || !params.projectId) return;
 
     const fetchProject = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/projects/show/${projectId}`, {
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/professionals/projects/show/${params.projectId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -103,7 +116,7 @@ export default function FillForm() {
     };
 
     fetchProject();
-  }, [projectId, token]);
+  }, [token, params.projectId]);
 
   const handleChange = (fieldId: number, value: string) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
@@ -121,9 +134,9 @@ export default function FillForm() {
     }));
 
     const payload = {
-      form_id: templateId,
-      project_id: projectId,
-      contact_id: clientId,
+      form_id: params.templateId,
+      project_id: params.projectId,
+      contact_id: params.clientId,
       action: "fill_on_behalf",
       answers,
     };
