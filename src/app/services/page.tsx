@@ -3,7 +3,7 @@
 // import config from "@/config/env";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
-import { useState, useMemo, useEffect } from "react"; 
+import { useState, useMemo, useEffect, useCallback } from "react"; 
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import Modal from "@/components/Modal";
 // Make sure this import path points to your updated Modal component
@@ -69,33 +69,36 @@ export default function ServicesPage() {
     
     // --- 2. DATA FETCHING ---
     // We manually fetch here to have better control over the 'services' state
-    useEffect(() => {
-        const fetchServices = async () => {
-            try {
-                if (!userToken) {
-                    throw new Error("No authentication token found.");
-                }
-                const res = await fetch(`${BASE_URL}/professionals/services/list`, {
-                    headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${userToken}`,
-                    },
-                });
-                const result = await res.json();
-                if (result.status) {
-                    setServices(result.services);
-                } else {
-                    setError("Failed to load services");
-                }
-            } catch (err) {
-                console.error(err);
-                setError("An error occurred");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchServices();
-    }, []);
+   const fetchServices = useCallback(async () => {
+  if (!userToken) return;
+
+  setLoading(true);
+  try {
+    const res = await fetch(`${BASE_URL}/professionals/services/list`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
+    }
+
+    const { services } = await res.json(); // adjust according to your API
+    setServices(services);
+  } catch (err) {
+    console.error(err);
+    setError(err instanceof Error ? err.message : "Failed to load services");
+  } finally {
+    setLoading(false);
+  }
+}, [userToken]);
+
+useEffect(() => {
+  fetchServices();
+}, [fetchServices]);
+
 
     // --- 3. HANDLERS ---
 
