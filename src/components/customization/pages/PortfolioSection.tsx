@@ -7,7 +7,8 @@ import { WebsiteData, PortfolioItem } from '@/types/WebsiteTypes';
 
 type Props = {
   data: WebsiteData['portfolio'];
-  onUpdate: (section: keyof WebsiteData, path: string[], value: any) => void;
+  // (updated[index] as Record<string, string | File | undefined>)[field] = value;
+  onUpdate: (section: keyof WebsiteData, path: string[], value: unknown) => void;
 };
 
 const PortfolioSection: React.FC<Props> = ({ data, onUpdate }) => {
@@ -38,7 +39,8 @@ const PortfolioSection: React.FC<Props> = ({ data, onUpdate }) => {
     if (field === 'description' && typeof value === 'string') {
       value = value.slice(0, 100);
     }
-    updated[index][field] = value as any;
+    (updated[index][field] as typeof value) = value;
+
     onUpdate('portfolio', ['items'], updated);
   };
 
