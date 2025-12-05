@@ -95,6 +95,7 @@ export default function ServicesPage() {
 }, []); 
 
 useEffect(() => {
+    if (typeof window === 'undefined') return;
     fetchServices(); // runs only on client
 }, [fetchServices]);
 
