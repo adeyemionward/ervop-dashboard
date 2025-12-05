@@ -7,7 +7,7 @@ import { useGoBack } from "@/hooks/useGoBack";
 import { Icons } from "@/components/icons";
 import Link from "next/link";
 import { Eye, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import CreateProjectModal from "./new/page";
+import CreateProjectModal from "@/components/CreateProjectModal";
 import Modal from "@/components/Modal";
 
 import DataTable from "@/components/DataTable";
