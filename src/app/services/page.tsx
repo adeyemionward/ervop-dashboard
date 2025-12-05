@@ -1,6 +1,6 @@
 'use client';
 
-import config from "@/config/env";
+// import config from "@/config/env";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
 import { useState, useMemo, useEffect } from "react"; 
