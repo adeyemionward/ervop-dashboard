@@ -112,16 +112,16 @@ export default function PaymentMethodsPage() {
     const [manualMethods, setManualMethods] = useState(initialManualMethods);
 
     const [bankAccount, setBankAccount] = useState<BankAccount | null>(initialBankAccount);
-        const [isModalOpen, setIsModalOpen] = useState(false);
-    
-        const handleSaveAccount = (account: BankAccount) => {
-            // In a real app, you'd make an API call here to save the details securely
-            setBankAccount({
-                ...account,
-                accountNumber: `**** **** ${account.accountNumber.slice(-4)}` // Mask the number for display
-            });
-            setIsModalOpen(false);
-        };
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleSaveAccount = (account: BankAccount) => {
+        // In a real app, you'd make an API call here to save the details securely
+        setBankAccount({
+            ...account,
+            accountNumber: `**** **** ${account.accountNumber.slice(-4)}` // Mask the number for display
+        });
+        setIsModalOpen(false);
+    };
 
     const handleToggleGateway = (name: string) => {
         setPaymentGateways(gateways => 
@@ -224,18 +224,23 @@ export default function PaymentMethodsPage() {
                                 </div>
                                 {method.name === 'Direct Bank Transfer' && method.enabled && (
                                     <div className="mt-4 pt-4 border-t border-gray-200">
-                                        {method.details ? (
+                                        {bankAccount ? (
                                             <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
                                                 <div className="flex items-center">
                                                     <Banknote className="w-5 h-5 text-gray-500 mr-3"/>
-                                                    <p className="text-sm font-medium text-gray-700">{method.details}</p>
+                                                    <p className="text-sm font-medium text-gray-700">
+                                                        {bankAccount.bankName} - {bankAccount.accountNumber} <br />
+                                                        <span className="text-gray-500 text-xs">{bankAccount.accountName}</span>
+                                                    </p>
                                                 </div>
+
                                                 <button onClick={() => setIsModalOpen(true)} className="text-sm font-semibold text-blue-600 hover:underline flex items-center">
                                                     <Edit className="w-3 h-3 mr-1.5"/>
                                                     Edit
                                                 </button>
                                             </div>
                                         ) : (
+
                                             <button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-2 px-4 rounded-lg flex items-center justify-center transition-colors text-sm">
                                                 <PlusCircle className="w-4 h-4 mr-2"/>
                                                 <span>Add Bank Details</span>

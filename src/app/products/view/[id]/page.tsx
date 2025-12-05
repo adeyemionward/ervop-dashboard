@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import DashboardLayout from "@/components/DashboardLayout"; // Assuming a layout component
 import Link from "next/link";
 import { 
-    ArrowLeft, Edit, Trash2, CheckCircle, XCircle, DollarSign, Package, 
-    TrendingUp, ShoppingCart, History, Plus, Check, Save, Share2
+    ArrowLeft, Edit, Trash2, CheckCircle, XCircle, DollarSign, 
+    TrendingUp, ShoppingCart, Check, Save, Share2
 } from 'lucide-react';
 import clsx from 'clsx';
 

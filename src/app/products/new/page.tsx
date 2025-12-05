@@ -233,7 +233,7 @@ export default function AddNewProductPage() {
                             // -- Variations Section --
                             <div className="border-t pt-6 space-y-4">
                                 <h3 className="text-lg font-medium text-gray-900">Product Variations</h3>
-                                {variations.map((variation, index) => (
+                                {variations.map((variation) => (
                                     <div key={variation.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg relative">
                                         <input type="text" placeholder="Option Name (e.g. Color)" value={variation.name} onChange={(e) => handleVariationChange(variation.id, 'name', e.target.value)} className="col-span-1 md:col-span-1 border border-gray-300 rounded-lg p-2" />
                                         <input type="text" placeholder="Option Value (e.g. Red)" value={variation.value} onChange={(e) => handleVariationChange(variation.id, 'value', e.target.value)} className="col-span-1 md:col-span-1 border border-gray-300 rounded-lg p-2" />

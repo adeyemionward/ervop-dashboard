@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo, SVGProps } from 'react';
+import React, { useState, useMemo } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
-import { Package, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2, Plus } from 'lucide-react';
+import { Package, CheckCircle, XCircle, DollarSign, Search, Edit, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import { Icons } from "@/components/icons";
 import { useGoBack } from '@/hooks/useGoBack';
@@ -67,7 +67,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, productName }: { 
                     <h3 className="text-lg leading-6 font-medium text-gray-900 mt-5">Delete Product</h3>
                     <div className="mt-2 px-4 py-3">
                         <p className="text-sm text-gray-500">
-                            Are you sure you want to delete "{productName}"? This action cannot be undone.
+                            Are you sure you want to delete {productName}? This action cannot be undone.
                         </p>
                     </div>
                     <div className="mt-6 flex justify-center gap-4">

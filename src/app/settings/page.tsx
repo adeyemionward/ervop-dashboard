@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
-    User, Building, Bell, Lock, Trash2, Package,Eye, EyeOff
+    User, Building, Bell, Lock, Trash2,Eye, EyeOff
 } from 'lucide-react';
 import clsx from 'clsx';
 

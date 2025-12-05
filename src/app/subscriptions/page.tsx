@@ -3,13 +3,9 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
-import { Icons } from "@/components/icons";
-import { SVGProps, useState, useMemo, Children } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { CreditCard, Download, CheckCircle, ArrowRight, History } from 'lucide-react';
-import clsx from 'clsx';
 
 // --- TYPE DEFINITIONS ---
 type Plan = {

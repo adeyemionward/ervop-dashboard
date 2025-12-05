@@ -2,8 +2,7 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { Icons } from "@/components/icons";
-import { SVGProps, useState } from "react";
-import Image from "next/image";
+import {  useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useParams } from "next/navigation";

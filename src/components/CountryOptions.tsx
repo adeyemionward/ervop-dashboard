@@ -1,27 +1,32 @@
-// src/components/CountryOptions.js
+// src/components/CountryOptions.ts
+import { StylesConfig } from "react-select";
 
-import React, { useState } from 'react';
-   export const customStyles = {
-    control: (provided, state) => ({
-      ...provided,
-      minHeight: "50px",  // increase input height
-      height: "50px",
-      borderRadius: "0.5rem", // rounded-lg
-      borderColor: state.isFocused ? "#9333EA" : "#D1D5DB", // purple-600 : gray-300
-      boxShadow: state.isFocused ? "0 0 0 2px rgba(147, 51, 234, 0.5)" : "none", // focus ring
-      "&:hover": {
-        borderColor: state.isFocused ? "#9333EA" : "#9CA3AF", // darker gray hover
-      },
-    }),
-    input: (provided) => ({
-      ...provided,
-      margin: "0px",
-    }),
-    indicatorsContainer: (provided) => ({
-      ...provided,
-      height: "50px", // match the height
-    }),
-  };
+export const customStyles: StylesConfig = {
+  control: (provided, state) => ({
+    ...provided,
+    minHeight: "50px",
+    height: "50px",
+    borderRadius: "0.5rem",
+    borderColor: state.isFocused ? "#9333EA" : "#D1D5DB",
+    boxShadow: state.isFocused
+      ? "0 0 0 2px rgba(147, 51, 234, 0.5)"
+      : "none",
+    "&:hover": {
+      borderColor: state.isFocused ? "#9333EA" : "#9CA3AF",
+    },
+  }),
+
+  input: (provided) => ({
+    ...provided,
+    margin: "0px",
+  }),
+
+  indicatorsContainer: (provided) => ({
+    ...provided,
+    height: "50px",
+  }),
+};
+
 export const countryOptions = [
   { value: "Afghanistan", label: "Afghanistan" },
   { value: "Albania", label: "Albania" },
@@ -216,5 +221,5 @@ export const countryOptions = [
   { value: "Vietnam", label: "Vietnam" },
   { value: "Yemen", label: "Yemen" },
   { value: "Zambia", label: "Zambia" },
-  { value: "Zimbabwe", label: "Zimbabwe" }
+  { value: "Zimbabwe", label: "Zimbabwe" },
 ];
