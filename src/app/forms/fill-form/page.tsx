@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic"; // prevents SSR/build errors
 export default function FillForm() {
   const handleGoBack = useGoBack();
   //  if (typeof window !== 'undefined') {
-            const searchParams = new URLSearchParams(window.location.search);
+            // const searchParams = new URLSearchParams(window.location.search);
            
         // }
 
@@ -54,13 +54,14 @@ export default function FillForm() {
 
   // Get params and token on client
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     setParams({
       clientId: searchParams.get("clientId"),
       projectId: searchParams.get("projectId"),
       templateId: searchParams.get("templateId"),
     });
     setToken(localStorage.getItem("token"));
-  }, [searchParams]);
+  }, []);
 
   // Fetch form template
   useEffect(() => {
