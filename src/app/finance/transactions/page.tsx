@@ -116,7 +116,7 @@ export default function TransactionsListPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
     const [datePreset, setDatePreset] = useState('All');
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [dateRange, setDateRange] = useState({ start: '', end: '' }); 
 
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);

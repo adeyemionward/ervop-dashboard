@@ -23,7 +23,7 @@ interface Service {
     status: string; // Changed to string to match your Modal
 }
 
-
+const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 const BASE_URL = "http://127.0.0.1:8000/api/v1"//config.baseUrl;
 
 // --- Badge Component ---
@@ -68,9 +68,8 @@ export default function ServicesPage() {
     useEffect(() => {
         const fetchServices = async () => {
             try {
-                const token = localStorage.getItem("token");
                 const res = await fetch(`${BASE_URL}/professionals/services/list`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: { Authorization: `Bearer ${userToken}` }
                 });
                 const result = await res.json();
                 if (result.status) {
@@ -126,12 +125,11 @@ export default function ServicesPage() {
         setIsDeleting(true);
     
         try {
-            const token = localStorage.getItem("token");
             const res = await fetch(
             `${BASE_URL}/professionals/services/delete/${serviceToDelete.id}`,
             {
                 method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${userToken}` },
             }
             );
             const result = await res.json();
