@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import HeaderTitleCard from "@/components/HeaderTitleCard";
 import { useGoBack } from "@/hooks/useGoBack";
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Contact } from "@/hooks/useClientData";
 
@@ -30,7 +30,12 @@ export const dynamic = "force-dynamic"; // prevents SSR/build errors
 
 export default function FillForm() {
   const handleGoBack = useGoBack();
-  const searchParams = useSearchParams();
+  //  if (typeof window !== 'undefined') {
+            const searchParams = new URLSearchParams(window.location.search);
+           
+        // }
+
+  // const searchParams = useSearchParams();
   const router = useRouter();
 
   const [params, setParams] = useState<{
